@@ -1,4 +1,4 @@
-//! Page tint: a soft gradient in the dominant colour of the album cover.
+//! Tints from the dominant colour of an album cover.
 //! Every tinted widget gets its own style class and rule, removed again
 //! when the widget is destroyed, so pages never share or steal colours.
 
@@ -12,6 +12,14 @@ thread_local! {
     static PROVIDER: OnceCell<gtk::CssProvider> = const { OnceCell::new() };
     static RULES: RefCell<BTreeMap<u64, String>> = const { RefCell::new(BTreeMap::new()) };
     static NEXT_ID: Cell<u64> = const { Cell::new(0) };
+}
+
+fn next_id() -> u64 {
+    NEXT_ID.with(|next| {
+        let id = next.get();
+        next.set(id + 1);
+        id
+    })
 }
 
 /// Weighted average of the cover's pixels: colourful, bright pixels count most,
@@ -43,13 +51,10 @@ pub(crate) fn dominant_color(texture: &gdk::Texture) -> Option<(u8, u8, u8)> {
     Some(((r / total) as u8, (g / total) as u8, (b / total) as u8))
 }
 
-/// Gives `widget` a background gradient in `color` that belongs to it alone.
+/// Gives `widget` a background gradient in `color` that belongs to it alone
+/// (album pages).
 pub(crate) fn apply(widget: &impl IsA<gtk::Widget>, (r, g, b): (u8, u8, u8)) {
-    let id = NEXT_ID.with(|next| {
-        let id = next.get();
-        next.set(id + 1);
-        id
-    });
+    let id = next_id();
     let class = format!("album-tint-{id}");
 
     RULES.with(|rules| {
@@ -87,4 +92,48 @@ fn reload() {
         });
         provider.load_from_string(&css);
     });
+}
+
+/// A style class whose colour can change over time (the now-playing pill).
+/// Unlike apply(), the same widget keeps one class and its rule is rewritten.
+pub(crate) struct Dynamic {
+    id: u64,
+    class: String,
+}
+
+impl Dynamic {
+    pub(crate) fn new() -> Self {
+        let id = next_id();
+        Self {
+            id,
+            class: format!("dynamic-tint-{id}"),
+        }
+    }
+
+    pub(crate) fn class(&self) -> &str {
+        &self.class
+    }
+
+    /// A soft tint: the cover colour mixed into the window background, so the
+    /// text keeps its normal colour and stays readable on any cover. Only the
+    /// progress line and the play button carry the colour at full strength.
+    pub(crate) fn set_solid(&self, (r, g, b): (u8, u8, u8)) {
+        let c = &self.class;
+        let color = format!("rgb({r}, {g}, {b})");
+        // Two classes, so these win over the plain .now-playing-pill rules.
+        let rule = [
+            format!(".now-playing-pill.{c} {{ background-color: color-mix(in srgb, {color} 30%, var(--window-bg-color)); }}"),
+            format!(".now-playing-pill.{c} .pill-progress highlight {{ background-color: color-mix(in srgb, {color} 75%, white); }}"),
+            format!(".now-playing-pill.{c} .pill-play {{ background-color: color-mix(in srgb, {color} 45%, transparent); }}"),
+        ]
+        .join("\n");
+        RULES.with(|rules| rules.borrow_mut().insert(self.id, rule));
+        reload();
+    }
+
+    /// Back to the default colours (no cover).
+    pub(crate) fn clear(&self) {
+        RULES.with(|rules| rules.borrow_mut().remove(&self.id));
+        reload();
+    }
 }

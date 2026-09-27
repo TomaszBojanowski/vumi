@@ -33,3 +33,94 @@
 .artist-link:hover label {
   text-decoration: underline;
 }
+
+/* Now-playing pill: floats over the pages; its colour comes from the cover. */
+.now-playing-pill {
+  border-radius: 16px;
+  background-color: var(--headerbar-bg-color);
+  box-shadow: 0 6px 24px alpha(black, 0.35), 0 0 0 1px alpha(black, 0.08);
+  transition: background-color 400ms ease, color 400ms ease;
+}
+
+.pill-cover {
+  border-radius: 8px;
+  background-color: alpha(currentColor, 0.12);
+}
+
+.pill-play {
+  background-color: alpha(currentColor, 0.15);
+}
+
+/* Progress: a 3 px line at the bottom edge, 6 px with a knob on hover. */
+.pill-progress {
+  padding: 6px 0 0 0;
+  margin: 0;
+}
+
+.pill-progress trough,
+.pill-progress highlight {
+  min-height: 4px;
+  border-radius: 0;
+}
+
+.pill-progress trough {
+  background-color: alpha(currentColor, 0.15);
+}
+
+.pill-progress highlight {
+  background-color: currentColor;
+}
+
+.pill-progress slider {
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+  opacity: 0;
+}
+
+.pill-progress:hover trough,
+.pill-progress:hover highlight {
+  min-height: 6px;
+}
+
+.pill-progress:hover slider {
+  min-width: 12px;
+  min-height: 12px;
+  margin: -5px 0;
+  opacity: 1;
+  background-color: currentColor;
+}
+
+/* Room below the last row of albums, inside the scrolled area,
+   so it can scroll up above the now-playing pill. */
+.library-grid {
+  padding-bottom: 24px;
+}
+
+/* Bigger pill: a slightly larger title and larger round buttons,
+   with play/pause the largest because it is used the most. */
+.pill-title {
+  font-size: 1.1em;
+}
+
+.now-playing-pill button.circular {
+  min-width: 40px;
+  min-height: 40px;
+}
+
+.now-playing-pill button.pill-play {
+  min-width: 46px;
+  min-height: 46px;
+}
+
+/* In the sidebar the player is a card rather than a floating pill. */
+.now-playing-card {
+  border-radius: 12px;
+  box-shadow: none;
+  border: 1px solid alpha(currentColor, 0.08);
+}
+
+.now-playing-card .pill-progress trough,
+.now-playing-card .pill-progress highlight {
+  border-radius: 3px;
+}

@@ -7,6 +7,7 @@ mod favorites;
 mod library;
 mod login_page;
 mod main_view;
+mod now_playing;
 mod player;
 mod secrets;
 mod tint;
@@ -21,6 +22,7 @@ use tokio::runtime::Runtime;
 
 use login_page::LoginPage;
 use main_view::MainView;
+use now_playing::NowPlaying;
 use welcome_page::WelcomePage;
 
 // Working ID and name, will change together with the final app name.
@@ -107,11 +109,15 @@ fn build_ui(app: &adw::Application) {
 
     // Short in-app messages (e.g. a failed action) appear over the whole window.
     let toasts = adw::ToastOverlay::new();
+    // The now-playing card lives at the bottom of the sidebar.
+    main.set_now_playing(&NowPlaying::new());
     toasts.set_child(Some(&nav));
 
     let window = adw::ApplicationWindow::builder()
         .application(app)
         .title(APP_NAME)
+        .width_request(360)
+        .height_request(294)
         .content(&toasts)
         .build();
 

@@ -1,6 +1,7 @@
 //! Playback engine: one GStreamer playbin for the whole app, plus the play queue.
 //! It lives on the GTK main thread; GStreamer does the heavy work on its own threads
 //! and reports back through its bus, which the GTK main loop watches.
+//! Widgets that show the playback state register with connect_changed().
 
 use gstreamer as gst;
 use gst::prelude::*;
@@ -11,7 +12,10 @@ pub(crate) struct Player {
     playbin: gst::Element,
     queue: RefCell<Vec<subsonic::Song>>,
     position: Cell<usize>,
+    playing: Cell<bool>,
     client: RefCell<Option<subsonic::Client>>,
+    /// Called after every change of track or state.
+    listeners: RefCell<Vec<Box<dyn Fn()>>>,
     /// Keeps the bus watch alive for as long as the player exists.
     _bus_watch: gst::bus::BusWatchGuard,
 }
@@ -48,10 +52,22 @@ impl Player {
                 playbin,
                 queue: RefCell::new(Vec::new()),
                 position: Cell::new(0),
+                playing: Cell::new(false),
                 client: RefCell::new(None),
+                listeners: RefCell::new(Vec::new()),
                 _bus_watch: bus_watch,
             }
         })
+    }
+
+    pub(crate) fn connect_changed(&self, f: impl Fn() + 'static) {
+        self.listeners.borrow_mut().push(Box::new(f));
+    }
+
+    fn notify(&self) {
+        for listener in self.listeners.borrow().iter() {
+            listener();
+        }
     }
 
     /// Replaces the queue with `songs` and starts playing the one at `start`.
@@ -67,6 +83,8 @@ impl Player {
         let (Some(song), Some(client)) = (song, client) else {
             // Past the end of the queue: stop.
             let _ = self.playbin.set_state(gst::State::Null);
+            self.playing.set(false);
+            self.notify();
             return;
         };
         let Ok(url) = client.stream_url(&song.id) else {
@@ -79,7 +97,65 @@ impl Player {
         if let Err(e) = self.playbin.set_state(gst::State::Playing) {
             eprintln!("Could not start playback: {e}");
         }
-        eprintln!("Playing: {}", song.title);
+        self.playing.set(true);
+        self.notify();
+    }
+
+    pub(crate) fn current(&self) -> Option<subsonic::Song> {
+        self.queue.borrow().get(self.position.get()).cloned()
+    }
+
+    pub(crate) fn is_playing(&self) -> bool {
+        self.playing.get()
+    }
+
+    pub(crate) fn client(&self) -> Option<subsonic::Client> {
+        self.client.borrow().clone()
+    }
+
+    pub(crate) fn toggle_pause(&self) {
+        if self.current().is_none() {
+            return;
+        }
+        let playing = !self.playing.get();
+        let state = if playing {
+            gst::State::Playing
+        } else {
+            gst::State::Paused
+        };
+        let _ = self.playbin.set_state(state);
+        self.playing.set(playing);
+        self.notify();
+    }
+
+    pub(crate) fn next(&self) {
+        let next = self.position.get() + 1;
+        if next < self.queue.borrow().len() {
+            self.play_at(next);
+        }
+    }
+
+    /// Back to the start of the track, or to the previous track if we are at its start.
+    pub(crate) fn previous(&self) {
+        let position = self.position.get();
+        if self.position_secs().unwrap_or(0.0) > 3.0 || position == 0 {
+            self.seek(0.0);
+        } else {
+            self.play_at(position - 1);
+        }
+    }
+
+    pub(crate) fn seek(&self, seconds: f64) {
+        let target = gst::ClockTime::from_mseconds((seconds.max(0.0) * 1000.0) as u64);
+        let _ = self
+            .playbin
+            .seek_simple(gst::SeekFlags::FLUSH | gst::SeekFlags::KEY_UNIT, target);
+    }
+
+    pub(crate) fn position_secs(&self) -> Option<f64> {
+        self.playbin
+            .query_position::<gst::ClockTime>()
+            .map(|t| t.mseconds() as f64 / 1000.0)
     }
 
     fn on_message(&self, message: &gst::Message) {

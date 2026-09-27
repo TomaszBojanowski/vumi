@@ -4,40 +4,190 @@ using Adw 1;
 translation-domain "muse-player";
 
 template $MusePlayerMainView: Adw.NavigationPage {
-  child: Adw.ToolbarView {
-    [top]
-    Adw.HeaderBar {}
+  // Lets the layout react to the window width (see the breakpoint at the end).
+  child: Adw.BreakpointBin {
+    width-request: 360;
+    height-request: 294;
 
-    // Hidden until the server cannot be reached.
-    [top]
-    Adw.Banner banner {
-      button-label: _("Retry");
-    }
+    child: Adw.OverlaySplitView split {
+      // Navigation on the left; its items come from the pages of "views".
+      sidebar: Adw.ToolbarView {
+        [top]
+        Adw.HeaderBar {
+          // Closes the sidebar when it slides in over the content (narrow windows).
+          [start]
+          ToggleButton {
+            icon-name: "sidebar-show-symbolic";
+            tooltip-text: _("Hide sidebar");
+            visible: bind split.collapsed;
+            active: bind split.show-sidebar bidirectional;
+          }
 
-    content: Stack stack {
-      StackPage {
-        name: "status";
-
-        child: Adw.StatusPage status {
-          icon-name: "audio-x-generic-symbolic";
-          title: _("Library");
-        };
-      }
-
-      StackPage {
-        name: "library";
-
-        child: ScrolledWindow {
-          hscrollbar-policy: never;
-
-          // Only visible cards exist; they are reused while scrolling.
-          child: GridView grid {
-            min-columns: 2;
-            max-columns: 12;
-            single-click-activate: true;
+          title-widget: Adw.WindowTitle {
+            title: "muse-player";
           };
+        }
+
+        content: Box {
+          orientation: vertical;
+
+          Adw.ViewSwitcherSidebar {
+            stack: views;
+            vexpand: true;
+          }
+
+          // The now-playing card, placed here from code.
+          Adw.Bin player_slot {}
         };
-      }
+      };
+
+      content: Adw.ViewStack views {
+        Adw.ViewStackPage {
+          name: "library";
+          title: _("Library");
+          icon-name: "folder-music-symbolic";
+
+          // Albums and artists open here, next to the sidebar.
+          child: Adw.NavigationView {
+            Adw.NavigationPage {
+              title: _("Library");
+
+              child: Adw.ToolbarView {
+                [top]
+                Adw.HeaderBar {
+                  [start]
+                  ToggleButton {
+                    icon-name: "sidebar-show-symbolic";
+                    tooltip-text: _("Show sidebar");
+                    visible: bind split.collapsed;
+                    active: bind split.show-sidebar bidirectional;
+                  }
+                }
+
+                // Hidden until the server cannot be reached.
+                [top]
+                Adw.Banner banner {
+                  button-label: _("Retry");
+                }
+
+                content: Stack stack {
+                  StackPage {
+                    name: "status";
+
+                    child: Adw.StatusPage status {
+                      icon-name: "audio-x-generic-symbolic";
+                      title: _("Library");
+                    };
+                  }
+
+                  StackPage {
+                    name: "library";
+
+                    child: ScrolledWindow {
+                      hscrollbar-policy: never;
+
+                      // Only visible cards exist; they are reused while scrolling.
+                      child: GridView grid {
+                        min-columns: 2;
+                        max-columns: 12;
+                        single-click-activate: true;
+
+                        styles [
+                          "library-grid",
+                        ]
+                      };
+                    };
+                  }
+                };
+              };
+            }
+          };
+        }
+
+        Adw.ViewStackPage {
+          name: "favorites";
+          title: _("Favorites");
+          icon-name: "starred-symbolic";
+
+          child: Adw.ToolbarView {
+            [top]
+            Adw.HeaderBar {
+              [start]
+              ToggleButton {
+                icon-name: "sidebar-show-symbolic";
+                tooltip-text: _("Show sidebar");
+                visible: bind split.collapsed;
+                active: bind split.show-sidebar bidirectional;
+              }
+            }
+
+            content: Adw.StatusPage {
+              icon-name: "starred-symbolic";
+              title: _("Favorites");
+              description: _("Coming soon");
+            };
+          };
+        }
+
+        Adw.ViewStackPage {
+          name: "artists";
+          title: _("Artists");
+          icon-name: "system-users-symbolic";
+
+          child: Adw.ToolbarView {
+            [top]
+            Adw.HeaderBar {
+              [start]
+              ToggleButton {
+                icon-name: "sidebar-show-symbolic";
+                tooltip-text: _("Show sidebar");
+                visible: bind split.collapsed;
+                active: bind split.show-sidebar bidirectional;
+              }
+            }
+
+            content: Adw.StatusPage {
+              icon-name: "system-users-symbolic";
+              title: _("Artists");
+              description: _("Coming soon");
+            };
+          };
+        }
+
+        Adw.ViewStackPage {
+          name: "playlists";
+          title: _("Playlists");
+          icon-name: "view-list-symbolic";
+
+          child: Adw.ToolbarView {
+            [top]
+            Adw.HeaderBar {
+              [start]
+              ToggleButton {
+                icon-name: "sidebar-show-symbolic";
+                tooltip-text: _("Show sidebar");
+                visible: bind split.collapsed;
+                active: bind split.show-sidebar bidirectional;
+              }
+            }
+
+            content: Adw.StatusPage {
+              icon-name: "view-list-symbolic";
+              title: _("Playlists");
+              description: _("Coming soon");
+            };
+          };
+        }
+      };
     };
+
+    // Narrow windows: the sidebar hides and slides in over the content.
+    Adw.Breakpoint {
+      condition ("max-width: 700sp")
+
+      setters {
+        split.collapsed: true;
+      }
+    }
   };
 }

@@ -1,0 +1,151 @@
+using Gtk 4.0;
+using Adw 1;
+
+translation-domain "muse-player";
+
+// The now-playing card at the bottom of the sidebar.
+template $MusePlayerNowPlaying: Adw.Bin {
+  // Hidden until something plays, then slides up.
+  child: Revealer revealer {
+    transition-type: slide_up;
+
+    child: Box pill {
+      orientation: vertical;
+      spacing: 10;
+      margin-top: 6;
+      margin-bottom: 12;
+      margin-start: 12;
+      margin-end: 12;
+
+      styles [
+        "now-playing-pill",
+        "now-playing-card",
+      ]
+
+      Box {
+        orientation: vertical;
+        spacing: 10;
+        margin-top: 12;
+        margin-start: 12;
+        margin-end: 12;
+
+        // A square cover as wide as the sidebar.
+        AspectFrame {
+          ratio: 1;
+          obey-child: false;
+
+          child: Overlay {
+            overflow: hidden;
+
+            styles [
+              "pill-cover",
+            ]
+
+            child: Image {
+              icon-name: "audio-x-generic-symbolic";
+              pixel-size: 48;
+              opacity: 0.6;
+            };
+
+            [overlay]
+            Picture cover {
+              content-fit: cover;
+            }
+          };
+        }
+
+        Box {
+          orientation: vertical;
+
+          Label title {
+            xalign: 0;
+            ellipsize: end;
+            max-width-chars: 1;
+
+            styles [
+              "heading",
+              "pill-title",
+            ]
+          }
+
+          Label artist {
+            xalign: 0;
+            ellipsize: end;
+            max-width-chars: 1;
+            opacity: 0.75;
+
+            styles [
+              "caption",
+            ]
+          }
+        }
+      }
+
+      // Dragging it seeks; the player moves it while music plays.
+      Scale progress {
+        margin-start: 6;
+        margin-end: 6;
+
+        styles [
+          "pill-progress",
+        ]
+
+        adjustment: Adjustment {
+          lower: 0;
+          upper: 1;
+        };
+      }
+
+      Box {
+        spacing: 4;
+        margin-start: 12;
+        margin-end: 8;
+        margin-bottom: 10;
+
+        Label time {
+          hexpand: true;
+          xalign: 0;
+          valign: center;
+          opacity: 0.75;
+
+          styles [
+            "caption",
+            "numeric",
+          ]
+        }
+
+        Button previous {
+          icon-name: "media-skip-backward-symbolic";
+          tooltip-text: _("Previous");
+          valign: center;
+
+          styles [
+            "flat",
+            "circular",
+          ]
+        }
+
+        Button play_pause {
+          icon-name: "media-playback-pause-symbolic";
+          valign: center;
+
+          styles [
+            "circular",
+            "pill-play",
+          ]
+        }
+
+        Button next {
+          icon-name: "media-skip-forward-symbolic";
+          tooltip-text: _("Next");
+          valign: center;
+
+          styles [
+            "flat",
+            "circular",
+          ]
+        }
+      }
+    };
+  };
+}

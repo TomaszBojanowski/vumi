@@ -116,6 +116,7 @@ pub struct Song {
     pub duration: Option<u32>,
     pub suffix: Option<String>,
     pub bit_rate: Option<u32>,
+    pub cover_art: Option<String>,
     pub bit_depth: Option<u32>,
     pub sampling_rate: Option<u32>,
     pub starred: Option<String>,

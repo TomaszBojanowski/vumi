@@ -26,6 +26,8 @@ mod imp {
         pub stack: gtk::TemplateChild<gtk::Stack>,
         #[template_child]
         pub grid: gtk::TemplateChild<gtk::GridView>,
+        #[template_child]
+        pub player_slot: gtk::TemplateChild<adw::Bin>,
         /// Albums shown in the grid; items are subsonic::Album wrapped for GTK.
         pub albums: OnceCell<gio::ListStore>,
         /// A copy of what the grid shows, to skip redraws when nothing changed.
@@ -123,7 +125,7 @@ impl MainView {
             };
             let client = view.imp().client.borrow().clone();
             let page = AlbumPage::new(&object.borrow::<subsonic::Album>(), client);
-            if let Some(nav) = view
+            if let Some(nav) = grid
                 .ancestor(adw::NavigationView::static_type())
                 .and_downcast::<adw::NavigationView>()
             {
@@ -243,5 +245,12 @@ impl MainView {
         if !imp.reported.replace(true) {
             eprintln!("Library on screen {:.0?} after start", since_start());
         }
+    }
+}
+
+impl MainView {
+    /// Puts the now-playing card at the bottom of the sidebar.
+    pub(crate) fn set_now_playing(&self, widget: &impl IsA<gtk::Widget>) {
+        self.imp().player_slot.set_child(Some(widget));
     }
 }
