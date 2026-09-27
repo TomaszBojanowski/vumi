@@ -10,7 +10,7 @@ template $MusePlayerMainView: Adw.NavigationPage {
     height-request: 294;
 
     child: Adw.OverlaySplitView split {
-      // Navigation on the left; its items come from the pages of "views".
+      // Navigation on the left; its items and sections come from the pages of "views".
       sidebar: Adw.ToolbarView {
         [top]
         Adw.HeaderBar {
@@ -47,143 +47,180 @@ template $MusePlayerMainView: Adw.NavigationPage {
         Adw.ViewStack views {
           vexpand: true;
 
-        Adw.ViewStackPage {
-          name: "library";
-          title: _("Library");
-          icon-name: "folder-music-symbolic";
+          // Section "Library" ---------------------------------------------
 
-          // Albums and artists open here, next to the sidebar.
-          child: Adw.NavigationView {
-            Adw.NavigationPage {
-              title: _("Library");
+          Adw.ViewStackPage albums_page {
+            name: "library";
+            title: _("Albums");
+            icon-name: "media-optical-symbolic";
+            starts-section: true;
+            section-title: _("Library");
 
-              child: Adw.ToolbarView {
-                [top]
-                Adw.HeaderBar {
-                  [start]
-                  ToggleButton {
-                    icon-name: "sidebar-show-symbolic";
-                    tooltip-text: _("Show sidebar");
-                    visible: bind split.collapsed;
-                    active: bind split.show-sidebar bidirectional;
-                  }
-                }
+            // Albums and artists open here, next to the sidebar.
+            child: Adw.NavigationView library_nav {
+              Adw.NavigationPage {
+                title: _("Albums");
 
-                // Hidden until the server cannot be reached.
-                [top]
-                Adw.Banner banner {
-                  button-label: _("Retry");
-                }
-
-                content: Stack stack {
-                  StackPage {
-                    name: "status";
-
-                    child: Adw.StatusPage status {
-                      icon-name: "audio-x-generic-symbolic";
-                      title: _("Library");
-                    };
+                child: Adw.ToolbarView {
+                  [top]
+                  Adw.HeaderBar {
+                    [start]
+                    ToggleButton {
+                      icon-name: "sidebar-show-symbolic";
+                      tooltip-text: _("Show sidebar");
+                      visible: bind split.collapsed;
+                      active: bind split.show-sidebar bidirectional;
+                    }
                   }
 
-                  StackPage {
-                    name: "library";
+                  // Hidden until the server cannot be reached.
+                  [top]
+                  Adw.Banner banner {
+                    button-label: _("Retry");
+                  }
 
-                    child: ScrolledWindow {
-                      hscrollbar-policy: never;
+                  content: Stack stack {
+                    StackPage {
+                      name: "status";
 
-                      // Only visible cards exist; they are reused while scrolling.
-                      child: GridView grid {
-                        min-columns: 2;
-                        max-columns: 12;
-                        single-click-activate: true;
-
-                        styles [
-                          "library-grid",
-                        ]
+                      child: Adw.StatusPage status {
+                        icon-name: "media-optical-symbolic";
+                        title: _("Albums");
                       };
-                    };
-                  }
+                    }
+
+                    StackPage {
+                      name: "library";
+
+                      child: ScrolledWindow {
+                        hscrollbar-policy: never;
+
+                        // Only visible cards exist; they are reused while scrolling.
+                        child: GridView grid {
+                          min-columns: 2;
+                          max-columns: 12;
+                          single-click-activate: true;
+
+                          styles [
+                            "library-grid",
+                          ]
+                        };
+                      };
+                    }
+                  };
                 };
+              }
+            };
+          }
+
+          Adw.ViewStackPage {
+            name: "artists";
+            title: _("Artists");
+            icon-name: "system-users-symbolic";
+
+            child: Adw.ToolbarView {
+              [top]
+              Adw.HeaderBar {
+                [start]
+                ToggleButton {
+                  icon-name: "sidebar-show-symbolic";
+                  tooltip-text: _("Show sidebar");
+                  visible: bind split.collapsed;
+                  active: bind split.show-sidebar bidirectional;
+                }
+              }
+
+              content: Adw.StatusPage {
+                icon-name: "system-users-symbolic";
+                title: _("Artists");
+                description: _("Coming soon");
               };
-            }
-          };
-        }
-
-        Adw.ViewStackPage {
-          name: "favorites";
-          title: _("Favorites");
-          icon-name: "starred-symbolic";
-
-          child: Adw.ToolbarView {
-            [top]
-            Adw.HeaderBar {
-              [start]
-              ToggleButton {
-                icon-name: "sidebar-show-symbolic";
-                tooltip-text: _("Show sidebar");
-                visible: bind split.collapsed;
-                active: bind split.show-sidebar bidirectional;
-              }
-            }
-
-            content: Adw.StatusPage {
-              icon-name: "starred-symbolic";
-              title: _("Favorites");
-              description: _("Coming soon");
             };
-          };
-        }
+          }
 
-        Adw.ViewStackPage {
-          name: "artists";
-          title: _("Artists");
-          icon-name: "system-users-symbolic";
+          // Section "Collections" -----------------------------------------
 
-          child: Adw.ToolbarView {
-            [top]
-            Adw.HeaderBar {
-              [start]
-              ToggleButton {
-                icon-name: "sidebar-show-symbolic";
-                tooltip-text: _("Show sidebar");
-                visible: bind split.collapsed;
-                active: bind split.show-sidebar bidirectional;
+          Adw.ViewStackPage {
+            name: "favorites";
+            title: _("Favorites");
+            icon-name: "starred-symbolic";
+            starts-section: true;
+            section-title: _("Collections");
+
+            child: Adw.ToolbarView {
+              [top]
+              Adw.HeaderBar {
+                [start]
+                ToggleButton {
+                  icon-name: "sidebar-show-symbolic";
+                  tooltip-text: _("Show sidebar");
+                  visible: bind split.collapsed;
+                  active: bind split.show-sidebar bidirectional;
+                }
               }
-            }
 
-            content: Adw.StatusPage {
-              icon-name: "system-users-symbolic";
-              title: _("Artists");
-              description: _("Coming soon");
+              content: Adw.StatusPage {
+                icon-name: "starred-symbolic";
+                title: _("Favorites");
+                description: _("Coming soon");
+              };
             };
-          };
-        }
+          }
 
-        Adw.ViewStackPage {
-          name: "playlists";
-          title: _("Playlists");
-          icon-name: "view-list-symbolic";
+          Adw.ViewStackPage {
+            name: "playlists";
+            title: _("Playlists");
+            icon-name: "view-list-symbolic";
 
-          child: Adw.ToolbarView {
-            [top]
-            Adw.HeaderBar {
-              [start]
-              ToggleButton {
-                icon-name: "sidebar-show-symbolic";
-                tooltip-text: _("Show sidebar");
-                visible: bind split.collapsed;
-                active: bind split.show-sidebar bidirectional;
+            child: Adw.ToolbarView {
+              [top]
+              Adw.HeaderBar {
+                [start]
+                ToggleButton {
+                  icon-name: "sidebar-show-symbolic";
+                  tooltip-text: _("Show sidebar");
+                  visible: bind split.collapsed;
+                  active: bind split.show-sidebar bidirectional;
+                }
               }
-            }
 
-            content: Adw.StatusPage {
-              icon-name: "view-list-symbolic";
-              title: _("Playlists");
-              description: _("Coming soon");
+              content: Adw.StatusPage {
+                icon-name: "view-list-symbolic";
+                title: _("Playlists");
+                description: _("Coming soon");
+              };
             };
-          };
+          }
+
+          // Section "Discover" (AudioMuse-AI) -----------------------------
+
+          Adw.ViewStackPage {
+            name: "discover";
+            title: _("Similar and Radio");
+            icon-name: "applications-multimedia-symbolic";
+            starts-section: true;
+            section-title: _("Discover");
+
+            child: Adw.ToolbarView {
+              [top]
+              Adw.HeaderBar {
+                [start]
+                ToggleButton {
+                  icon-name: "sidebar-show-symbolic";
+                  tooltip-text: _("Show sidebar");
+                  visible: bind split.collapsed;
+                  active: bind split.show-sidebar bidirectional;
+                }
+              }
+
+              content: Adw.StatusPage {
+                icon-name: "applications-multimedia-symbolic";
+                title: _("Similar and Radio");
+                description: _("Coming soon");
+              };
+            };
+          }
         }
-      }
 
         // Narrow windows: a compact now-playing bar, placed here from code.
         Revealer {

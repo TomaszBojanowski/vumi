@@ -46,6 +46,8 @@ mod imp {
         pub tracks: gtk::TemplateChild<gtk::Box>,
         #[template_child]
         pub error_status: gtk::TemplateChild<adw::StatusPage>,
+        /// Which album this page shows, so it is not opened twice.
+        pub album_id: std::cell::RefCell<String>,
     }
 
     #[glib::object_subclass]
@@ -82,6 +84,7 @@ impl AlbumPage {
         let imp = page.imp();
 
         page.set_title(&album.name);
+        imp.album_id.replace(album.id.clone());
         imp.title.set_label(&album.name);
         imp.artist.set_label(album.artist.as_deref().unwrap_or(""));
         imp.details
@@ -344,7 +347,7 @@ fn format_duration(seconds: u32) -> String {
 
 /// E.g. "FLAC · 24 bit / 96 kHz" or "MP3 · 320 kbps", plus whether it is hi-res.
 /// None if the server did not say anything useful.
-fn quality_text(songs: &[subsonic::Song]) -> Option<(String, bool)> {
+pub(crate) fn quality_text(songs: &[subsonic::Song]) -> Option<(String, bool)> {
     let first = songs.first()?;
     let format = first.suffix.as_deref()?.to_uppercase();
 
@@ -421,3 +424,9 @@ impl AlbumPage {
     }
 }
 
+
+impl AlbumPage {
+    pub(crate) fn album_id(&self) -> String {
+        self.imp().album_id.borrow().clone()
+    }
+}

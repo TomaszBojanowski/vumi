@@ -113,6 +113,8 @@ pub struct Song {
     pub artist: Option<String>,
     pub track: Option<u32>,
     pub disc_number: Option<u32>,
+    pub album: Option<String>,
+    pub album_id: Option<String>,
     pub duration: Option<u32>,
     pub suffix: Option<String>,
     pub bit_rate: Option<u32>,

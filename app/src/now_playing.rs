@@ -9,6 +9,8 @@ use gtk::prelude::*;
 use std::cell::{OnceCell, RefCell};
 use std::time::Duration;
 
+use crate::album_page::quality_text;
+use crate::main_view::MainView;
 use crate::{covers, player, tint};
 
 mod imp {
@@ -26,9 +28,15 @@ mod imp {
         #[template_child]
         pub cover: gtk::TemplateChild<gtk::Picture>,
         #[template_child]
+        pub cover_frame: gtk::TemplateChild<gtk::AspectFrame>,
+        #[template_child]
         pub title: gtk::TemplateChild<gtk::Label>,
         #[template_child]
         pub artist: gtk::TemplateChild<gtk::Label>,
+        #[template_child]
+        pub album: gtk::TemplateChild<gtk::Label>,
+        #[template_child]
+        pub quality: gtk::TemplateChild<gtk::Label>,
         #[template_child]
         pub time: gtk::TemplateChild<gtk::Label>,
         #[template_child]
@@ -85,6 +93,39 @@ impl NowPlaying {
         imp.previous.connect_clicked(|_| player::get().previous());
         imp.next.connect_clicked(|_| player::get().next());
 
+        // A click on the cover opens the album that is playing.
+        let click = gtk::GestureClick::new();
+        let bar_weak = bar.downgrade();
+        click.connect_released(move |_, _, _, _| {
+            let Some(bar) = bar_weak.upgrade() else {
+                return;
+            };
+            let Some(song) = player::get().current() else {
+                return;
+            };
+            let Some(album_id) = song.album_id.clone() else {
+                return;
+            };
+            let fallback = subsonic::Album {
+                id: album_id.clone(),
+                name: song.album.clone().unwrap_or_default(),
+                artist: song.artist.clone(),
+                year: None,
+                song_count: None,
+                cover_art: song.cover_art.clone(),
+            };
+            if let Some(main) = bar
+                .ancestor(MainView::static_type())
+                .and_downcast::<MainView>()
+            {
+                main.open_album(&album_id, fallback);
+            }
+        });
+        imp.cover_frame.add_controller(click);
+        imp.cover_frame.set_cursor_from_name(Some("pointer"));
+        imp.cover_frame
+            .set_tooltip_text(Some(&gettext("Go to album")));
+
         // Only a drag by the user seeks; updates from the timer do not.
         imp.progress.connect_change_value(|_, _, value| {
             player::get().seek(value);
@@ -112,6 +153,19 @@ impl NowPlaying {
         imp.revealer.set_reveal_child(true);
         imp.title.set_label(&song.title);
         imp.artist.set_label(song.artist.as_deref().unwrap_or(""));
+        imp.album.set_label(song.album.as_deref().unwrap_or(""));
+        match quality_text(std::slice::from_ref(&song)) {
+            Some((text, hi_res)) => {
+                imp.quality.set_label(&text);
+                if hi_res {
+                    imp.quality.add_css_class("hi-res");
+                } else {
+                    imp.quality.remove_css_class("hi-res");
+                }
+                imp.quality.set_visible(true);
+            }
+            None => imp.quality.set_visible(false),
+        }
         imp.progress
             .adjustment()
             .set_upper(song.duration.unwrap_or(0).max(1) as f64);
@@ -127,13 +181,16 @@ impl NowPlaying {
         }
         self.tick();
 
-        // A new cover, and a new colour, only when the album changes.
-        if *imp.cover_id.borrow() != song.cover_art {
-            imp.cover_id.replace(song.cover_art.clone());
-            imp.cover.set_paintable(None::<&gtk::gdk::Paintable>);
-            match song.cover_art.clone() {
-                Some(id) => self.load_cover(player.client(), id),
-                None => {
+        // A new cover, and a new colour, only when the album changes. Tracks of
+        // one album have their own cover ids on the server, so the album decides.
+        let key = song.album_id.clone().or_else(|| song.cover_art.clone());
+        if *imp.cover_id.borrow() != key {
+            imp.cover_id.replace(key.clone());
+            match (song.cover_art.clone(), key) {
+                // The old cover stays until the new one is ready: no blank flash.
+                (Some(id), Some(key)) => self.load_cover(player.client(), id, key),
+                _ => {
+                    imp.cover.set_paintable(None::<&gtk::gdk::Paintable>);
                     if let Some(tint) = imp.tint.get() {
                         tint.clear();
                     }
@@ -142,7 +199,7 @@ impl NowPlaying {
         }
     }
 
-    fn load_cover(&self, client: Option<subsonic::Client>, id: String) {
+    fn load_cover(&self, client: Option<subsonic::Client>, id: String, key: String) {
         let bar = self.downgrade();
         glib::spawn_future_local(async move {
             let texture = covers::load(client, id.clone()).await;
@@ -150,7 +207,7 @@ impl NowPlaying {
                 return;
             };
             let imp = bar.imp();
-            if imp.cover_id.borrow().as_deref() != Some(id.as_str()) {
+            if imp.cover_id.borrow().as_deref() != Some(key.as_str()) {
                 return;
             }
             imp.cover.set_paintable(texture.as_ref());

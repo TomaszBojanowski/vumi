@@ -32,6 +32,12 @@ mod imp {
         pub mini_slot: gtk::TemplateChild<adw::Bin>,
         #[template_child]
         pub split: gtk::TemplateChild<adw::OverlaySplitView>,
+        #[template_child]
+        pub views: gtk::TemplateChild<adw::ViewStack>,
+        #[template_child]
+        pub library_nav: gtk::TemplateChild<adw::NavigationView>,
+        #[template_child]
+        pub albums_page: gtk::TemplateChild<adw::ViewStackPage>,
         /// Albums shown in the grid; items are subsonic::Album wrapped for GTK.
         pub albums: OnceCell<gio::ListStore>,
         /// A copy of what the grid shows, to skip redraws when nothing changed.
@@ -243,6 +249,7 @@ impl MainView {
             // One change notification for the whole list, not one per album.
             store.splice(0, store.n_items(), &objects);
         }
+        imp.albums_page.set_badge_number(albums.len() as u32);
         imp.current.replace(albums);
         imp.stack.set_visible_child_name("library");
 
@@ -268,5 +275,49 @@ impl MainView {
     /// Slides the sidebar in, with the full now-playing card.
     pub(crate) fn show_sidebar(&self) {
         self.imp().split.set_show_sidebar(true);
+    }
+}
+
+impl MainView {
+    /// Opens an album page in the library, e.g. the album that is playing.
+    /// Uses the full album from the library if it is there, else `fallback`.
+    pub(crate) fn open_album(&self, id: &str, fallback: subsonic::Album) {
+        let imp = self.imp();
+        let album = imp
+            .current
+            .borrow()
+            .iter()
+            .find(|a| a.id == id)
+            .cloned()
+            .unwrap_or(fallback);
+        let client = imp.client.borrow().clone();
+
+        imp.views.set_visible_child_name("library");
+        if imp.split.is_collapsed() {
+            imp.split.set_show_sidebar(false);
+        }
+        // Already open somewhere in the library: go back to it instead of
+        // stacking another copy on top.
+        let stack = imp.library_nav.navigation_stack();
+        for i in (0..stack.n_items()).rev() {
+            if let Some(page) = stack.item(i).and_downcast::<AlbumPage>() {
+                if page.album_id() == id {
+                    imp.library_nav.pop_to_page(&page);
+                    return;
+                }
+            }
+        }
+        // Already open somewhere in the library: go back to it instead of
+        // stacking another copy on top.
+        let stack = imp.library_nav.navigation_stack();
+        for i in (0..stack.n_items()).rev() {
+            if let Some(page) = stack.item(i).and_downcast::<AlbumPage>() {
+                if page.album_id() == id {
+                    imp.library_nav.pop_to_page(&page);
+                    return;
+                }
+            }
+        }
+        imp.library_nav.push(&AlbumPage::new(&album, client));
     }
 }

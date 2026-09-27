@@ -15,3 +15,5 @@ app/src/artist_page.blp
 app/src/now_playing.rs
 app/src/now_playing.blp
 app/src/mini_player.rs
+app/src/now_playing_view.rs
+app/src/now_playing_view.blp

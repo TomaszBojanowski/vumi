@@ -101,23 +101,27 @@ impl MiniPlayer {
             imp.play_pause.set_tooltip_text(Some(&gettext("Play")));
         }
 
-        // A new cover only when the album changes.
-        if *imp.cover_id.borrow() != song.cover_art {
-            imp.cover_id.replace(song.cover_art.clone());
-            imp.cover.set_paintable(None::<&gtk::gdk::Paintable>);
-            if let Some(id) = song.cover_art.clone() {
-                let mini = self.downgrade();
-                let client = player.client();
-                glib::spawn_future_local(async move {
-                    let texture = covers::load(client, id.clone()).await;
-                    let Some(mini) = mini.upgrade() else {
-                        return;
-                    };
-                    let imp = mini.imp();
-                    if imp.cover_id.borrow().as_deref() == Some(id.as_str()) {
-                        imp.cover.set_paintable(texture.as_ref());
-                    }
-                });
+        // A new cover only when the album changes (tracks of one album have their
+        // own cover ids on the server). The old cover stays until the new one is ready.
+        let key = song.album_id.clone().or_else(|| song.cover_art.clone());
+        if *imp.cover_id.borrow() != key {
+            imp.cover_id.replace(key.clone());
+            match (song.cover_art.clone(), key) {
+                (Some(id), Some(key)) => {
+                    let mini = self.downgrade();
+                    let client = player.client();
+                    glib::spawn_future_local(async move {
+                        let texture = covers::load(client, id).await;
+                        let Some(mini) = mini.upgrade() else {
+                            return;
+                        };
+                        let imp = mini.imp();
+                        if imp.cover_id.borrow().as_deref() == Some(key.as_str()) {
+                            imp.cover.set_paintable(texture.as_ref());
+                        }
+                    });
+                }
+                _ => imp.cover.set_paintable(None::<&gtk::gdk::Paintable>),
             }
         }
     }

@@ -30,7 +30,7 @@ template $MusePlayerNowPlaying: Adw.Bin {
         margin-end: 12;
 
         // A square cover as wide as the sidebar.
-        AspectFrame {
+        AspectFrame cover_frame {
           ratio: 1;
           obey-child: false;
 
@@ -76,6 +76,27 @@ template $MusePlayerNowPlaying: Adw.Bin {
 
             styles [
               "caption",
+            ]
+          }
+
+          Label album {
+            xalign: 0;
+            ellipsize: end;
+            max-width-chars: 1;
+            opacity: 0.6;
+
+            styles [
+              "caption",
+            ]
+          }
+
+          Label quality {
+            halign: start;
+            margin-top: 6;
+            visible: false;
+
+            styles [
+              "quality-badge",
             ]
           }
         }

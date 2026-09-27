@@ -137,3 +137,16 @@ impl Dynamic {
         reload();
     }
 }
+
+impl Dynamic {
+    /// A gradient from the cover colour at the top, fading out (the full view).
+    #[allow(dead_code)] // Used by the full now-playing view, kept for later.
+    pub(crate) fn set_gradient(&self, (r, g, b): (u8, u8, u8)) {
+        let rule = format!(
+            ".{} {{ background-image: linear-gradient(to bottom, rgba({r}, {g}, {b}, 0.55), transparent 70%); }}",
+            self.class
+        );
+        RULES.with(|rules| rules.borrow_mut().insert(self.id, rule));
+        reload();
+    }
+}
