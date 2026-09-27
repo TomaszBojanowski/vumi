@@ -1,5 +1,5 @@
 use adw::prelude::*;
-use gtk::glib;
+use gtk::{gio, glib};
 use std::sync::OnceLock;
 use tokio::runtime::Runtime;
 
@@ -27,10 +27,25 @@ fn build_ui(app: &adw::Application) {
     let window = adw::ApplicationWindow::builder()
         .application(app)
         .title("muse-player")
-        .default_width(900)
-        .default_height(700)
         .content(&nav)
         .build();
+
+    // Restore the window size and state from the last session.
+    let settings = gio::Settings::new(APP_ID);
+    window.set_default_size(settings.int("window-width"), settings.int("window-height"));
+    if settings.boolean("window-maximized") {
+        window.maximize();
+    }
+
+    // Save them when the window closes.
+    window.connect_close_request(move |window| {
+        let (width, height) = window.default_size();
+        let _ = settings.set_int("window-width", width);
+        let _ = settings.set_int("window-height", height);
+        let _ = settings.set_boolean("window-maximized", window.is_maximized());
+        glib::Propagation::Proceed
+    });
+
     window.present();
 }
 
