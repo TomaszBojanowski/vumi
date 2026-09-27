@@ -113,6 +113,7 @@ impl NowPlaying {
                 year: None,
                 song_count: None,
                 cover_art: song.cover_art.clone(),
+                created: None,
             };
             if let Some(main) = bar
                 .ancestor(MainView::static_type())

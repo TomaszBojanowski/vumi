@@ -1,6 +1,9 @@
 //! Local library database (SQLite). The grid is filled from here at startup,
 //! before the server is even contacted; syncing keeps it up to date.
 //! All functions here block, so callers run them on a worker thread.
+//!
+//! Schema changes are migrations keyed by PRAGMA user_version, so an existing
+//! database is upgraded in place instead of being thrown away.
 
 use gtk::glib;
 use rusqlite::{params, Connection};
@@ -31,14 +34,28 @@ fn open() -> rusqlite::Result<Connection> {
              PRIMARY KEY (server, id)
          );",
     )?;
+    migrate(&conn)?;
     Ok(conn)
+}
+
+/// Brings an older database up to date, one version at a time.
+fn migrate(conn: &Connection) -> rusqlite::Result<()> {
+    let version: i64 = conn.query_row("PRAGMA user_version", [], |row| row.get(0))?;
+    if version < 1 {
+        // Version 1: when the album was added to the server ("Recently added").
+        conn.execute_batch(
+            "ALTER TABLE albums ADD COLUMN created TEXT;
+             PRAGMA user_version = 1;",
+        )?;
+    }
+    Ok(())
 }
 
 /// Albums of one server, in the order the server listed them.
 pub(crate) fn load_albums(server: &str) -> rusqlite::Result<Vec<subsonic::Album>> {
     let conn = open()?;
     let mut stmt = conn.prepare(
-        "SELECT id, name, artist, year, song_count, cover_art
+        "SELECT id, name, artist, year, song_count, cover_art, created
          FROM albums WHERE server = ?1 ORDER BY position",
     )?;
     let rows = stmt.query_map(params![server], |row| {
@@ -49,6 +66,7 @@ pub(crate) fn load_albums(server: &str) -> rusqlite::Result<Vec<subsonic::Album>
             year: row.get(3)?,
             song_count: row.get(4)?,
             cover_art: row.get(5)?,
+            created: row.get(6)?,
         })
     })?;
     let albums = rows.collect::<rusqlite::Result<Vec<_>>>();
@@ -62,8 +80,9 @@ pub(crate) fn save_albums(server: &str, albums: &[subsonic::Album]) -> rusqlite:
     tx.execute("DELETE FROM albums WHERE server = ?1", params![server])?;
     {
         let mut insert = tx.prepare(
-            "INSERT INTO albums (server, position, id, name, artist, year, song_count, cover_art)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+            "INSERT INTO albums
+                 (server, position, id, name, artist, year, song_count, cover_art, created)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
         )?;
         for (position, a) in albums.iter().enumerate() {
             insert.execute(params![
@@ -74,7 +93,8 @@ pub(crate) fn save_albums(server: &str, albums: &[subsonic::Album]) -> rusqlite:
                 a.artist,
                 a.year,
                 a.song_count,
-                a.cover_art
+                a.cover_art,
+                a.created
             ])?;
         }
     }

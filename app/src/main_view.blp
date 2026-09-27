@@ -71,6 +71,13 @@ template $MusePlayerMainView: Adw.NavigationPage {
                       visible: bind split.collapsed;
                       active: bind split.show-sidebar bidirectional;
                     }
+
+                    [end]
+                    MenuButton {
+                      icon-name: "view-sort-descending-symbolic";
+                      tooltip-text: _("Sort");
+                      menu-model: sort_menu;
+                    }
                   }
 
                   // Hidden until the server cannot be reached.
@@ -241,4 +248,39 @@ template $MusePlayerMainView: Adw.NavigationPage {
       }
     }
   };
+}
+
+// Sort order of the album grid; a radio group driven by the "library.sort" action.
+menu sort_menu {
+  section {
+    item {
+      label: _("Name");
+      action: "library.sort";
+      target: "name";
+    }
+
+    item {
+      label: _("Artist");
+      action: "library.sort";
+      target: "artist";
+    }
+
+    item {
+      label: _("Year (Newest)");
+      action: "library.sort";
+      target: "year-desc";
+    }
+
+    item {
+      label: _("Year (Oldest)");
+      action: "library.sort";
+      target: "year-asc";
+    }
+
+    item {
+      label: _("Recently Added");
+      action: "library.sort";
+      target: "added";
+    }
+  }
 }

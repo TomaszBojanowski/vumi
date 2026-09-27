@@ -25,5 +25,9 @@
       <default>false</default>
       <summary>Whether the welcome carousel was already completed</summary>
     </key>
+    <key name="album-sort" type="s">
+      <default>"name"</default>
+      <summary>How the album grid is sorted: name, artist, year-desc, year-asc or added</summary>
+    </key>
   </schema>
 </schemalist>

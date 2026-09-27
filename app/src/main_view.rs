@@ -10,7 +10,7 @@ use std::time::Instant;
 
 use crate::album_card::AlbumCard;
 use crate::album_page::AlbumPage;
-use crate::{covers, error_message, library, runtime, since_start, APP_NAME};
+use crate::{covers, error_message, library, runtime, since_start, APP_ID, APP_NAME};
 
 mod imp {
     use super::*;
@@ -38,6 +38,8 @@ mod imp {
         pub library_nav: gtk::TemplateChild<adw::NavigationView>,
         #[template_child]
         pub albums_page: gtk::TemplateChild<adw::ViewStackPage>,
+        /// How the grid is sorted (see sort_albums).
+        pub sort: RefCell<String>,
         /// Albums shown in the grid; items are subsonic::Album wrapped for GTK.
         pub albums: OnceCell<gio::ListStore>,
         /// A copy of what the grid shows, to skip redraws when nothing changed.
@@ -82,6 +84,7 @@ impl MainView {
         let view: Self = glib::Object::new();
         view.set_title(APP_NAME);
         view.setup_grid();
+        view.setup_sorting();
         view
     }
 
@@ -243,14 +246,9 @@ impl MainView {
             return;
         }
 
-        let objects: Vec<glib::BoxedAnyObject> =
-            albums.iter().cloned().map(glib::BoxedAnyObject::new).collect();
-        if let Some(store) = imp.albums.get() {
-            // One change notification for the whole list, not one per album.
-            store.splice(0, store.n_items(), &objects);
-        }
         imp.albums_page.set_badge_number(albums.len() as u32);
         imp.current.replace(albums);
+        self.refresh_grid();
         imp.stack.set_visible_child_name("library");
 
         if !imp.reported.replace(true) {
@@ -319,5 +317,86 @@ impl MainView {
             }
         }
         imp.library_nav.push(&AlbumPage::new(&album, client));
+    }
+}
+
+impl MainView {
+    /// Fills the grid from `current`, in the order chosen in the sort menu.
+    fn refresh_grid(&self) {
+        let imp = self.imp();
+        let mut albums = imp.current.borrow().clone();
+        sort_albums(&mut albums, &imp.sort.borrow());
+        let objects: Vec<glib::BoxedAnyObject> =
+            albums.into_iter().map(glib::BoxedAnyObject::new).collect();
+        if let Some(store) = imp.albums.get() {
+            // One change notification for the whole list, not one per album.
+            store.splice(0, store.n_items(), &objects);
+        }
+    }
+
+    /// The "library.sort" action behind the sort menu; the choice is remembered.
+    fn setup_sorting(&self) {
+        let settings = gio::Settings::new(APP_ID);
+        let mode = settings.string("album-sort").to_string();
+        self.imp().sort.replace(mode.clone());
+
+        let action = gio::SimpleAction::new_stateful(
+            "sort",
+            Some(glib::VariantTy::STRING),
+            &mode.to_variant(),
+        );
+        let view = self.downgrade();
+        action.connect_activate(move |action, parameter| {
+            let Some(view) = view.upgrade() else {
+                return;
+            };
+            let Some(mode) = parameter.and_then(|p| p.get::<String>()) else {
+                return;
+            };
+            action.set_state(&mode.to_variant());
+            let _ = settings.set_string("album-sort", &mode);
+            view.imp().sort.replace(mode);
+            view.refresh_grid();
+
+            // A new order starts from the top.
+            let imp = view.imp();
+            if imp.albums.get().is_some_and(|store| store.n_items() > 0) {
+                imp.grid.scroll_to(0, gtk::ListScrollFlags::NONE, None);
+            }
+        });
+
+        let group = gio::SimpleActionGroup::new();
+        group.add_action(&action);
+        self.insert_action_group("library", Some(&group));
+    }
+}
+
+/// Sorts albums in place: "name", "artist" (then by year), "year-desc",
+/// "year-asc" (albums without a year go last) or "added" (newest first).
+fn sort_albums(albums: &mut [subsonic::Album], mode: &str) {
+    use std::cmp::Ordering;
+
+    fn text(a: &str, b: &str) -> Ordering {
+        a.to_lowercase().cmp(&b.to_lowercase())
+    }
+    let artist = |a: &subsonic::Album| a.artist.clone().unwrap_or_default();
+
+    match mode {
+        "artist" => albums.sort_by(|a, b| {
+            text(&artist(a), &artist(b))
+                .then_with(|| a.year.cmp(&b.year))
+                .then_with(|| text(&a.name, &b.name))
+        }),
+        "year-desc" => {
+            albums.sort_by(|a, b| b.year.cmp(&a.year).then_with(|| text(&a.name, &b.name)))
+        }
+        "year-asc" => albums.sort_by(|a, b| {
+            a.year
+                .unwrap_or(i32::MAX)
+                .cmp(&b.year.unwrap_or(i32::MAX))
+                .then_with(|| text(&a.name, &b.name))
+        }),
+        "added" => albums.sort_by(|a, b| b.created.cmp(&a.created)),
+        _ => albums.sort_by(|a, b| text(&a.name, &b.name)),
     }
 }

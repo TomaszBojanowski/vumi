@@ -87,6 +87,7 @@ pub struct Album {
     pub artist: Option<String>,
     pub year: Option<i32>,
     pub song_count: Option<u32>,
+    pub created: Option<String>,
     pub cover_art: Option<String>,
 }
 
