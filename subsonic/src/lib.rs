@@ -29,6 +29,7 @@ pub struct Response {
     pub server_version: Option<String>,
     pub error: Option<ApiError>,
     pub album_list2: Option<AlbumList>,
+    pub album: Option<AlbumWithSongs>,
 }
 
 #[derive(Deserialize)]
@@ -51,6 +52,28 @@ pub struct Album {
     pub artist: Option<String>,
     pub year: Option<i32>,
     pub song_count: Option<u32>,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AlbumWithSongs {
+    pub id: String,
+    pub name: String,
+    pub artist: Option<String>,
+    #[serde(default)]
+    pub song: Vec<Song>,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Song {
+    pub id: String,
+    pub title: String,
+    pub artist: Option<String>,
+    pub track: Option<u32>,
+    pub duration: Option<u32>,
+    pub suffix: Option<String>,
+    pub bit_rate: Option<u32>,
 }
 
 impl Client {
@@ -81,14 +104,19 @@ impl Client {
         ]
     }
 
-    /// Calls a Subsonic endpoint and turns a non-"ok" status into an error.
-    fn call(&self, endpoint: &str, extra: &[(&'static str, String)]) -> Result<Response> {
+    /// Builds a full endpoint URL with auth and extra query parameters.
+    fn build_url(&self, endpoint: &str, extra: &[(&'static str, String)]) -> Result<reqwest::Url> {
         let mut params = self.auth_params();
         params.extend_from_slice(extra);
-        let url = reqwest::Url::parse_with_params(
+        Ok(reqwest::Url::parse_with_params(
             &format!("{}/rest/{}", self.base_url, endpoint),
             &params,
-        )?;
+        )?)
+    }
+
+    /// Calls a Subsonic endpoint and turns a non-"ok" status into an error.
+    fn call(&self, endpoint: &str, extra: &[(&'static str, String)]) -> Result<Response> {
+        let url = self.build_url(endpoint, extra)?;
         let envelope: Envelope = self.http.get(url).send()?.error_for_status()?.json()?;
         let response = envelope.response;
         if response.status != "ok" {
@@ -116,5 +144,19 @@ impl Client {
             ],
         )?;
         Ok(response.album_list2.map(|l| l.album).unwrap_or_default())
+    }
+
+    /// One album with its track list.
+    pub fn album(&self, id: &str) -> Result<AlbumWithSongs> {
+        let response = self.call("getAlbum", &[("id", id.to_string())])?;
+        response.album.ok_or_else(|| "missing album in response".into())
+    }
+
+    /// Stream URL for a song; format=raw asks for the original file, no transcoding.
+    pub fn stream_url(&self, song_id: &str) -> Result<reqwest::Url> {
+        self.build_url(
+            "stream",
+            &[("id", song_id.to_string()), ("format", "raw".to_string())],
+        )
     }
 }
