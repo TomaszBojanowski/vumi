@@ -10,10 +10,20 @@ fn main() -> gtk::glib::ExitCode {
 }
 
 fn build_ui(app: &adw::Application) {
+    let versions = format!(
+        "GTK {}.{}.{} · libadwaita {}.{}.{}",
+        gtk::major_version(),
+        gtk::minor_version(),
+        gtk::micro_version(),
+        adw::major_version(),
+        adw::minor_version(),
+        adw::micro_version(),
+    );
+
     let status = adw::StatusPage::builder()
         .icon_name("audio-x-generic-symbolic")
         .title("muse-player")
-        .description("Nothing here yet")
+        .description(versions)
         .build();
 
     let toolbar = adw::ToolbarView::new();
