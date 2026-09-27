@@ -1,4 +1,5 @@
 use std::env;
+use std::process::exit;
 
 fn main() {
     let url = env::var("NAVIDROME_URL").expect("set NAVIDROME_URL");
@@ -8,16 +9,25 @@ fn main() {
     let client = subsonic::Client::new(&url, &user, &password);
 
     match client.ping() {
-        Ok(r) if r.status == "ok" => println!(
-            "OK: {} {} (API {})",
+        Ok(r) => println!(
+            "Connected: {} {} (API {})\n",
             r.server_type.unwrap_or_default(),
             r.server_version.unwrap_or_default(),
             r.version
         ),
-        Ok(r) => match r.error {
-            Some(e) => eprintln!("Server error {}: {}", e.code, e.message),
-            None => eprintln!("Unexpected status: {}", r.status),
-        },
-        Err(e) => eprintln!("Connection failed: {e}"),
+        Err(e) => {
+            eprintln!("Ping failed: {e}");
+            exit(1);
+        }
+    }
+
+    match client.album_list(20, 0) {
+        Ok(albums) => {
+            for a in albums {
+                let year = a.year.map(|y| format!(" ({y})")).unwrap_or_default();
+                println!("{} — {}{}", a.artist.unwrap_or_default(), a.name, year);
+            }
+        }
+        Err(e) => eprintln!("Album list failed: {e}"),
     }
 }
