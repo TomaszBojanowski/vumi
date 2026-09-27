@@ -19,10 +19,17 @@ fn runtime() -> &'static Runtime {
 }
 
 fn build_ui(app: &adw::Application) {
+    let settings = gio::Settings::new(APP_ID);
+
+    // The welcome carousel is shown only until the user completes it once.
     let nav = adw::NavigationView::new();
-    let login_page = build_login_page(&nav);
-    let welcome_page = build_welcome_page(&nav, &login_page);
-    nav.push(&welcome_page);
+    let login_page = build_login_page(&nav, &settings);
+    if settings.boolean("welcome-shown") {
+        nav.push(&login_page);
+    } else {
+        let welcome_page = build_welcome_page(&nav, &login_page, &settings);
+        nav.push(&welcome_page);
+    }
 
     let window = adw::ApplicationWindow::builder()
         .application(app)
@@ -31,7 +38,6 @@ fn build_ui(app: &adw::Application) {
         .build();
 
     // Restore the window size and state from the last session.
-    let settings = gio::Settings::new(APP_ID);
     window.set_default_size(settings.int("window-width"), settings.int("window-height"));
     if settings.boolean("window-maximized") {
         window.maximize();
@@ -63,6 +69,7 @@ fn feature_page(icon: &str, title: &str, description: &str) -> adw::StatusPage {
 fn build_welcome_page(
     nav: &adw::NavigationView,
     login_page: &adw::NavigationPage,
+    settings: &gio::Settings,
 ) -> adw::NavigationPage {
     let carousel = adw::Carousel::builder().hexpand(true).vexpand(true).build();
     carousel.append(&feature_page(
@@ -105,12 +112,14 @@ fn build_welcome_page(
     let carousel_for_click = carousel.clone();
     let nav = nav.clone();
     let login_page = login_page.clone();
+    let settings = settings.clone();
     next_button.connect_clicked(move |_| {
         let c = &carousel_for_click;
         let current = c.position().round() as u32;
         if current + 1 < c.n_pages() {
             c.scroll_to(&c.nth_page(current + 1), true);
         } else {
+            let _ = settings.set_boolean("welcome-shown", true);
             nav.push(&login_page);
         }
     });
@@ -139,9 +148,16 @@ fn build_welcome_page(
         .build()
 }
 
-fn build_login_page(nav: &adw::NavigationView) -> adw::NavigationPage {
-    let url_row = adw::EntryRow::builder().title("Server address").build();
-    let user_row = adw::EntryRow::builder().title("Username").build();
+fn build_login_page(nav: &adw::NavigationView, settings: &gio::Settings) -> adw::NavigationPage {
+    // Pre-filled with the last server that connected successfully.
+    let url_row = adw::EntryRow::builder()
+        .title("Server address")
+        .text(settings.string("server-url"))
+        .build();
+    let user_row = adw::EntryRow::builder()
+        .title("Username")
+        .text(settings.string("username"))
+        .build();
     let password_row = adw::PasswordEntryRow::builder().title("Password").build();
 
     let group = adw::PreferencesGroup::new();
@@ -182,6 +198,7 @@ fn build_login_page(nav: &adw::NavigationView) -> adw::NavigationPage {
         .build();
 
     let nav = nav.clone();
+    let settings = settings.clone();
     let group_for_click = group.clone();
     let error_for_click = error_label.clone();
     connect_button.connect_clicked(move |button| {
@@ -199,6 +216,7 @@ fn build_login_page(nav: &adw::NavigationView) -> adw::NavigationPage {
         let group = group_for_click.clone();
         let error_label = error_for_click.clone();
         let nav = nav.clone();
+        let settings = settings.clone();
 
         // Runs on the GTK main loop; only the network call goes to tokio.
         glib::spawn_future_local(async move {
@@ -210,7 +228,12 @@ fn build_login_page(nav: &adw::NavigationView) -> adw::NavigationPage {
             group.set_sensitive(true);
 
             match result {
-                Ok(Ok(response)) => nav.replace(&[connected_page(&response)]),
+                Ok(Ok(response)) => {
+                    // Saved only after success, so a typo is never remembered.
+                    let _ = settings.set_string("server-url", &url);
+                    let _ = settings.set_string("username", &user);
+                    nav.replace(&[connected_page(&response)]);
+                }
                 Ok(Err(e)) => {
                     error_label.set_label(&error_message(&e));
                     error_label.set_visible(true);

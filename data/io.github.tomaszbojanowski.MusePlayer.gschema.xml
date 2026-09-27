@@ -13,5 +13,17 @@
       <default>false</default>
       <summary>Whether the window is maximized</summary>
     </key>
+    <key name="server-url" type="s">
+      <default>""</default>
+      <summary>Address of the last server that connected successfully</summary>
+    </key>
+    <key name="username" type="s">
+      <default>""</default>
+      <summary>Username on that server</summary>
+    </key>
+    <key name="welcome-shown" type="b">
+      <default>false</default>
+      <summary>Whether the welcome carousel was already completed</summary>
+    </key>
   </schema>
 </schemalist>
