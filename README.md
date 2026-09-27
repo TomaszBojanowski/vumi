@@ -47,7 +47,7 @@ Later: year in music, forgotten albums, time-of-day mixes, command palette
          welcome shown only on first run
    - [x] gettext, Blueprint UI files, Meson build
 4. [ ] Player in GUI: now-playing bar, queue, MPRIS, background playback
-5. [ ] Local library: SQLite cache, background sync, FTS5 search, cover cache
+5. [ ] Local library: [x] SQLite cache, [x] background sync, [x] cover cache, [ ] FTS5 search
 6. [ ] Scrobbling, play queue sync, ReplayGain, audio prefetch,
        HTTPS with trust for self-signed certificates
 7. [ ] Signature 1: AudioMuse-AI discovery
