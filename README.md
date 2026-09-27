@@ -43,7 +43,7 @@ Later: year in music, forgotten albums, time-of-day mixes, command palette
    - [x] Async client with typed errors
    - [x] Real login (ping in background, clear error messages)
    - [x] Window size remembered (GSettings)
-   - [ ] Credentials in the system keyring, server and user in settings,
+   - [x] Credentials in the system keyring, server and user in settings,
          welcome shown only on first run
    - [ ] gettext, Blueprint UI files, Meson build
 4. [ ] Player in GUI: now-playing bar, queue, MPRIS, background playback
