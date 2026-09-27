@@ -3,8 +3,12 @@ install_data(
   install_dir: get_option('datadir') / 'glib-2.0' / 'schemas',
 )
 
-install_data(
-  application_id + '.desktop',
+i18n.merge_file(
+  input: application_id + '.desktop.in',
+  output: application_id + '.desktop',
+  type: 'desktop',
+  po_dir: meson.project_source_root() / 'po',
+  install: true,
   install_dir: get_option('datadir') / 'applications',
 )
 
