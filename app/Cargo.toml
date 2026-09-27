@@ -9,3 +9,7 @@ gtk = { version = "0.11.5", package = "gtk4" }
 oo7 = "0.6.0"
 subsonic = { version = "0.1.0", path = "../subsonic" }
 tokio = { version = "1.53.1", features = ["rt-multi-thread"] }
+
+[[bin]]
+name = "muse-player"
+path = "src/main.rs"

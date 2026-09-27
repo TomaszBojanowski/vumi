@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=muse-player
+Comment=Fast music player for Navidrome and Subsonic servers
+Exec=muse-player
+Icon=io.github.tomaszbojanowski.MusePlayer
+Terminal=false
+Type=Application
+Categories=GTK;GNOME;AudioVideo;Audio;Player;
+Keywords=music;player;navidrome;subsonic;
+StartupNotify=true

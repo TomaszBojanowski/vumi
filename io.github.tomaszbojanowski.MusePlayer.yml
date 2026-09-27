@@ -21,12 +21,8 @@ build-options:
     CARGO_HOME: /run/build/muse-player/cargo
 modules:
   - name: muse-player
-    buildsystem: simple
-    build-commands:
-      - cargo build --release -p app
-      - install -Dm755 target/release/app /app/bin/muse-player
-      - install -Dm644 data/io.github.tomaszbojanowski.MusePlayer.gschema.xml -t /app/share/glib-2.0/schemas/
-      - glib-compile-schemas /app/share/glib-2.0/schemas/
+    buildsystem: meson
+    builddir: true
     sources:
       - type: dir
         path: .
