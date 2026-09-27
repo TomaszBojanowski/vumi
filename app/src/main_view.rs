@@ -9,6 +9,7 @@ use std::cell::{Cell, OnceCell, RefCell};
 use std::time::Instant;
 
 use crate::album_card::AlbumCard;
+use crate::album_page::AlbumPage;
 use crate::{error_message, library, runtime, since_start, APP_NAME};
 
 mod imp {
@@ -98,6 +99,29 @@ impl MainView {
             // the client is only needed for covers that are not cached yet.
             let client = view.upgrade().and_then(|v| v.imp().client.borrow().clone());
             card.set_album(&object.borrow::<subsonic::Album>(), client);
+        });
+
+        // A click on a card opens the album page on top of the library.
+        let view = self.downgrade();
+        imp.grid.connect_activate(move |grid, position| {
+            let Some(view) = view.upgrade() else {
+                return;
+            };
+            let Some(object) = grid
+                .model()
+                .and_then(|model| model.item(position))
+                .and_downcast::<glib::BoxedAnyObject>()
+            else {
+                return;
+            };
+            let client = view.imp().client.borrow().clone();
+            let page = AlbumPage::new(&object.borrow::<subsonic::Album>(), client);
+            if let Some(nav) = view
+                .ancestor(adw::NavigationView::static_type())
+                .and_downcast::<adw::NavigationView>()
+            {
+                nav.push(&page);
+            }
         });
 
         imp.grid

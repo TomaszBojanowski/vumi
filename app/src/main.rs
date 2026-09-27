@@ -1,4 +1,5 @@
 mod album_card;
+mod album_page;
 mod covers;
 mod library;
 mod login_page;
@@ -39,6 +40,7 @@ fn main() -> glib::ExitCode {
     gettextrs::textdomain(GETTEXT_PACKAGE).expect("failed to set text domain");
 
     let app = adw::Application::builder().application_id(APP_ID).build();
+    app.connect_startup(|_| load_css());
     app.connect_activate(build_ui);
     app.run()
 }
@@ -175,4 +177,17 @@ static START: OnceLock<Instant> = OnceLock::new();
 
 fn since_start() -> Duration {
     START.get().map(Instant::elapsed).unwrap_or_default()
+}
+
+/// The app's own styles (style.css is built into the binary).
+fn load_css() {
+    let provider = gtk::CssProvider::new();
+    provider.load_from_string(include_str!("style.css"));
+    if let Some(display) = gtk::gdk::Display::default() {
+        gtk::style_context_add_provider_for_display(
+            &display,
+            &provider,
+            gtk::STYLE_PROVIDER_PRIORITY_APPLICATION,
+        );
+    }
 }

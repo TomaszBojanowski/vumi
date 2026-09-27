@@ -1,0 +1,125 @@
+using Gtk 4.0;
+using Adw 1;
+
+translation-domain "muse-player";
+
+template $MusePlayerAlbumPage: Adw.NavigationPage {
+  child: Adw.ToolbarView {
+    [top]
+    Adw.HeaderBar {}
+
+    content: ScrolledWindow {
+      hscrollbar-policy: never;
+
+      child: Adw.Clamp {
+        maximum-size: 900;
+
+        child: Box {
+          orientation: vertical;
+          spacing: 24;
+          margin-top: 24;
+          margin-bottom: 24;
+          margin-start: 12;
+          margin-end: 12;
+
+          Box {
+            spacing: 24;
+
+            // Same layering as the album card: note icon under the cover.
+            Overlay {
+              width-request: 240;
+              height-request: 240;
+              valign: start;
+              overflow: hidden;
+
+              styles [
+                "card",
+                "album-cover",
+              ]
+
+              child: Image {
+                icon-name: "audio-x-generic-symbolic";
+                pixel-size: 80;
+
+                styles [
+                  "dim-label",
+                ]
+              };
+
+              [overlay]
+              Picture cover {
+                content-fit: cover;
+              }
+            }
+
+            Box {
+              orientation: vertical;
+              spacing: 6;
+              valign: center;
+
+              Label title {
+                xalign: 0;
+                wrap: true;
+
+                styles [
+                  "title-1",
+                ]
+              }
+
+              Label artist {
+                xalign: 0;
+                wrap: true;
+
+                styles [
+                  "title-4",
+                ]
+              }
+
+              Label details {
+                xalign: 0;
+
+                styles [
+                  "dim-label",
+                ]
+              }
+            }
+          }
+
+          Stack tracks_stack {
+            StackPage {
+              name: "loading";
+
+              child: Adw.Spinner {
+                height-request: 48;
+              };
+            }
+
+            StackPage {
+              name: "tracks";
+
+              child: ListBox tracks {
+                selection-mode: none;
+
+                styles [
+                  "boxed-list",
+                ]
+              };
+            }
+
+            StackPage {
+              name: "error";
+
+              child: Adw.StatusPage error_status {
+                icon-name: "network-offline-symbolic";
+
+                styles [
+                  "compact",
+                ]
+              };
+            }
+          }
+        };
+      };
+    };
+  };
+}

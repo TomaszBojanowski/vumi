@@ -1,0 +1,4 @@
+/* Soft shadow under large album covers. */
+.album-cover {
+  box-shadow: 0 6px 20px alpha(black, 0.35);
+}
