@@ -10,9 +10,20 @@ with first-class AudioMuse-AI integration. Written in Rust.
 - **Smooth scrolling** through 10k+ tracks.
 - **UI never waits for the network.**
 - **Gapless playback** with the next track prefetched.
-- **Stand-out features:** AudioMuse-AI (similar songs, endless radio,
-  search by description, song paths, music map), bit-perfect output,
-  synced lyrics.
+
+## Signature features
+
+1. **Music discovery with AudioMuse-AI:** search by description
+   ("calm jazz for a rainy evening"), song paths that move smoothly from
+   one track to another, an interactive map of the library grouped by
+   sound, and endless radio when the queue runs out.
+2. **Signal path:** shows the whole audio chain from the file on the server
+   to the sound card, and whether playback is bit-perfect.
+3. **GNOME Shell search provider:** find and play albums straight from
+   the Activities overview.
+
+Later: year in music, forgotten albums, time-of-day mixes, command palette
+(Ctrl+K), adaptive layout for narrow windows and phones.
 
 ## Architecture
 
@@ -29,12 +40,17 @@ with first-class AudioMuse-AI integration. Written in Rust.
 3. [ ] GUI foundation
    - [x] Window on GNOME 51 (GTK 4.24, libadwaita 1.10) via Flatpak
    - [x] Welcome carousel and login form
-   - [ ] Async client with typed errors
-   - [ ] Real login (ping in background, clear error messages)
-   - [ ] Credentials in the system keyring, settings, first-run flag
+   - [x] Async client with typed errors
+   - [x] Real login (ping in background, clear error messages)
+   - [x] Window size remembered (GSettings)
+   - [ ] Credentials in the system keyring, server and user in settings,
+         welcome shown only on first run
    - [ ] gettext, Blueprint UI files, Meson build
 4. [ ] Player in GUI: now-playing bar, queue, MPRIS, background playback
 5. [ ] Local library: SQLite cache, background sync, FTS5 search, cover cache
-6. [ ] Scrobbling, play queue sync (savePlayQueue), ReplayGain, audio prefetch
-7. [ ] AudioMuse-AI: similar songs, endless radio, search by description
-8. [ ] Synced lyrics, bit-perfect output, offline downloads, music map
+6. [ ] Scrobbling, play queue sync, ReplayGain, audio prefetch,
+       HTTPS with trust for self-signed certificates
+7. [ ] Signature 1: AudioMuse-AI discovery
+8. [ ] Signature 2: signal path and bit-perfect output
+9. [ ] Signature 3: GNOME Shell search provider
+10. [ ] Synced lyrics, offline downloads, the "later" ideas
