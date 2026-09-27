@@ -20,17 +20,90 @@ fn runtime() -> &'static Runtime {
     RUNTIME.get_or_init(|| Runtime::new().expect("failed to start tokio runtime"))
 }
 
+/// The main view with its offline banner. The library will live here.
+#[derive(Clone)]
+struct MainView {
+    page: adw::NavigationPage,
+    status: adw::StatusPage,
+    banner: adw::Banner,
+}
+
+impl MainView {
+    fn new() -> Self {
+        let banner = adw::Banner::builder().button_label("Retry").build();
+        let status = adw::StatusPage::builder()
+            .icon_name("audio-x-generic-symbolic")
+            .title("Library")
+            .build();
+
+        let toolbar = adw::ToolbarView::new();
+        toolbar.add_top_bar(&adw::HeaderBar::new());
+        toolbar.add_top_bar(&banner);
+        toolbar.set_content(Some(&status));
+
+        let page = adw::NavigationPage::builder()
+            .title("muse-player")
+            .child(&toolbar)
+            .build();
+        Self { page, status, banner }
+    }
+
+    fn show_connecting(&self) {
+        self.status.set_description(Some("Connecting…"));
+    }
+
+    fn show_connected(&self, r: &subsonic::Response) {
+        self.banner.set_revealed(false);
+        self.status.set_description(Some(&format!(
+            "Connected to {} {}",
+            r.server_type.as_deref().unwrap_or("server"),
+            r.server_version.as_deref().unwrap_or("")
+        )));
+    }
+
+    fn show_offline(&self, message: &str) {
+        self.banner.set_title(message);
+        self.banner.set_revealed(true);
+        self.status.set_description(Some("Offline"));
+    }
+}
+
 fn build_ui(app: &adw::Application) {
     let settings = gio::Settings::new(APP_ID);
 
-    // The welcome carousel is shown only until the user completes it once.
     let nav = adw::NavigationView::new();
-    let login_page = build_login_page(&nav, &settings);
-    if settings.boolean("welcome-shown") {
+    let main = MainView::new();
+    let login_page = build_login_page(&nav, &settings, &main);
+
+    // With saved credentials the main view shows up at once and the
+    // connection happens in the background. Otherwise: welcome or login.
+    let saved_url = settings.string("server-url").to_string();
+    let saved_user = settings.string("username").to_string();
+    if !saved_url.is_empty() && !saved_user.is_empty() {
+        nav.push(&main.page);
+        auto_connect(&nav, &login_page, &main, saved_url, saved_user);
+    } else if settings.boolean("welcome-shown") {
         nav.push(&login_page);
     } else {
         let welcome_page = build_welcome_page(&nav, &login_page, &settings);
         nav.push(&welcome_page);
+    }
+
+    // "Retry" in the offline banner reconnects with the saved credentials.
+    {
+        let nav = nav.clone();
+        let login_page = login_page.clone();
+        let main_for_retry = main.clone();
+        let settings = settings.clone();
+        main.banner.connect_button_clicked(move |_| {
+            auto_connect(
+                &nav,
+                &login_page,
+                &main_for_retry,
+                settings.string("server-url").to_string(),
+                settings.string("username").to_string(),
+            );
+        });
     }
 
     let window = adw::ApplicationWindow::builder()
@@ -55,6 +128,47 @@ fn build_ui(app: &adw::Application) {
     });
 
     window.present();
+}
+
+/// Connects with the saved server, user and keyring password without
+/// blocking the UI: the main view is already on screen while this runs.
+fn auto_connect(
+    nav: &adw::NavigationView,
+    login_page: &adw::NavigationPage,
+    main: &MainView,
+    url: String,
+    user: String,
+) {
+    main.show_connecting();
+    let nav = nav.clone();
+    let login_page = login_page.clone();
+    let main = main.clone();
+
+    glib::spawn_future_local(async move {
+        // None means there is no usable saved password.
+        let result = runtime()
+            .spawn(async move {
+                let password = match secrets::load_password(&url, &user).await {
+                    Ok(Some(password)) => password,
+                    Ok(None) => return None,
+                    Err(e) => {
+                        eprintln!("Could not read the keyring: {e}");
+                        return None;
+                    }
+                };
+                Some(subsonic::Client::new(&url, &user, &password).ping().await)
+            })
+            .await;
+
+        match result {
+            Ok(Some(Ok(response))) => main.show_connected(&response),
+            Ok(Some(Err(subsonic::Error::WrongCredentials))) | Ok(None) => {
+                nav.replace(&[login_page]);
+            }
+            Ok(Some(Err(e))) => main.show_offline(&error_message(&e)),
+            Err(_) => main.show_offline("Something went wrong. Please try again."),
+        }
+    });
 }
 
 /// One page of the welcome carousel.
@@ -150,7 +264,11 @@ fn build_welcome_page(
         .build()
 }
 
-fn build_login_page(nav: &adw::NavigationView, settings: &gio::Settings) -> adw::NavigationPage {
+fn build_login_page(
+    nav: &adw::NavigationView,
+    settings: &gio::Settings,
+    main: &MainView,
+) -> adw::NavigationPage {
     // Pre-filled with the last server that connected successfully.
     let saved_url = settings.string("server-url").to_string();
     let saved_user = settings.string("username").to_string();
@@ -220,6 +338,7 @@ fn build_login_page(nav: &adw::NavigationView, settings: &gio::Settings) -> adw:
 
     let nav = nav.clone();
     let settings = settings.clone();
+    let main = main.clone();
     let group_for_click = group.clone();
     let error_for_click = error_label.clone();
     connect_button.connect_clicked(move |button| {
@@ -238,6 +357,7 @@ fn build_login_page(nav: &adw::NavigationView, settings: &gio::Settings) -> adw:
         let error_label = error_for_click.clone();
         let nav = nav.clone();
         let settings = settings.clone();
+        let main = main.clone();
 
         // Runs on the GTK main loop; only the network call goes to tokio.
         glib::spawn_future_local(async move {
@@ -258,7 +378,8 @@ fn build_login_page(nav: &adw::NavigationView, settings: &gio::Settings) -> adw:
                             eprintln!("Could not save the password: {e}");
                         }
                     });
-                    nav.replace(&[connected_page(&response)]);
+                    main.show_connected(&response);
+                    nav.replace(&[main.page.clone()]);
                 }
                 Ok(Err(e)) => {
                     error_label.set_label(&error_message(&e));
@@ -292,26 +413,4 @@ fn error_message(e: &subsonic::Error) -> String {
         BadResponse(_) => "The server answered, but it does not look like a Subsonic server.".into(),
         Server { message, .. } => format!("Server error: {message}"),
     }
-}
-
-/// Placeholder shown after a successful login; the library will live here.
-fn connected_page(r: &subsonic::Response) -> adw::NavigationPage {
-    let status = adw::StatusPage::builder()
-        .icon_name("emblem-ok-symbolic")
-        .title("Connected")
-        .description(format!(
-            "{} {}",
-            r.server_type.as_deref().unwrap_or("Server"),
-            r.server_version.as_deref().unwrap_or("")
-        ))
-        .build();
-
-    let toolbar = adw::ToolbarView::new();
-    toolbar.add_top_bar(&adw::HeaderBar::new());
-    toolbar.set_content(Some(&status));
-
-    adw::NavigationPage::builder()
-        .title("muse-player")
-        .child(&toolbar)
-        .build()
 }
