@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: muse-player\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-27 15:59+0200\n"
+"POT-Creation-Date: 2026-09-27 16:07+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -29,95 +29,50 @@ msgstr ""
 msgid "music;player;navidrome;subsonic;"
 msgstr ""
 
-#: app/src/main.rs:53
+#: app/src/main.rs:55
 msgid "Retry"
 msgstr ""
 
-#: app/src/main.rs:56
+#: app/src/main.rs:58
 msgid "Library"
 msgstr ""
 
-#: app/src/main.rs:72
+#: app/src/main.rs:74
 msgid "Connecting…"
 msgstr ""
 
 #. Translators: {server} is the server software (e.g. navidrome), {version} its version.
-#: app/src/main.rs:78
+#: app/src/main.rs:80
 #, rust-format
 msgid "Connected to {server} {version}"
 msgstr ""
 
-#: app/src/main.rs:87
+#: app/src/main.rs:89
 msgid "Offline"
 msgstr ""
 
-#: app/src/main.rs:189 app/src/login_page.rs:153
+#: app/src/main.rs:190 app/src/login_page.rs:153
 msgid "Something went wrong. Please try again."
 msgstr ""
 
-#. Translators: {app_name} is the name of this application.
-#: app/src/main.rs:214
-#, rust-format
-msgid "Welcome to {app_name}"
-msgstr ""
-
-#: app/src/main.rs:215
-msgid "A fast music player for your own music server."
-msgstr ""
-
-#: app/src/main.rs:219
-msgid "Your Library, Instantly"
-msgstr ""
-
-#: app/src/main.rs:220
-msgid ""
-"Browse thousands of albums without waiting. Everything stays smooth, even "
-"with huge collections."
-msgstr ""
-
-#: app/src/main.rs:224
-msgid "Discover Music"
-msgstr ""
-
-#: app/src/main.rs:225
-msgid ""
-"Similar songs, endless radio and search by mood, powered by AudioMuse-AI."
-msgstr ""
-
-#: app/src/main.rs:229
-msgid "Hear Every Detail"
-msgstr ""
-
-#: app/src/main.rs:230
-msgid "Original quality streaming, gapless playback and bit-perfect output."
-msgstr ""
-
-#: app/src/main.rs:236 app/src/main.rs:245
-msgid "Next"
-msgstr ""
-
-#: app/src/main.rs:245
-msgid "Get Started"
-msgstr ""
-
-#: app/src/main.rs:293
+#: app/src/main.rs:199
 msgid "Wrong username or password."
 msgstr ""
 
-#: app/src/main.rs:294
+#: app/src/main.rs:200
 msgid "Cannot reach the server. Check the address and your connection."
 msgstr ""
 
-#: app/src/main.rs:295
+#: app/src/main.rs:201
 msgid "Invalid server address. It should start with http:// or https://"
 msgstr ""
 
-#: app/src/main.rs:296
+#: app/src/main.rs:202
 msgid "The server answered, but it does not look like a Subsonic server."
 msgstr ""
 
 #. Translators: {message} is the error text sent by the server.
-#: app/src/main.rs:298
+#: app/src/main.rs:204
 #, rust-format
 msgid "Server error: {message}"
 msgstr ""
@@ -144,4 +99,49 @@ msgstr ""
 
 #: app/src/login_page.blp:39
 msgid "Password"
+msgstr ""
+
+#. Translators: {app_name} is the name of this application.
+#: app/src/welcome_page.rs:63
+#, rust-format
+msgid "Welcome to {app_name}"
+msgstr ""
+
+#: app/src/welcome_page.rs:70
+msgid "Get Started"
+msgstr ""
+
+#: app/src/welcome_page.rs:70 app/src/welcome_page.blp:61
+msgid "Next"
+msgstr ""
+
+#: app/src/welcome_page.blp:21
+msgid "A fast music player for your own music server."
+msgstr ""
+
+#: app/src/welcome_page.blp:28
+msgid "Your Library, Instantly"
+msgstr ""
+
+#: app/src/welcome_page.blp:29
+msgid ""
+"Browse thousands of albums without waiting. Everything stays smooth, even "
+"with huge collections."
+msgstr ""
+
+#: app/src/welcome_page.blp:36
+msgid "Discover Music"
+msgstr ""
+
+#: app/src/welcome_page.blp:37
+msgid ""
+"Similar songs, endless radio and search by mood, powered by AudioMuse-AI."
+msgstr ""
+
+#: app/src/welcome_page.blp:44
+msgid "Hear Every Detail"
+msgstr ""
+
+#: app/src/welcome_page.blp:45
+msgid "Original quality streaming, gapless playback and bit-perfect output."
 msgstr ""

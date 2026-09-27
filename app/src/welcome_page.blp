@@ -1,0 +1,72 @@
+using Gtk 4.0;
+using Adw 1;
+
+translation-domain "muse-player";
+
+template $MusePlayerWelcomePage: Adw.NavigationPage {
+  child: Adw.ToolbarView {
+    [top]
+    Adw.HeaderBar {}
+
+    content: Box {
+      orientation: vertical;
+
+      Adw.Carousel carousel {
+        hexpand: true;
+        vexpand: true;
+
+        // The title is set in code: it contains the app name.
+        Adw.StatusPage welcome_status {
+          icon-name: "audio-x-generic-symbolic";
+          description: _("A fast music player for your own music server.");
+          hexpand: true;
+          vexpand: true;
+        }
+
+        Adw.StatusPage {
+          icon-name: "view-grid-symbolic";
+          title: _("Your Library, Instantly");
+          description: _("Browse thousands of albums without waiting. Everything stays smooth, even with huge collections.");
+          hexpand: true;
+          vexpand: true;
+        }
+
+        Adw.StatusPage {
+          icon-name: "system-search-symbolic";
+          title: _("Discover Music");
+          description: _("Similar songs, endless radio and search by mood, powered by AudioMuse-AI.");
+          hexpand: true;
+          vexpand: true;
+        }
+
+        Adw.StatusPage {
+          icon-name: "audio-speakers-symbolic";
+          title: _("Hear Every Detail");
+          description: _("Original quality streaming, gapless playback and bit-perfect output.");
+          hexpand: true;
+          vexpand: true;
+        }
+      }
+
+      Box {
+        orientation: vertical;
+        spacing: 18;
+        margin-bottom: 24;
+
+        Adw.CarouselIndicatorDots {
+          carousel: carousel;
+        }
+
+        Button next_button {
+          label: _("Next");
+          halign: center;
+
+          styles [
+            "suggested-action",
+            "pill",
+          ]
+        }
+      }
+    };
+  };
+}

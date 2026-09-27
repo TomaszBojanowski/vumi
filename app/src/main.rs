@@ -1,5 +1,6 @@
 mod login_page;
 mod secrets;
+mod welcome_page;
 
 use adw::prelude::*;
 use gettextrs::{gettext, LocaleCategory};
@@ -8,6 +9,7 @@ use std::sync::OnceLock;
 use tokio::runtime::Runtime;
 
 use login_page::LoginPage;
+use welcome_page::WelcomePage;
 
 // Working ID and name, will change together with the final app name.
 pub const APP_ID: &str = "io.github.tomaszbojanowski.MusePlayer";
@@ -105,8 +107,7 @@ fn build_ui(app: &adw::Application) {
     } else if settings.boolean("welcome-shown") {
         nav.push(&login_page);
     } else {
-        let welcome_page = build_welcome_page(&nav, &login_page, &settings);
-        nav.push(&welcome_page);
+        nav.push(&WelcomePage::new(&nav, &login_page, &settings));
     }
 
     // "Retry" in the offline banner reconnects with the saved credentials.
@@ -189,101 +190,6 @@ fn auto_connect(
             Err(_) => main.show_offline(&gettext("Something went wrong. Please try again.")),
         }
     });
-}
-
-/// One page of the welcome carousel.
-fn feature_page(icon: &str, title: &str, description: &str) -> adw::StatusPage {
-    adw::StatusPage::builder()
-        .icon_name(icon)
-        .title(title)
-        .description(description)
-        .hexpand(true)
-        .vexpand(true)
-        .build()
-}
-
-fn build_welcome_page(
-    nav: &adw::NavigationView,
-    login_page: &adw::NavigationPage,
-    settings: &gio::Settings,
-) -> adw::NavigationPage {
-    let carousel = adw::Carousel::builder().hexpand(true).vexpand(true).build();
-    carousel.append(&feature_page(
-        "audio-x-generic-symbolic",
-        // Translators: {app_name} is the name of this application.
-        &gettext("Welcome to {app_name}").replace("{app_name}", APP_NAME),
-        &gettext("A fast music player for your own music server."),
-    ));
-    carousel.append(&feature_page(
-        "view-grid-symbolic",
-        &gettext("Your Library, Instantly"),
-        &gettext("Browse thousands of albums without waiting. Everything stays smooth, even with huge collections."),
-    ));
-    carousel.append(&feature_page(
-        "system-search-symbolic",
-        &gettext("Discover Music"),
-        &gettext("Similar songs, endless radio and search by mood, powered by AudioMuse-AI."),
-    ));
-    carousel.append(&feature_page(
-        "audio-speakers-symbolic",
-        &gettext("Hear Every Detail"),
-        &gettext("Original quality streaming, gapless playback and bit-perfect output."),
-    ));
-
-    let dots = adw::CarouselIndicatorDots::builder().carousel(&carousel).build();
-
-    let next_button = gtk::Button::builder()
-        .label(gettext("Next"))
-        .halign(gtk::Align::Center)
-        .css_classes(["suggested-action", "pill"])
-        .build();
-
-    // The button label follows the carousel: "Get Started" on the last page.
-    let button_for_label = next_button.clone();
-    carousel.connect_page_changed(move |carousel, index| {
-        let last = index + 1 == carousel.n_pages();
-        let label = if last { gettext("Get Started") } else { gettext("Next") };
-        button_for_label.set_label(&label);
-    });
-
-    // Next page, or the login screen when we are on the last one.
-    let carousel_for_click = carousel.clone();
-    let nav = nav.clone();
-    let login_page = login_page.clone();
-    let settings = settings.clone();
-    next_button.connect_clicked(move |_| {
-        let c = &carousel_for_click;
-        let current = c.position().round() as u32;
-        if current + 1 < c.n_pages() {
-            c.scroll_to(&c.nth_page(current + 1), true);
-        } else {
-            let _ = settings.set_boolean("welcome-shown", true);
-            nav.push(&login_page);
-        }
-    });
-
-    let bottom = gtk::Box::builder()
-        .orientation(gtk::Orientation::Vertical)
-        .spacing(18)
-        .margin_bottom(24)
-        .build();
-    bottom.append(&dots);
-    bottom.append(&next_button);
-
-    let content = gtk::Box::builder()
-        .orientation(gtk::Orientation::Vertical)
-        .build();
-    content.append(&carousel);
-    content.append(&bottom);
-
-    let toolbar = adw::ToolbarView::new();
-    toolbar.add_top_bar(&adw::HeaderBar::new());
-    toolbar.set_content(Some(&content));
-
-    adw::NavigationPage::builder()
-        .title(APP_NAME)
-        .child(&toolbar)
-        .build()
 }
 
 /// Human-readable message for each kind of connection error.
