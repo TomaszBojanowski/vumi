@@ -46,6 +46,7 @@ fn main() -> glib::ExitCode {
 
     let app = adw::Application::builder().application_id(APP_ID).build();
     app.connect_startup(|_| load_css());
+    app.connect_shutdown(|_| player::shutdown());
     app.connect_activate(build_ui);
     app.run()
 }

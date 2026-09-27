@@ -92,3 +92,13 @@ impl Player {
         }
     }
 }
+
+/// Stops playback cleanly when the app quits: GStreamer wants its elements in
+/// the NULL state before they are destroyed. Does nothing if nothing was played.
+pub(crate) fn shutdown() {
+    PLAYER.with(|cell| {
+        if let Some(player) = cell.get() {
+            let _ = player.playbin.set_state(gst::State::Null);
+        }
+    });
+}
