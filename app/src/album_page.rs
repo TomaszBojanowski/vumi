@@ -7,8 +7,9 @@ use gettextrs::{gettext, ngettext};
 use gtk::glib;
 use std::collections::BTreeSet;
 
+use crate::artist_page::ArtistPage;
 use crate::favorites::{star_button, Favorite};
-use crate::{covers, error_message, runtime, tint};
+use crate::{about, covers, error_message, runtime, tint};
 
 mod imp {
     use super::*;
@@ -24,6 +25,8 @@ mod imp {
         pub title: gtk::TemplateChild<gtk::Label>,
         #[template_child]
         pub artist: gtk::TemplateChild<gtk::Label>,
+        #[template_child]
+        pub artist_button: gtk::TemplateChild<gtk::Button>,
         #[template_child]
         pub details: gtk::TemplateChild<gtk::Label>,
         #[template_child]
@@ -150,6 +153,25 @@ impl AlbumPage {
             Some(client.clone()),
             Favorite::Album(album.id.clone()),
         ));
+
+        // The artist name opens the artist page.
+        if let Some(artist_id) = album.artist_id.clone() {
+            let name = album.artist.clone().unwrap_or_default();
+            let client = client.clone();
+            let page = self.downgrade();
+            imp.artist_button.connect_clicked(move |_| {
+                let Some(page) = page.upgrade() else {
+                    return;
+                };
+                let artist_page = ArtistPage::new(&artist_id, &name, client.clone());
+                if let Some(nav) = page
+                    .ancestor(adw::NavigationView::static_type())
+                    .and_downcast::<adw::NavigationView>()
+                {
+                    nav.push(&artist_page);
+                }
+            });
+        }
 
         // Headers only when the album really has more than one disc.
         let discs: BTreeSet<u32> = songs.iter().filter_map(|s| s.disc_number).collect();
@@ -336,7 +358,7 @@ impl AlbumPage {
             let (Some(page), Ok(Ok(info))) = (page.upgrade(), result) else {
                 return;
             };
-            let text = info.notes.as_deref().map(plain_text).unwrap_or_default();
+            let text = info.notes.as_deref().map(about::plain_text).unwrap_or_default();
             if !text.is_empty() {
                 page.show_about(&text);
             }
@@ -345,51 +367,7 @@ impl AlbumPage {
 
     fn show_about(&self, text: &str) {
         let imp = self.imp();
-        imp.about_text.set_label(text);
-
-        // Only long texts get the "Show more" button.
-        let long = text.chars().count() > 300;
-        imp.about_more.set_visible(long);
-        if long {
-            let label = imp.about_text.get();
-            imp.about_more.connect_clicked(move |button| {
-                let expanded = label.ellipsize() == gtk::pango::EllipsizeMode::None;
-                if expanded {
-                    label.set_ellipsize(gtk::pango::EllipsizeMode::End);
-                    label.set_lines(4);
-                    button.set_label(&gettext("Show more"));
-                } else {
-                    label.set_ellipsize(gtk::pango::EllipsizeMode::None);
-                    label.set_lines(-1);
-                    button.set_label(&gettext("Show less"));
-                }
-            });
-        }
-        imp.about.set_visible(true);
+        about::fill(&imp.about, &imp.about_text, &imp.about_more, text);
     }
 }
 
-/// Last.fm notes are HTML ending with a "Read more on Last.fm" link: keep the text only.
-fn plain_text(html: &str) -> String {
-    let text = match html.rfind("<a ") {
-        Some(i) => &html[..i],
-        None => html,
-    };
-    let mut out = String::new();
-    let mut in_tag = false;
-    for c in text.chars() {
-        match c {
-            '<' => in_tag = true,
-            '>' => in_tag = false,
-            _ if !in_tag => out.push(c),
-            _ => {}
-        }
-    }
-    out.replace("&amp;", "&")
-        .replace("&quot;", "\"")
-        .replace("&#39;", "'")
-        .replace("&lt;", "<")
-        .replace("&gt;", ">")
-        .trim()
-        .to_string()
-}

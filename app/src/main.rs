@@ -1,5 +1,7 @@
 mod album_card;
+mod about;
 mod album_page;
+mod artist_page;
 mod covers;
 mod favorites;
 mod library;

@@ -23,3 +23,13 @@
   background: none;
   color: #f6d32d;
 }
+
+/* Artist name on the album page: looks like text, works like a link. */
+.artist-link {
+  padding: 0;
+  min-height: 0;
+}
+
+.artist-link:hover label {
+  text-decoration: underline;
+}

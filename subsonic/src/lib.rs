@@ -62,6 +62,8 @@ pub struct Response {
     pub album_list2: Option<AlbumList>,
     pub album: Option<AlbumWithSongs>,
     pub album_info: Option<AlbumInfo>,
+    pub artist: Option<ArtistWithAlbums>,
+    pub artist_info2: Option<ArtistInfo>,
 }
 
 #[derive(Deserialize)]
@@ -91,6 +93,7 @@ pub struct Album {
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AlbumWithSongs {
+    pub artist_id: Option<String>,
     pub starred: Option<String>,
     pub id: String,
     pub name: String,
@@ -305,5 +308,38 @@ impl Client {
     pub async fn album_info(&self, id: &str) -> Result<AlbumInfo> {
         let response = self.call("getAlbumInfo2", &[("id", id.to_string())]).await?;
         Ok(response.album_info.unwrap_or_default())
+    }
+}
+
+/// An artist with all of their albums.
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ArtistWithAlbums {
+    pub id: String,
+    pub name: String,
+    pub cover_art: Option<String>,
+    #[serde(default)]
+    pub album: Vec<Album>,
+}
+
+/// Extra artist information the server gathers, e.g. from Last.fm.
+#[derive(Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct ArtistInfo {
+    /// HTML text, usually ending with a "Read more on Last.fm" link.
+    pub biography: Option<String>,
+}
+
+impl Client {
+    pub async fn artist(&self, id: &str) -> Result<ArtistWithAlbums> {
+        let response = self.call("getArtist", &[("id", id.to_string())]).await?;
+        response
+            .artist
+            .ok_or_else(|| Error::BadResponse("missing artist in response".into()))
+    }
+
+    pub async fn artist_info(&self, id: &str) -> Result<ArtistInfo> {
+        let response = self.call("getArtistInfo2", &[("id", id.to_string())]).await?;
+        Ok(response.artist_info2.unwrap_or_default())
     }
 }

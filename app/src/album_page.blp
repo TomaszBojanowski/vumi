@@ -71,13 +71,23 @@ template $MusePlayerAlbumPage: Adw.NavigationPage {
                   ]
                 }
 
-                Label artist {
-                  xalign: 0;
-                  wrap: true;
+                // Looks like text, opens the artist page once the artist is known.
+                Button artist_button {
+                  halign: start;
 
                   styles [
-                    "title-4",
+                    "flat",
+                    "artist-link",
                   ]
+
+                  child: Label artist {
+                    xalign: 0;
+                    wrap: true;
+
+                    styles [
+                      "title-4",
+                    ]
+                  };
                 }
 
                 Label details {
@@ -192,6 +202,7 @@ template $MusePlayerAlbumPage: Adw.NavigationPage {
         details.xalign: 0.5;
         details.justify: center;
         quality.halign: center;
+        artist_button.halign: center;
         actions.halign: center;
       }
     }

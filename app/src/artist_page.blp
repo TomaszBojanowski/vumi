@@ -1,0 +1,106 @@
+using Gtk 4.0;
+using Adw 1;
+
+translation-domain "muse-player";
+
+template $MusePlayerArtistPage: Adw.NavigationPage {
+  child: Adw.ToolbarView {
+    [top]
+    Adw.HeaderBar {}
+
+    content: ScrolledWindow {
+      hscrollbar-policy: never;
+
+      child: Adw.Clamp {
+        maximum-size: 1100;
+
+        child: Box {
+          orientation: vertical;
+          spacing: 24;
+          margin-top: 24;
+          margin-bottom: 24;
+          margin-start: 12;
+          margin-end: 12;
+
+          Box {
+            orientation: vertical;
+            spacing: 12;
+            halign: center;
+
+            // Initials until the photo arrives, or for good if there is none.
+            Adw.Avatar avatar {
+              size: 160;
+              show-initials: true;
+            }
+
+            Label name {
+              wrap: true;
+              justify: center;
+
+              styles [
+                "title-1",
+              ]
+            }
+
+            Label details {
+              styles [
+                "dim-label",
+              ]
+            }
+          }
+
+          // "About": hidden until the server has a biography.
+          Box about {
+            orientation: vertical;
+            spacing: 6;
+            visible: false;
+
+            Label {
+              label: _("About");
+              xalign: 0;
+
+              styles [
+                "heading",
+              ]
+            }
+
+            Label about_text {
+              xalign: 0;
+              wrap: true;
+              lines: 4;
+              ellipsize: end;
+            }
+
+            Button about_more {
+              label: _("Show more");
+              halign: start;
+              visible: false;
+
+              styles [
+                "flat",
+              ]
+            }
+          }
+
+          Label {
+            label: _("Albums");
+            xalign: 0;
+
+            styles [
+              "heading",
+            ]
+          }
+
+          // Few albums per artist, so a simple FlowBox is enough here.
+          FlowBox albums {
+            selection-mode: none;
+            homogeneous: true;
+            min-children-per-line: 2;
+            max-children-per-line: 8;
+            activate-on-single-click: true;
+          }
+        };
+      };
+    };
+  };
+}
