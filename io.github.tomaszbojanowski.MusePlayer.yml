@@ -1,0 +1,34 @@
+# Development manifest (local builds only, uses network during build).
+id: io.github.tomaszbojanowski.MusePlayer
+runtime: org.gnome.Platform
+runtime-version: '51'
+sdk: org.gnome.Sdk
+sdk-extensions:
+  - org.freedesktop.Sdk.Extension.rust-stable
+command: muse-player
+finish-args:
+  - --share=network
+  - --share=ipc
+  - --socket=wayland
+  - --socket=fallback-x11
+  - --socket=pulseaudio
+  - --device=dri
+build-options:
+  append-path: /usr/lib/sdk/rust-stable/bin
+  build-args:
+    - --share=network
+  env:
+    CARGO_HOME: /run/build/muse-player/cargo
+modules:
+  - name: muse-player
+    buildsystem: simple
+    build-commands:
+      - cargo build --release -p app
+      - install -Dm755 target/release/app /app/bin/muse-player
+    sources:
+      - type: dir
+        path: .
+        skip:
+          - target
+          - flatpak-build
+          - .flatpak-builder
