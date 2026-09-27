@@ -27,7 +27,9 @@ dependencies = [
 name = "app"
 version = "0.1.0"
 dependencies = [
+ "fastrand",
  "gettext-rs",
+ "gstreamer",
  "gtk4",
  "libadwaita",
  "md5",

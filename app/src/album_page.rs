@@ -6,10 +6,11 @@ use adw::subclass::prelude::*;
 use gettextrs::{gettext, ngettext};
 use gtk::glib;
 use std::collections::BTreeSet;
+use std::rc::Rc;
 
 use crate::artist_page::ArtistPage;
 use crate::favorites::{star_button, Favorite};
-use crate::{about, covers, error_message, runtime, tint};
+use crate::{about, covers, error_message, player, runtime, tint};
 
 mod imp {
     use super::*;
@@ -147,6 +148,44 @@ impl AlbumPage {
         let imp = self.imp();
         let songs = &album.song;
 
+        // Play the whole album, in order or shuffled.
+        let play_button = gtk::Button::builder()
+            .child(
+                &adw::ButtonContent::builder()
+                    .icon_name("media-playback-start-symbolic")
+                    .label(gettext("Play"))
+                    .build(),
+            )
+            .css_classes(["suggested-action", "pill"])
+            .build();
+        let shuffle_button = gtk::Button::builder()
+            .child(
+                &adw::ButtonContent::builder()
+                    .icon_name("media-playlist-shuffle-symbolic")
+                    .label(gettext("Shuffle"))
+                    .build(),
+            )
+            .css_classes(["pill"])
+            .build();
+        {
+            let client = client.clone();
+            let songs = songs.clone();
+            play_button.connect_clicked(move |_| {
+                player::get().play(client.clone(), songs.clone(), 0);
+            });
+        }
+        {
+            let client = client.clone();
+            let songs = songs.clone();
+            shuffle_button.connect_clicked(move |_| {
+                let mut shuffled = songs.clone();
+                fastrand::shuffle(&mut shuffled);
+                player::get().play(client.clone(), shuffled, 0);
+            });
+        }
+        imp.actions.append(&play_button);
+        imp.actions.append(&shuffle_button);
+
         imp.actions.append(&star_button(
             album.starred.is_some(),
             Some(client.clone()),
@@ -178,7 +217,9 @@ impl AlbumPage {
 
         // The server lists tracks disc by disc, so a new group starts when the disc changes.
         let mut current: Option<(u32, adw::PreferencesGroup)> = None;
-        for song in songs {
+        // The whole album as a play queue, shared by all rows.
+        let queue = Rc::new(songs.clone());
+        for (index, song) in songs.iter().enumerate() {
             let disc = song.disc_number.unwrap_or(1);
             if current.as_ref().map(|(d, _)| *d) != Some(disc) {
                 let group = adw::PreferencesGroup::new();
@@ -193,7 +234,7 @@ impl AlbumPage {
                 current = Some((disc, group));
             }
             if let Some((_, group)) = &current {
-                group.add(&track_row(song, album_artist, &client));
+                group.add(&track_row(song, album_artist, &client, index, &queue));
             }
         }
 
@@ -241,11 +282,21 @@ fn track_row(
     song: &subsonic::Song,
     album_artist: Option<&str>,
     client: &subsonic::Client,
+    index: usize,
+    queue: &Rc<Vec<subsonic::Song>>,
 ) -> adw::ActionRow {
     let row = adw::ActionRow::builder()
         .title(song.title.as_str())
         .use_markup(false)
         .build();
+
+    // A click on a row plays the album from this track.
+    row.set_activatable(true);
+    let client_for_play = client.clone();
+    let queue = queue.clone();
+    row.connect_activated(move |_| {
+        player::get().play(client_for_play.clone(), (*queue).clone(), index);
+    });
 
     if let Some(artist) = song.artist.as_deref() {
         if Some(artist) != album_artist {

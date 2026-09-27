@@ -7,6 +7,7 @@ mod favorites;
 mod library;
 mod login_page;
 mod main_view;
+mod player;
 mod secrets;
 mod tint;
 mod welcome_page;

@@ -5,7 +5,9 @@ edition = "2024"
 
 [dependencies]
 adw = { version = "0.9.2", package = "libadwaita", features = ["v1_10", "v1_6"] }
+fastrand = "2.5.0"
 gettext-rs = { version = "0.8.0", features = ["gettext-system"] }
+gstreamer = "0.25.4"
 gtk = { version = "0.11.5", package = "gtk4", features = ["blueprint", "v4_24"] }
 md5 = "0.8.1"
 oo7 = "0.6.0"
