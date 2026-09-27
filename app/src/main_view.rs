@@ -10,7 +10,7 @@ use std::time::Instant;
 
 use crate::album_card::AlbumCard;
 use crate::album_page::AlbumPage;
-use crate::{error_message, library, runtime, since_start, APP_NAME};
+use crate::{covers, error_message, library, runtime, since_start, APP_NAME};
 
 mod imp {
     use super::*;
@@ -32,6 +32,8 @@ mod imp {
         pub current: RefCell<Vec<subsonic::Album>>,
         /// The connected client, used by cards to fetch their covers.
         pub client: RefCell<Option<subsonic::Client>>,
+        /// Every card the grid created (only as many as fit on screen, plus a few).
+        pub cards: RefCell<Vec<glib::WeakRef<AlbumCard>>>,
         /// Whether the startup time was already reported.
         pub reported: Cell<bool>,
     }
@@ -78,9 +80,14 @@ impl MainView {
 
         let factory = gtk::SignalListItemFactory::new();
         // Called only for as many cards as fit on screen.
-        factory.connect_setup(|_, item| {
+        let view = self.downgrade();
+        factory.connect_setup(move |_, item| {
             if let Some(item) = item.downcast_ref::<gtk::ListItem>() {
-                item.set_child(Some(&AlbumCard::new()));
+                let card = AlbumCard::new();
+                if let Some(view) = view.upgrade() {
+                    view.imp().cards.borrow_mut().push(card.downgrade());
+                }
+                item.set_child(Some(&card));
             }
         });
         // Called whenever a card is (re)used for a given album.
@@ -132,6 +139,7 @@ impl MainView {
 
     /// Fills the grid from the local database, without touching the network.
     pub(crate) fn load_cached(&self, server: String) {
+        covers::set_server(server.clone());
         let view = self.downgrade();
         glib::spawn_future_local(async move {
             let result = runtime()
@@ -182,7 +190,13 @@ impl MainView {
     /// Fetches the album list from the server, shows it and stores it locally.
     fn sync_albums(&self, client: subsonic::Client) {
         self.imp().client.replace(Some(client.clone()));
+        // Cards drawn before the connection could not fetch uncached covers:
+        // every card that still shows the placeholder tries again now.
+        for card in self.imp().cards.borrow().iter().filter_map(|c| c.upgrade()) {
+            card.retry_cover(client.clone());
+        }
         let server = client.server_key();
+        covers::set_server(server.clone());
         let view = self.downgrade();
         glib::spawn_future_local(async move {
             let started = Instant::now();

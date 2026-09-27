@@ -3,7 +3,7 @@
 
 use gtk::{gdk, glib};
 use std::path::PathBuf;
-use std::sync::OnceLock;
+use std::sync::{Mutex, OnceLock};
 use tokio::sync::Semaphore;
 
 use crate::runtime;
@@ -24,21 +24,37 @@ fn downloads() -> &'static Semaphore {
     DOWNLOADS.get_or_init(|| Semaphore::new(MAX_DOWNLOADS))
 }
 
-/// A file name that is safe whatever characters the server uses in ids.
-fn file_name(id: &str) -> String {
-    let safe: String = id
-        .chars()
-        .map(|c| if c.is_ascii_alphanumeric() || c == '-' || c == '_' { c } else { '_' })
-        .collect();
-    format!("{safe}-{SIZE}.img")
+/// Which server and account the covers belong to ("user@url"). Known even
+/// offline, because the main view sets it from the saved login.
+fn current_server() -> &'static Mutex<String> {
+    static SERVER: OnceLock<Mutex<String>> = OnceLock::new();
+    SERVER.get_or_init(|| Mutex::new(String::new()))
+}
+
+pub(crate) fn set_server(key: String) {
+    if let Ok(mut server) = current_server().lock() {
+        *server = key;
+    }
+}
+
+/// A stable, collision-free file name: MD5 of server, cover id and size.
+/// (Rust's own hasher may change between compiler versions; MD5 never does.)
+fn cache_path(server: &str, id: &str) -> PathBuf {
+    let digest = md5::compute(format!("{server}\n{id}\n{SIZE}"));
+    cache_dir().join(format!("{digest:x}.img"))
 }
 
 /// Disk cache first; the server only when connected (`client` is Some).
 /// Returns None if there is no usable image.
 pub(crate) async fn load(client: Option<subsonic::Client>, id: String) -> Option<gdk::Texture> {
+    let server = current_server()
+        .lock()
+        .map(|s| s.clone())
+        .unwrap_or_default();
+
     let result = runtime()
         .spawn(async move {
-            let path = cache_dir().join(file_name(&id));
+            let path = cache_path(&server, &id);
 
             if let Ok(bytes) = tokio::fs::read(&path).await {
                 return decode(bytes).await;
@@ -57,7 +73,11 @@ pub(crate) async fn load(client: Option<subsonic::Client>, id: String) -> Option
             };
 
             // Cache only what decodes, so an error reply is never stored as an image.
-            let texture = decode(bytes.clone()).await?;
+            let Some(texture) = decode(bytes.clone()).await else {
+                let start = String::from_utf8_lossy(&bytes[..bytes.len().min(120)]).to_string();
+                eprintln!("Cover {id}: {} bytes that are not an image: {start}", bytes.len());
+                return None;
+            };
             if let Some(dir) = path.parent() {
                 let _ = tokio::fs::create_dir_all(dir).await;
             }

@@ -30,6 +30,7 @@ dependencies = [
  "gettext-rs",
  "gtk4",
  "libadwaita",
+ "md5",
  "oo7",
  "rusqlite",
  "subsonic",
