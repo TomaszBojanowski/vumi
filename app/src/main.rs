@@ -1,10 +1,12 @@
+mod secrets;
+
 use adw::prelude::*;
 use gtk::{gio, glib};
 use std::sync::OnceLock;
 use tokio::runtime::Runtime;
 
 // Working ID, will change together with the final app name.
-const APP_ID: &str = "io.github.tomaszbojanowski.MusePlayer";
+pub const APP_ID: &str = "io.github.tomaszbojanowski.MusePlayer";
 
 fn main() -> glib::ExitCode {
     let app = adw::Application::builder().application_id(APP_ID).build();
@@ -150,15 +152,34 @@ fn build_welcome_page(
 
 fn build_login_page(nav: &adw::NavigationView, settings: &gio::Settings) -> adw::NavigationPage {
     // Pre-filled with the last server that connected successfully.
+    let saved_url = settings.string("server-url").to_string();
+    let saved_user = settings.string("username").to_string();
+
     let url_row = adw::EntryRow::builder()
         .title("Server address")
-        .text(settings.string("server-url"))
+        .text(saved_url.as_str())
         .build();
     let user_row = adw::EntryRow::builder()
         .title("Username")
-        .text(settings.string("username"))
+        .text(saved_user.as_str())
         .build();
     let password_row = adw::PasswordEntryRow::builder().title("Password").build();
+
+    // Fill in the saved password in the background; the window never waits for it.
+    if !saved_url.is_empty() && !saved_user.is_empty() {
+        let password_row = password_row.clone();
+        glib::spawn_future_local(async move {
+            let result = runtime()
+                .spawn(async move { secrets::load_password(&saved_url, &saved_user).await })
+                .await;
+            match result {
+                Ok(Ok(Some(password))) => password_row.set_text(&password),
+                Ok(Ok(None)) => {}
+                Ok(Err(e)) => eprintln!("Could not read the keyring: {e}"),
+                Err(_) => {}
+            }
+        });
+    }
 
     let group = adw::PreferencesGroup::new();
     group.add(&url_row);
@@ -232,6 +253,11 @@ fn build_login_page(nav: &adw::NavigationView, settings: &gio::Settings) -> adw:
                     // Saved only after success, so a typo is never remembered.
                     let _ = settings.set_string("server-url", &url);
                     let _ = settings.set_string("username", &user);
+                    runtime().spawn(async move {
+                        if let Err(e) = secrets::save_password(&url, &user, &password).await {
+                            eprintln!("Could not save the password: {e}");
+                        }
+                    });
                     nav.replace(&[connected_page(&response)]);
                 }
                 Ok(Err(e)) => {
