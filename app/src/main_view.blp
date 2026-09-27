@@ -41,7 +41,12 @@ template $MusePlayerMainView: Adw.NavigationPage {
         };
       };
 
-      content: Adw.ViewStack views {
+      content: Box {
+        orientation: vertical;
+
+        Adw.ViewStack views {
+          vexpand: true;
+
         Adw.ViewStackPage {
           name: "library";
           title: _("Library");
@@ -177,6 +182,15 @@ template $MusePlayerMainView: Adw.NavigationPage {
               description: _("Coming soon");
             };
           };
+        }
+      }
+
+        // Narrow windows: a compact now-playing bar, placed here from code.
+        Revealer {
+          reveal-child: bind split.collapsed;
+          transition-type: slide_up;
+
+          child: Adw.Bin mini_slot {};
         }
       };
     };

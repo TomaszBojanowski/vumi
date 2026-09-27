@@ -7,6 +7,7 @@ mod favorites;
 mod library;
 mod login_page;
 mod main_view;
+mod mini_player;
 mod now_playing;
 mod player;
 mod secrets;
@@ -22,6 +23,7 @@ use tokio::runtime::Runtime;
 
 use login_page::LoginPage;
 use main_view::MainView;
+use mini_player::MiniPlayer;
 use now_playing::NowPlaying;
 use welcome_page::WelcomePage;
 
@@ -111,6 +113,16 @@ fn build_ui(app: &adw::Application) {
     let toasts = adw::ToastOverlay::new();
     // The now-playing card lives at the bottom of the sidebar.
     main.set_now_playing(&NowPlaying::new());
+
+    // Narrow windows: a compact bar that opens the sidebar with the full card.
+    let mini = MiniPlayer::new();
+    let main_weak = main.downgrade();
+    mini.connect_open(move || {
+        if let Some(main) = main_weak.upgrade() {
+            main.show_sidebar();
+        }
+    });
+    main.set_mini_player(&mini);
     toasts.set_child(Some(&nav));
 
     let window = adw::ApplicationWindow::builder()

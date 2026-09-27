@@ -1,0 +1,80 @@
+using Gtk 4.0;
+using Adw 1;
+
+translation-domain "muse-player";
+
+// Compact now-playing bar under the content on narrow windows.
+// A click on it opens the sidebar with the full card.
+template $MusePlayerMiniPlayer: Adw.Bin {
+  // Hidden until something plays.
+  child: Revealer revealer {
+    transition-type: slide_up;
+
+    child: Box bar {
+      spacing: 12;
+
+      styles [
+        "mini-player",
+      ]
+
+      Overlay {
+        width-request: 40;
+        height-request: 40;
+        valign: center;
+        overflow: hidden;
+
+        styles [
+          "pill-cover",
+        ]
+
+        child: Image {
+          icon-name: "audio-x-generic-symbolic";
+          pixel-size: 20;
+          opacity: 0.6;
+        };
+
+        [overlay]
+        Picture cover {
+          content-fit: cover;
+        }
+      }
+
+      Box {
+        orientation: vertical;
+        valign: center;
+        hexpand: true;
+
+        Label title {
+          xalign: 0;
+          ellipsize: end;
+          max-width-chars: 1;
+
+          styles [
+            "heading",
+          ]
+        }
+
+        Label artist {
+          xalign: 0;
+          ellipsize: end;
+          max-width-chars: 1;
+          opacity: 0.75;
+
+          styles [
+            "caption",
+          ]
+        }
+      }
+
+      Button play_pause {
+        icon-name: "media-playback-pause-symbolic";
+        valign: center;
+
+        styles [
+          "flat",
+          "circular",
+        ]
+      }
+    };
+  };
+}

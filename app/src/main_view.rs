@@ -28,6 +28,10 @@ mod imp {
         pub grid: gtk::TemplateChild<gtk::GridView>,
         #[template_child]
         pub player_slot: gtk::TemplateChild<adw::Bin>,
+        #[template_child]
+        pub mini_slot: gtk::TemplateChild<adw::Bin>,
+        #[template_child]
+        pub split: gtk::TemplateChild<adw::OverlaySplitView>,
         /// Albums shown in the grid; items are subsonic::Album wrapped for GTK.
         pub albums: OnceCell<gio::ListStore>,
         /// A copy of what the grid shows, to skip redraws when nothing changed.
@@ -252,5 +256,17 @@ impl MainView {
     /// Puts the now-playing card at the bottom of the sidebar.
     pub(crate) fn set_now_playing(&self, widget: &impl IsA<gtk::Widget>) {
         self.imp().player_slot.set_child(Some(widget));
+    }
+}
+
+impl MainView {
+    /// Puts the compact now-playing bar under the content (narrow windows).
+    pub(crate) fn set_mini_player(&self, widget: &impl IsA<gtk::Widget>) {
+        self.imp().mini_slot.set_child(Some(widget));
+    }
+
+    /// Slides the sidebar in, with the full now-playing card.
+    pub(crate) fn show_sidebar(&self) {
+        self.imp().split.set_show_sidebar(true);
     }
 }

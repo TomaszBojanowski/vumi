@@ -124,3 +124,10 @@
 .now-playing-card .pill-progress highlight {
   border-radius: 3px;
 }
+
+/* Compact now-playing bar under the content on narrow windows. */
+.mini-player {
+  padding: 8px 8px 8px 12px;
+  background-color: var(--headerbar-bg-color);
+  box-shadow: inset 0 1px var(--headerbar-shade-color);
+}
