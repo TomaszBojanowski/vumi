@@ -20,7 +20,7 @@ mod imp {
         pub title: gtk::TemplateChild<gtk::Label>,
         #[template_child]
         pub artist: gtk::TemplateChild<gtk::Label>,
-        /// Which cover this card is waiting for right now.
+        /// Which cover this card shows or is waiting for right now.
         pub cover_id: RefCell<Option<String>>,
     }
 
@@ -56,18 +56,28 @@ impl AlbumCard {
         glib::Object::new()
     }
 
-    pub(crate) fn set_album(&self, album: &subsonic::Album) {
+    /// `client` is None until the app is connected; cached covers load anyway.
+    pub(crate) fn set_album(&self, album: &subsonic::Album, client: Option<subsonic::Client>) {
         let imp = self.imp();
         imp.title.set_label(&album.name);
         imp.artist.set_label(album.artist.as_deref().unwrap_or(""));
         self.set_tooltip_text(Some(&album.name));
 
+        // The same album came back to this card and its cover is on screen: keep it.
+        let same = imp.cover_id.borrow().as_deref() == album.cover_art.as_deref();
+        if same && imp.cover.paintable().is_some() {
+            return;
+        }
+
         // Drop the previous album's cover right away, so it never shows under a new title.
         imp.cover.set_paintable(None::<&gtk::gdk::Paintable>);
         imp.cover_id.replace(album.cover_art.clone());
+        if let Some(id) = album.cover_art.clone() {
+            self.load_cover(client, id);
+        }
     }
 
-    pub(crate) fn load_cover(&self, client: subsonic::Client, id: String) {
+    fn load_cover(&self, client: Option<subsonic::Client>, id: String) {
         let card = self.downgrade();
         glib::spawn_future_local(async move {
             let texture = covers::load(client, id.clone()).await;

@@ -77,6 +77,7 @@ pub struct AlbumList {
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[derive(Clone, PartialEq)]
 pub struct Album {
     pub id: String,
     pub name: String,
@@ -243,5 +244,16 @@ impl Client {
             .bytes()
             .await?;
         Ok(bytes.to_vec())
+    }
+}
+
+/// Identifies one account on one server, e.g. for local caches: "user@url".
+pub fn server_key(base_url: &str, user: &str) -> String {
+    format!("{}@{}", user, base_url.trim_end_matches('/'))
+}
+
+impl Client {
+    pub fn server_key(&self) -> String {
+        server_key(&self.base_url, &self.user)
     }
 }

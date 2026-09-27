@@ -33,8 +33,9 @@ fn file_name(id: &str) -> String {
     format!("{safe}-{SIZE}.img")
 }
 
-/// Disk cache first, then the server. Returns None if there is no usable image.
-pub(crate) async fn load(client: subsonic::Client, id: String) -> Option<gdk::Texture> {
+/// Disk cache first; the server only when connected (`client` is Some).
+/// Returns None if there is no usable image.
+pub(crate) async fn load(client: Option<subsonic::Client>, id: String) -> Option<gdk::Texture> {
     let result = runtime()
         .spawn(async move {
             let path = cache_dir().join(file_name(&id));
@@ -42,6 +43,9 @@ pub(crate) async fn load(client: subsonic::Client, id: String) -> Option<gdk::Te
             if let Ok(bytes) = tokio::fs::read(&path).await {
                 return decode(bytes).await;
             }
+
+            // Not cached and not connected (yet): nothing to show for now.
+            let client = client?;
 
             let _permit = downloads().acquire().await.ok()?;
             let bytes = match client.cover_art(&id, SIZE).await {

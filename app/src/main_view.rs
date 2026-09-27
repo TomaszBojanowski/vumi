@@ -5,11 +5,11 @@ use adw::prelude::*;
 use adw::subclass::prelude::*;
 use gettextrs::gettext;
 use gtk::{gio, glib};
-use std::cell::{OnceCell, RefCell};
+use std::cell::{Cell, OnceCell, RefCell};
 use std::time::Instant;
 
 use crate::album_card::AlbumCard;
-use crate::{error_message, runtime, APP_NAME};
+use crate::{error_message, library, runtime, since_start, APP_NAME};
 
 mod imp {
     use super::*;
@@ -27,8 +27,12 @@ mod imp {
         pub grid: gtk::TemplateChild<gtk::GridView>,
         /// Albums shown in the grid; items are subsonic::Album wrapped for GTK.
         pub albums: OnceCell<gio::ListStore>,
+        /// A copy of what the grid shows, to skip redraws when nothing changed.
+        pub current: RefCell<Vec<subsonic::Album>>,
         /// The connected client, used by cards to fetch their covers.
         pub client: RefCell<Option<subsonic::Client>>,
+        /// Whether the startup time was already reported.
+        pub reported: Cell<bool>,
     }
 
     #[glib::object_subclass]
@@ -90,17 +94,10 @@ impl MainView {
                 return;
             };
 
-            let cover_id = {
-                let album = object.borrow::<subsonic::Album>();
-                card.set_album(&album);
-                album.cover_art.clone()
-            };
-
-            // Covers are requested only for cards that are actually on screen.
+            // Covers come from the disk cache even before the server answers;
+            // the client is only needed for covers that are not cached yet.
             let client = view.upgrade().and_then(|v| v.imp().client.borrow().clone());
-            if let (Some(client), Some(id)) = (client, cover_id) {
-                card.load_cover(client, id);
-            }
+            card.set_album(&object.borrow::<subsonic::Album>(), client);
         });
 
         imp.grid
@@ -109,13 +106,32 @@ impl MainView {
         let _ = imp.albums.set(albums);
     }
 
+    /// Fills the grid from the local database, without touching the network.
+    pub(crate) fn load_cached(&self, server: String) {
+        let view = self.downgrade();
+        glib::spawn_future_local(async move {
+            let result = runtime()
+                .spawn_blocking(move || library::load_albums(&server))
+                .await;
+            let Some(view) = view.upgrade() else {
+                return;
+            };
+            match result {
+                Ok(Ok(albums)) if !albums.is_empty() => view.show_albums(albums),
+                Ok(Ok(_)) => {}
+                Ok(Err(e)) => eprintln!("Could not read the library database: {e}"),
+                Err(_) => {}
+            }
+        });
+    }
+
     pub(crate) fn show_connecting(&self) {
         self.imp()
             .status
             .set_description(Some(&gettext("Connecting…")));
     }
 
-    /// Called after a successful ping; loads the album list in the background.
+    /// Called after a successful ping; syncs the album list in the background.
     pub(crate) fn show_connected(&self, r: &subsonic::Response, client: subsonic::Client) {
         let imp = self.imp();
         imp.banner.set_revealed(false);
@@ -124,7 +140,7 @@ impl MainView {
             .replace("{server}", r.server_type.as_deref().unwrap_or("server"))
             .replace("{version}", r.server_version.as_deref().unwrap_or(""));
         imp.status.set_description(Some(&text));
-        self.load_albums(client);
+        self.sync_albums(client);
     }
 
     pub(crate) fn show_offline(&self, message: &str) {
@@ -139,8 +155,10 @@ impl MainView {
         self.imp().banner.connect_button_clicked(move |_| f());
     }
 
-    fn load_albums(&self, client: subsonic::Client) {
+    /// Fetches the album list from the server, shows it and stores it locally.
+    fn sync_albums(&self, client: subsonic::Client) {
         self.imp().client.replace(Some(client.clone()));
+        let server = client.server_key();
         let view = self.downgrade();
         glib::spawn_future_local(async move {
             let started = Instant::now();
@@ -152,7 +170,13 @@ impl MainView {
             };
             match result {
                 Ok(Ok(albums)) => {
-                    eprintln!("Loaded {} albums in {:.2?}", albums.len(), started.elapsed());
+                    eprintln!("Synced {} albums in {:.2?}", albums.len(), started.elapsed());
+                    let to_save = albums.clone();
+                    runtime().spawn_blocking(move || {
+                        if let Err(e) = library::save_albums(&server, &to_save) {
+                            eprintln!("Could not save the library database: {e}");
+                        }
+                    });
                     view.show_albums(albums);
                 }
                 Ok(Err(e)) => view.show_offline(&error_message(&e)),
@@ -163,12 +187,23 @@ impl MainView {
 
     fn show_albums(&self, albums: Vec<subsonic::Album>) {
         let imp = self.imp();
+
+        // Same list as on screen: nothing to redraw.
+        if *imp.current.borrow() == albums {
+            return;
+        }
+
         let objects: Vec<glib::BoxedAnyObject> =
-            albums.into_iter().map(glib::BoxedAnyObject::new).collect();
+            albums.iter().cloned().map(glib::BoxedAnyObject::new).collect();
         if let Some(store) = imp.albums.get() {
             // One change notification for the whole list, not one per album.
             store.splice(0, store.n_items(), &objects);
         }
+        imp.current.replace(albums);
         imp.stack.set_visible_child_name("library");
+
+        if !imp.reported.replace(true) {
+            eprintln!("Library on screen {:.0?} after start", since_start());
+        }
     }
 }

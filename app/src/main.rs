@@ -1,5 +1,6 @@
 mod album_card;
 mod covers;
+mod library;
 mod login_page;
 mod main_view;
 mod secrets;
@@ -9,6 +10,7 @@ use adw::prelude::*;
 use gettextrs::{gettext, LocaleCategory};
 use gtk::{gio, glib};
 use std::sync::OnceLock;
+use std::time::{Duration, Instant};
 use tokio::runtime::Runtime;
 
 use login_page::LoginPage;
@@ -27,6 +29,7 @@ const LOCALEDIR: &str = match option_env!("LOCALEDIR") {
 };
 
 fn main() -> glib::ExitCode {
+    START.get_or_init(Instant::now);
     // Translations: use the system language and our installed catalogs.
     // SAFETY: called first in main, before tokio or GTK start any threads.
     unsafe { gettextrs::setlocale(LocaleCategory::LcAll, "") };
@@ -59,6 +62,7 @@ fn build_ui(app: &adw::Application) {
     let saved_user = settings.string("username").to_string();
     if !saved_url.is_empty() && !saved_user.is_empty() {
         nav.push(&main);
+        main.load_cached(subsonic::server_key(&saved_url, &saved_user));
         auto_connect(&nav, &login_page, &main, saved_url, saved_user);
     } else if settings.boolean("welcome-shown") {
         nav.push(&login_page);
@@ -164,4 +168,11 @@ fn error_message(e: &subsonic::Error) -> String {
         // Translators: {message} is the error text sent by the server.
         Server { message, .. } => gettext("Server error: {message}").replace("{message}", message),
     }
+}
+
+/// When the process started, to measure how fast the library shows up.
+static START: OnceLock<Instant> = OnceLock::new();
+
+fn since_start() -> Duration {
+    START.get().map(Instant::elapsed).unwrap_or_default()
 }
