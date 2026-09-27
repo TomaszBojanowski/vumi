@@ -1,3 +1,4 @@
+mod login_page;
 mod secrets;
 
 use adw::prelude::*;
@@ -5,6 +6,8 @@ use gettextrs::{gettext, LocaleCategory};
 use gtk::{gio, glib};
 use std::sync::OnceLock;
 use tokio::runtime::Runtime;
+
+use login_page::LoginPage;
 
 // Working ID and name, will change together with the final app name.
 pub const APP_ID: &str = "io.github.tomaszbojanowski.MusePlayer";
@@ -90,7 +93,7 @@ fn build_ui(app: &adw::Application) {
 
     let nav = adw::NavigationView::new();
     let main = MainView::new();
-    let login_page = build_login_page(&nav, &settings, &main);
+    let login_page: adw::NavigationPage = LoginPage::new(&nav, &settings, &main).upcast();
 
     // With saved credentials the main view shows up at once and the
     // connection happens in the background. Otherwise: welcome or login.
@@ -279,147 +282,6 @@ fn build_welcome_page(
 
     adw::NavigationPage::builder()
         .title(APP_NAME)
-        .child(&toolbar)
-        .build()
-}
-
-fn build_login_page(
-    nav: &adw::NavigationView,
-    settings: &gio::Settings,
-    main: &MainView,
-) -> adw::NavigationPage {
-    // Pre-filled with the last server that connected successfully.
-    let saved_url = settings.string("server-url").to_string();
-    let saved_user = settings.string("username").to_string();
-
-    let url_row = adw::EntryRow::builder()
-        .title(gettext("Server address"))
-        .text(saved_url.as_str())
-        .build();
-    let user_row = adw::EntryRow::builder()
-        .title(gettext("Username"))
-        .text(saved_user.as_str())
-        .build();
-    let password_row = adw::PasswordEntryRow::builder()
-        .title(gettext("Password"))
-        .build();
-
-    // Fill in the saved password in the background; the window never waits for it.
-    if !saved_url.is_empty() && !saved_user.is_empty() {
-        let password_row = password_row.clone();
-        glib::spawn_future_local(async move {
-            let result = runtime()
-                .spawn(async move { secrets::load_password(&saved_url, &saved_user).await })
-                .await;
-            match result {
-                Ok(Ok(Some(password))) => password_row.set_text(&password),
-                Ok(Ok(None)) => {}
-                Ok(Err(e)) => eprintln!("Could not read the keyring: {e}"),
-                Err(_) => {}
-            }
-        });
-    }
-
-    let group = adw::PreferencesGroup::new();
-    group.add(&url_row);
-    group.add(&user_row);
-    group.add(&password_row);
-
-    // Hidden until a connection attempt fails.
-    let error_label = gtk::Label::builder()
-        .wrap(true)
-        .justify(gtk::Justification::Center)
-        .css_classes(["error"])
-        .visible(false)
-        .build();
-
-    let connect_button = gtk::Button::builder()
-        .label(gettext("Connect"))
-        .halign(gtk::Align::Center)
-        .css_classes(["suggested-action", "pill"])
-        .build();
-
-    let form = gtk::Box::builder()
-        .orientation(gtk::Orientation::Vertical)
-        .spacing(24)
-        .build();
-    form.append(&group);
-    form.append(&error_label);
-    form.append(&connect_button);
-
-    let clamp = adw::Clamp::builder().maximum_size(400).child(&form).build();
-
-    let status = adw::StatusPage::builder()
-        .icon_name("network-server-symbolic")
-        .css_classes(["compact"])
-        .title(gettext("Connect to Your Server"))
-        .description(gettext("Navidrome or another Subsonic-compatible server"))
-        .child(&clamp)
-        .build();
-
-    let nav = nav.clone();
-    let settings = settings.clone();
-    let main = main.clone();
-    let group_for_click = group.clone();
-    let error_for_click = error_label.clone();
-    connect_button.connect_clicked(move |button| {
-        let url = url_row.text().trim().to_string();
-        let user = user_row.text().trim().to_string();
-        let password = password_row.text().to_string();
-
-        // Busy state: spinner instead of the label, form locked.
-        button.set_sensitive(false);
-        button.set_child(Some(&adw::Spinner::new()));
-        group_for_click.set_sensitive(false);
-        error_for_click.set_visible(false);
-
-        let button = button.clone();
-        let group = group_for_click.clone();
-        let error_label = error_for_click.clone();
-        let nav = nav.clone();
-        let settings = settings.clone();
-        let main = main.clone();
-
-        // Runs on the GTK main loop; only the network call goes to tokio.
-        glib::spawn_future_local(async move {
-            let client = subsonic::Client::new(&url, &user, &password);
-            let result = runtime().spawn(async move { client.ping().await }).await;
-
-            button.set_label(&gettext("Connect"));
-            button.set_sensitive(true);
-            group.set_sensitive(true);
-
-            match result {
-                Ok(Ok(response)) => {
-                    // Saved only after success, so a typo is never remembered.
-                    let _ = settings.set_string("server-url", &url);
-                    let _ = settings.set_string("username", &user);
-                    runtime().spawn(async move {
-                        if let Err(e) = secrets::save_password(&url, &user, &password).await {
-                            eprintln!("Could not save the password: {e}");
-                        }
-                    });
-                    main.show_connected(&response);
-                    nav.replace(&[main.page.clone()]);
-                }
-                Ok(Err(e)) => {
-                    error_label.set_label(&error_message(&e));
-                    error_label.set_visible(true);
-                }
-                Err(_) => {
-                    error_label.set_label(&gettext("Something went wrong. Please try again."));
-                    error_label.set_visible(true);
-                }
-            }
-        });
-    });
-
-    let toolbar = adw::ToolbarView::new();
-    toolbar.add_top_bar(&adw::HeaderBar::new());
-    toolbar.set_content(Some(&status));
-
-    adw::NavigationPage::builder()
-        .title(gettext("Connect"))
         .child(&toolbar)
         .build()
 }

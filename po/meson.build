@@ -4,5 +4,6 @@ i18n.gettext(
     '--from-code=UTF-8',
     '--add-comments=Translators',
     '--keyword=gettext',
+    '--keyword=_',
   ],
 )

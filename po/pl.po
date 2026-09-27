@@ -1,17 +1,15 @@
-# Polish translations for muse-player package
-# Polskie tłumaczenia dla pakietu muse-player.
-# Copyright (C) 2026 THE muse-player'S COPYRIGHT HOLDER
+# Polish translation for muse-player.
+# Copyright (C) 2026 Tomasz Bojanowski
 # This file is distributed under the same license as the muse-player package.
-# Tomasz Bojanowski <tomasz@bojanowski.me>, 2026.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: muse-player\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-27 15:46+0200\n"
-"PO-Revision-Date: 2026-09-27 15:49+0200\n"
+"POT-Creation-Date: 2026-09-27 15:59+0200\n"
+"PO-Revision-Date: 2026-09-27 16:00+0200\n"
 "Last-Translator: Tomasz Bojanowski <tomasz@bojanowski.me>\n"
-"Language-Team: Polish <translation-team-pl@lists.sourceforge.net>\n"
+"Language-Team: Polish\n"
 "Language: pl\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -21,129 +19,137 @@ msgstr ""
 
 #: data/io.github.tomaszbojanowski.MusePlayer.desktop.in:2
 msgid "muse-player"
-msgstr ""
+msgstr "muse-player"
 
 #: data/io.github.tomaszbojanowski.MusePlayer.desktop.in:3
 msgid "Fast music player for Navidrome and Subsonic servers"
-msgstr ""
+msgstr "Szybki odtwarzacz muzyki z serwerów Navidrome i Subsonic"
 
 #: data/io.github.tomaszbojanowski.MusePlayer.desktop.in:9
 msgid "music;player;navidrome;subsonic;"
-msgstr ""
-
-#: app/src/main.rs:50
-msgid "Retry"
-msgstr ""
+msgstr "muzyka;odtwarzacz;navidrome;subsonic;music;player;"
 
 #: app/src/main.rs:53
-msgid "Library"
-msgstr ""
+msgid "Retry"
+msgstr "Spróbuj ponownie"
 
-#: app/src/main.rs:69
+#: app/src/main.rs:56
+msgid "Library"
+msgstr "Biblioteka"
+
+#: app/src/main.rs:72
 msgid "Connecting…"
-msgstr ""
+msgstr "Łączenie…"
 
 #. Translators: {server} is the server software (e.g. navidrome), {version} its version.
-#: app/src/main.rs:75
+#: app/src/main.rs:78
 #, rust-format
 msgid "Connected to {server} {version}"
-msgstr ""
+msgstr "Połączono z serwerem {server} {version}"
 
-#: app/src/main.rs:84
+#: app/src/main.rs:87
 msgid "Offline"
-msgstr ""
+msgstr "Brak połączenia"
 
-#: app/src/main.rs:186 app/src/main.rs:410
+#: app/src/main.rs:189 app/src/login_page.rs:153
 msgid "Something went wrong. Please try again."
-msgstr ""
+msgstr "Wystąpił nieoczekiwany błąd. Spróbuj ponownie."
 
 #. Translators: {app_name} is the name of this application.
-#: app/src/main.rs:211
+#: app/src/main.rs:214
 #, rust-format
 msgid "Welcome to {app_name}"
-msgstr ""
+msgstr "Witamy w aplikacji {app_name}"
 
-#: app/src/main.rs:212
+#: app/src/main.rs:215
 msgid "A fast music player for your own music server."
-msgstr ""
+msgstr "Szybki odtwarzacz muzyki z własnego serwera."
 
-#: app/src/main.rs:216
+#: app/src/main.rs:219
 msgid "Your Library, Instantly"
-msgstr ""
+msgstr "Biblioteka w mgnieniu oka"
 
-#: app/src/main.rs:217
+#: app/src/main.rs:220
 msgid ""
 "Browse thousands of albums without waiting. Everything stays smooth, even "
 "with huge collections."
 msgstr ""
+"Tysiące albumów bez czekania. Wszystko działa płynnie nawet przy bardzo "
+"dużych kolekcjach."
 
-#: app/src/main.rs:221
+#: app/src/main.rs:224
 msgid "Discover Music"
-msgstr ""
+msgstr "Odkrywanie muzyki"
 
-#: app/src/main.rs:222
+#: app/src/main.rs:225
 msgid ""
 "Similar songs, endless radio and search by mood, powered by AudioMuse-AI."
 msgstr ""
+"Podobne utwory, niekończące się radio i wyszukiwanie według nastroju dzięki "
+"programowi AudioMuse-AI."
 
-#: app/src/main.rs:226
+#: app/src/main.rs:229
 msgid "Hear Every Detail"
-msgstr ""
+msgstr "Każdy szczegół brzmienia"
 
-#: app/src/main.rs:227
+#: app/src/main.rs:230
 msgid "Original quality streaming, gapless playback and bit-perfect output."
 msgstr ""
+"Strumieniowanie w oryginalnej jakości, odtwarzanie bez przerw i wyjście bit-"
+"perfect."
 
-#: app/src/main.rs:233 app/src/main.rs:242
+#: app/src/main.rs:236 app/src/main.rs:245
 msgid "Next"
-msgstr ""
+msgstr "Dalej"
 
-#: app/src/main.rs:242
+#: app/src/main.rs:245
 msgid "Get Started"
-msgstr ""
+msgstr "Rozpocznij"
 
-#: app/src/main.rs:296
-msgid "Server address"
-msgstr ""
-
-#: app/src/main.rs:300
-msgid "Username"
-msgstr ""
-
-#: app/src/main.rs:304
-msgid "Password"
-msgstr ""
-
-#: app/src/main.rs:337 app/src/main.rs:388 app/src/main.rs:422
-msgid "Connect"
-msgstr ""
-
-#: app/src/main.rs:355
-msgid "Connect to Your Server"
-msgstr ""
-
-#: app/src/main.rs:356
-msgid "Navidrome or another Subsonic-compatible server"
-msgstr ""
-
-#: app/src/main.rs:431
+#: app/src/main.rs:293
 msgid "Wrong username or password."
-msgstr ""
+msgstr "Nieprawidłowa nazwa użytkownika lub hasło."
 
-#: app/src/main.rs:432
+#: app/src/main.rs:294
 msgid "Cannot reach the server. Check the address and your connection."
 msgstr ""
+"Nie uzyskano połączenia z serwerem. Sprawdź adres i połączenie sieciowe."
 
-#: app/src/main.rs:433
+#: app/src/main.rs:295
 msgid "Invalid server address. It should start with http:// or https://"
 msgstr ""
+"Nieprawidłowy adres serwera. Adres musi zaczynać się od http:// lub https://"
 
-#: app/src/main.rs:434
+#: app/src/main.rs:296
 msgid "The server answered, but it does not look like a Subsonic server."
-msgstr ""
+msgstr "Serwer odpowiedział, ale nie wygląda na serwer zgodny z Subsonic."
 
 #. Translators: {message} is the error text sent by the server.
-#: app/src/main.rs:436
+#: app/src/main.rs:298
 #, rust-format
 msgid "Server error: {message}"
-msgstr ""
+msgstr "Błąd serwera: {message}"
+
+#: app/src/login_page.rs:130 app/src/login_page.blp:7 app/src/login_page.blp:55
+msgid "Connect"
+msgstr "Połącz"
+
+#: app/src/login_page.blp:15
+msgid "Connect to Your Server"
+msgstr "Połączenie z serwerem"
+
+#: app/src/login_page.blp:16
+msgid "Navidrome or another Subsonic-compatible server"
+msgstr "Serwer Navidrome lub inny zgodny z Subsonic"
+
+#: app/src/login_page.blp:31
+msgid "Server address"
+msgstr "Adres serwera"
+
+#: app/src/login_page.blp:35
+msgid "Username"
+msgstr "Nazwa użytkownika"
+
+#: app/src/login_page.blp:39
+msgid "Password"
+msgstr "Hasło"

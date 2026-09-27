@@ -1,0 +1,67 @@
+using Gtk 4.0;
+using Adw 1;
+
+translation-domain "muse-player";
+
+template $MusePlayerLoginPage: Adw.NavigationPage {
+  title: _("Connect");
+
+  child: Adw.ToolbarView {
+    [top]
+    Adw.HeaderBar {}
+
+    content: Adw.StatusPage {
+      icon-name: "network-server-symbolic";
+      title: _("Connect to Your Server");
+      description: _("Navidrome or another Subsonic-compatible server");
+
+      styles [
+        "compact",
+      ]
+
+      child: Adw.Clamp {
+        maximum-size: 400;
+
+        child: Box {
+          orientation: vertical;
+          spacing: 24;
+
+          Adw.PreferencesGroup group {
+            Adw.EntryRow url_row {
+              title: _("Server address");
+            }
+
+            Adw.EntryRow user_row {
+              title: _("Username");
+            }
+
+            Adw.PasswordEntryRow password_row {
+              title: _("Password");
+            }
+          }
+
+          // Hidden until a connection attempt fails.
+          Label error_label {
+            wrap: true;
+            justify: center;
+            visible: false;
+
+            styles [
+              "error",
+            ]
+          }
+
+          Button connect_button {
+            label: _("Connect");
+            halign: center;
+
+            styles [
+              "suggested-action",
+              "pill",
+            ]
+          }
+        };
+      };
+    };
+  };
+}
