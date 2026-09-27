@@ -61,6 +61,7 @@ pub struct Response {
     pub error: Option<ApiError>,
     pub album_list2: Option<AlbumList>,
     pub album: Option<AlbumWithSongs>,
+    pub album_info: Option<AlbumInfo>,
 }
 
 #[derive(Deserialize)]
@@ -288,5 +289,21 @@ impl Client {
         let endpoint = if starred { "star" } else { "unstar" };
         self.call(endpoint, &[(key, id.to_string())]).await?;
         Ok(())
+    }
+}
+
+/// Extra album information the server gathers, e.g. from Last.fm.
+#[derive(Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct AlbumInfo {
+    /// HTML text, usually ending with a "Read more on Last.fm" link.
+    pub notes: Option<String>,
+    pub last_fm_url: Option<String>,
+}
+
+impl Client {
+    pub async fn album_info(&self, id: &str) -> Result<AlbumInfo> {
+        let response = self.call("getAlbumInfo2", &[("id", id.to_string())]).await?;
+        Ok(response.album_info.unwrap_or_default())
     }
 }

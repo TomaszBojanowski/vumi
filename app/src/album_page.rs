@@ -31,6 +31,12 @@ mod imp {
         #[template_child]
         pub actions: gtk::TemplateChild<gtk::Box>,
         #[template_child]
+        pub about: gtk::TemplateChild<gtk::Box>,
+        #[template_child]
+        pub about_text: gtk::TemplateChild<gtk::Label>,
+        #[template_child]
+        pub about_more: gtk::TemplateChild<gtk::Button>,
+        #[template_child]
         pub tracks_stack: gtk::TemplateChild<gtk::Stack>,
         #[template_child]
         pub tracks: gtk::TemplateChild<gtk::Box>,
@@ -83,7 +89,8 @@ impl AlbumPage {
 
         match client {
             Some(client) => {
-                page.load_tracks(client, album.id.clone(), album.year, album.artist.clone())
+                page.load_about(client.clone(), album.id.clone());
+                page.load_tracks(client, album.id.clone(), album.year, album.artist.clone());
             }
             None => page.show_error(&gettext("Connect to the server to see the tracks.")),
         }
@@ -316,4 +323,73 @@ fn khz_text(rate: u32) -> String {
             .replace("{whole}", &whole.to_string())
             .replace("{fraction}", &fraction.to_string())
     }
+}
+
+impl AlbumPage {
+    /// Fetched next to the track list; the section stays hidden if there is no text.
+    fn load_about(&self, client: subsonic::Client, id: String) {
+        let page = self.downgrade();
+        glib::spawn_future_local(async move {
+            let result = runtime()
+                .spawn(async move { client.album_info(&id).await })
+                .await;
+            let (Some(page), Ok(Ok(info))) = (page.upgrade(), result) else {
+                return;
+            };
+            let text = info.notes.as_deref().map(plain_text).unwrap_or_default();
+            if !text.is_empty() {
+                page.show_about(&text);
+            }
+        });
+    }
+
+    fn show_about(&self, text: &str) {
+        let imp = self.imp();
+        imp.about_text.set_label(text);
+
+        // Only long texts get the "Show more" button.
+        let long = text.chars().count() > 300;
+        imp.about_more.set_visible(long);
+        if long {
+            let label = imp.about_text.get();
+            imp.about_more.connect_clicked(move |button| {
+                let expanded = label.ellipsize() == gtk::pango::EllipsizeMode::None;
+                if expanded {
+                    label.set_ellipsize(gtk::pango::EllipsizeMode::End);
+                    label.set_lines(4);
+                    button.set_label(&gettext("Show more"));
+                } else {
+                    label.set_ellipsize(gtk::pango::EllipsizeMode::None);
+                    label.set_lines(-1);
+                    button.set_label(&gettext("Show less"));
+                }
+            });
+        }
+        imp.about.set_visible(true);
+    }
+}
+
+/// Last.fm notes are HTML ending with a "Read more on Last.fm" link: keep the text only.
+fn plain_text(html: &str) -> String {
+    let text = match html.rfind("<a ") {
+        Some(i) => &html[..i],
+        None => html,
+    };
+    let mut out = String::new();
+    let mut in_tag = false;
+    for c in text.chars() {
+        match c {
+            '<' => in_tag = true,
+            '>' => in_tag = false,
+            _ if !in_tag => out.push(c),
+            _ => {}
+        }
+    }
+    out.replace("&amp;", "&")
+        .replace("&quot;", "\"")
+        .replace("&#39;", "'")
+        .replace("&lt;", "<")
+        .replace("&gt;", ">")
+        .trim()
+        .to_string()
 }
