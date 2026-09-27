@@ -4,131 +4,156 @@ using Adw 1;
 translation-domain "muse-player";
 
 template $MusePlayerAlbumPage: Adw.NavigationPage {
-  child: Adw.ToolbarView toolbar {
-    [top]
-    Adw.HeaderBar {}
+  // Lets the layout react to the page width (see the breakpoint at the end).
+  child: Adw.BreakpointBin {
+    width-request: 360;
+    height-request: 294;
 
-    content: ScrolledWindow {
-      hscrollbar-policy: never;
+    child: Adw.ToolbarView toolbar {
+      [top]
+      Adw.HeaderBar {}
 
-      child: Adw.Clamp {
-        maximum-size: 900;
+      content: ScrolledWindow {
+        hscrollbar-policy: never;
 
-        child: Box {
-          orientation: vertical;
-          spacing: 24;
-          margin-top: 24;
-          margin-bottom: 24;
-          margin-start: 12;
-          margin-end: 12;
+        child: Adw.Clamp {
+          maximum-size: 900;
 
-          Box {
+          child: Box {
+            orientation: vertical;
             spacing: 24;
+            margin-top: 24;
+            margin-bottom: 24;
+            margin-start: 12;
+            margin-end: 12;
 
-            // Same layering as the album card: note icon under the cover.
-            Overlay {
-              width-request: 240;
-              height-request: 240;
-              valign: start;
-              overflow: hidden;
+            Box header {
+              spacing: 24;
 
-              styles [
-                "card",
-                "album-cover",
-              ]
-
-              child: Image {
-                icon-name: "audio-x-generic-symbolic";
-                pixel-size: 80;
+              // Same layering as the album card: note icon under the cover.
+              Overlay cover_frame {
+                width-request: 240;
+                height-request: 240;
+                valign: start;
+                overflow: hidden;
 
                 styles [
-                  "dim-label",
+                  "card",
+                  "album-cover",
                 ]
-              };
 
-              [overlay]
-              Picture cover {
-                content-fit: cover;
-              }
-            }
+                child: Image {
+                  icon-name: "audio-x-generic-symbolic";
+                  pixel-size: 80;
 
-            Box {
-              orientation: vertical;
-              spacing: 6;
-              valign: center;
+                  styles [
+                    "dim-label",
+                  ]
+                };
 
-              Label title {
-                xalign: 0;
-                wrap: true;
-
-                styles [
-                  "title-1",
-                ]
+                [overlay]
+                Picture cover {
+                  content-fit: cover;
+                }
               }
 
-              Label artist {
-                xalign: 0;
-                wrap: true;
-
-                styles [
-                  "title-4",
-                ]
-              }
-
-              Label details {
-                xalign: 0;
-
-                styles [
-                  "dim-label",
-                ]
-              }
-
-              // Shown once the tracks are known, e.g. "FLAC · 24 bit / 96 kHz".
-              Label quality {
-                xalign: 0;
-                halign: start;
-                visible: false;
-
-                styles [
-                  "quality-badge",
-                ]
-              }
-            }
-          }
-
-          Stack tracks_stack {
-            StackPage {
-              name: "loading";
-
-              child: Adw.Spinner {
-                height-request: 48;
-              };
-            }
-
-            StackPage {
-              name: "tracks";
-
-              // One group per disc; filled in code.
-              child: Box tracks {
+              Box info {
                 orientation: vertical;
-                spacing: 24;
-              };
+                spacing: 6;
+                valign: center;
+
+                Label title {
+                  xalign: 0;
+                  wrap: true;
+
+                  styles [
+                    "title-1",
+                  ]
+                }
+
+                Label artist {
+                  xalign: 0;
+                  wrap: true;
+
+                  styles [
+                    "title-4",
+                  ]
+                }
+
+                Label details {
+                  xalign: 0;
+                  wrap: true;
+
+                  styles [
+                    "dim-label",
+                  ]
+                }
+
+                // Shown once the tracks are known, e.g. "FLAC · 24 bit / 96 kHz".
+                Label quality {
+                  xalign: 0;
+                  halign: start;
+                  visible: false;
+
+                  styles [
+                    "quality-badge",
+                  ]
+                }
+              }
             }
 
-            StackPage {
-              name: "error";
+            Stack tracks_stack {
+              StackPage {
+                name: "loading";
 
-              child: Adw.StatusPage error_status {
-                icon-name: "network-offline-symbolic";
+                child: Adw.Spinner {
+                  height-request: 48;
+                };
+              }
 
-                styles [
-                  "compact",
-                ]
-              };
+              StackPage {
+                name: "tracks";
+
+                // One group per disc; filled in code.
+                child: Box tracks {
+                  orientation: vertical;
+                  spacing: 24;
+                };
+              }
+
+              StackPage {
+                name: "error";
+
+                child: Adw.StatusPage error_status {
+                  icon-name: "network-offline-symbolic";
+
+                  styles [
+                    "compact",
+                  ]
+                };
+              }
             }
-          }
+          };
         };
       };
     };
+
+    // Narrow windows and phones: cover above the text, everything centred.
+    Adw.Breakpoint {
+      condition ("max-width: 600sp")
+
+      setters {
+        header.orientation: vertical;
+        cover_frame.halign: center;
+        info.halign: center;
+        title.xalign: 0.5;
+        title.justify: center;
+        artist.xalign: 0.5;
+        artist.justify: center;
+        details.xalign: 0.5;
+        details.justify: center;
+        quality.halign: center;
+      }
+    }
   };
 }
