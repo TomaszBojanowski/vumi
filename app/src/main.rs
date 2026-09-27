@@ -56,6 +56,13 @@ fn runtime() -> &'static Runtime {
 }
 
 fn build_ui(app: &adw::Application) {
+    // Launched again while running: bring the existing window forward instead
+    // of building a second one (with a second login and sync).
+    if let Some(window) = app.active_window() {
+        window.present();
+        return;
+    }
+
     let settings = gio::Settings::new(APP_ID);
 
     let nav = adw::NavigationView::new();
