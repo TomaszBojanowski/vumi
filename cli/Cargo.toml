@@ -6,3 +6,4 @@ edition = "2024"
 [dependencies]
 gstreamer = "0.25.4"
 subsonic = { version = "0.1.0", path = "../subsonic" }
+tokio = { version = "1.53.1", features = ["macros", "rt-multi-thread"] }

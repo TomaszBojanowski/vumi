@@ -1,16 +1,47 @@
 use serde::Deserialize;
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 const API_VERSION: &str = "1.16.1";
 const CLIENT_NAME: &str = "muse-player";
 
-pub type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
+/// Subsonic error code for a wrong username or password.
+const WRONG_CREDENTIALS: i32 = 40;
 
+#[derive(Debug, thiserror::Error)]
+pub enum Error {
+    #[error("wrong username or password")]
+    WrongCredentials,
+    #[error("server error {code}: {message}")]
+    Server { code: i32, message: String },
+    #[error("cannot reach the server: {0}")]
+    Unreachable(String),
+    #[error("unexpected response from the server: {0}")]
+    BadResponse(String),
+    #[error("invalid server address: {0}")]
+    InvalidAddress(String),
+}
+
+pub type Result<T> = std::result::Result<T, Error>;
+
+impl From<reqwest::Error> for Error {
+    fn from(e: reqwest::Error) -> Self {
+        if let Some(status) = e.status() {
+            Error::BadResponse(format!("HTTP {status}"))
+        } else if e.is_decode() {
+            Error::BadResponse(e.without_url().to_string())
+        } else {
+            Error::Unreachable(e.without_url().to_string())
+        }
+    }
+}
+
+/// Cheap to clone: the HTTP client inside is shared.
+#[derive(Clone)]
 pub struct Client {
     base_url: String,
     user: String,
     password: String,
-    http: reqwest::blocking::Client,
+    http: reqwest::Client,
 }
 
 #[derive(Deserialize)]
@@ -78,11 +109,16 @@ pub struct Song {
 
 impl Client {
     pub fn new(base_url: &str, user: &str, password: &str) -> Self {
+        let http = reqwest::Client::builder()
+            .connect_timeout(Duration::from_secs(5))
+            .timeout(Duration::from_secs(15))
+            .build()
+            .expect("failed to create HTTP client");
         Self {
             base_url: base_url.trim_end_matches('/').to_string(),
             user: user.to_string(),
             password: password.to_string(),
-            http: reqwest::blocking::Client::new(),
+            http,
         }
     }
 
@@ -108,51 +144,64 @@ impl Client {
     fn build_url(&self, endpoint: &str, extra: &[(&'static str, String)]) -> Result<reqwest::Url> {
         let mut params = self.auth_params();
         params.extend_from_slice(extra);
-        Ok(reqwest::Url::parse_with_params(
-            &format!("{}/rest/{}", self.base_url, endpoint),
-            &params,
-        )?)
+        reqwest::Url::parse_with_params(&format!("{}/rest/{}", self.base_url, endpoint), &params)
+            .map_err(|e| Error::InvalidAddress(e.to_string()))
     }
 
-    /// Calls a Subsonic endpoint and turns a non-"ok" status into an error.
-    fn call(&self, endpoint: &str, extra: &[(&'static str, String)]) -> Result<Response> {
+    /// Calls a Subsonic endpoint and turns a non-"ok" status into a typed error.
+    async fn call(&self, endpoint: &str, extra: &[(&'static str, String)]) -> Result<Response> {
         let url = self.build_url(endpoint, extra)?;
-        let envelope: Envelope = self.http.get(url).send()?.error_for_status()?.json()?;
+        let envelope: Envelope = self
+            .http
+            .get(url)
+            .send()
+            .await?
+            .error_for_status()?
+            .json()
+            .await?;
         let response = envelope.response;
-        if response.status != "ok" {
-            let msg = match &response.error {
-                Some(e) => format!("server error {}: {}", e.code, e.message),
-                None => format!("unexpected status: {}", response.status),
-            };
-            return Err(msg.into());
+        if response.status == "ok" {
+            return Ok(response);
         }
-        Ok(response)
+        Err(match response.error {
+            Some(e) if e.code == WRONG_CREDENTIALS => Error::WrongCredentials,
+            Some(e) => Error::Server {
+                code: e.code,
+                message: e.message,
+            },
+            None => Error::BadResponse(format!("status {}", response.status)),
+        })
     }
 
-    pub fn ping(&self) -> Result<Response> {
-        self.call("ping", &[])
+    pub async fn ping(&self) -> Result<Response> {
+        self.call("ping", &[]).await
     }
 
     /// Albums sorted by name; `size` is how many, `offset` is where to start.
-    pub fn album_list(&self, size: u32, offset: u32) -> Result<Vec<Album>> {
-        let response = self.call(
-            "getAlbumList2",
-            &[
-                ("type", "alphabeticalByName".to_string()),
-                ("size", size.to_string()),
-                ("offset", offset.to_string()),
-            ],
-        )?;
+    pub async fn album_list(&self, size: u32, offset: u32) -> Result<Vec<Album>> {
+        let response = self
+            .call(
+                "getAlbumList2",
+                &[
+                    ("type", "alphabeticalByName".to_string()),
+                    ("size", size.to_string()),
+                    ("offset", offset.to_string()),
+                ],
+            )
+            .await?;
         Ok(response.album_list2.map(|l| l.album).unwrap_or_default())
     }
 
     /// One album with its track list.
-    pub fn album(&self, id: &str) -> Result<AlbumWithSongs> {
-        let response = self.call("getAlbum", &[("id", id.to_string())])?;
-        response.album.ok_or_else(|| "missing album in response".into())
+    pub async fn album(&self, id: &str) -> Result<AlbumWithSongs> {
+        let response = self.call("getAlbum", &[("id", id.to_string())]).await?;
+        response
+            .album
+            .ok_or_else(|| Error::BadResponse("missing album in response".into()))
     }
 
     /// Stream URL for a song; format=raw asks for the original file, no transcoding.
+    /// No network call here, so it stays synchronous.
     pub fn stream_url(&self, song_id: &str) -> Result<reqwest::Url> {
         self.build_url(
             "stream",
