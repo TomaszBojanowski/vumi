@@ -23,6 +23,8 @@ mod imp {
         #[template_child]
         pub details: gtk::TemplateChild<gtk::Label>,
         #[template_child]
+        pub quality: gtk::TemplateChild<gtk::Label>,
+        #[template_child]
         pub tracks_stack: gtk::TemplateChild<gtk::Stack>,
         #[template_child]
         pub tracks: gtk::TemplateChild<gtk::ListBox>,
@@ -130,6 +132,7 @@ impl AlbumPage {
         parts.push(ngettext("{n} track", "{n} tracks", count).replace("{n}", &count.to_string()));
         parts.push(format_duration(seconds));
         imp.details.set_label(&parts.join(" · "));
+        self.show_quality(songs);
         imp.tracks_stack.set_visible_child_name("tracks");
     }
 
@@ -182,5 +185,73 @@ fn format_duration(seconds: u32) -> String {
         gettext("{hours} h {minutes} min")
             .replace("{hours}", &(minutes / 60).to_string())
             .replace("{minutes}", &(minutes % 60).to_string())
+    }
+}
+
+impl AlbumPage {
+    fn show_quality(&self, songs: &[subsonic::Song]) {
+        let quality = &self.imp().quality;
+        if let Some((text, hi_res)) = quality_text(songs) {
+            quality.set_label(&text);
+            if hi_res {
+                quality.add_css_class("hi-res");
+            }
+            quality.set_visible(true);
+        }
+    }
+}
+
+/// E.g. "FLAC · 24 bit / 96 kHz" or "MP3 · 320 kbps", plus whether it is hi-res.
+/// None if the server did not say anything useful.
+fn quality_text(songs: &[subsonic::Song]) -> Option<(String, bool)> {
+    let first = songs.first()?;
+    let format = first.suffix.as_deref()?.to_uppercase();
+
+    // Lossy files report a bit depth of 0; treat that as "not applicable".
+    let depth = songs.iter().filter_map(|s| s.bit_depth).filter(|&d| d > 0).max();
+    let rate = songs.iter().filter_map(|s| s.sampling_rate).filter(|&r| r > 0).max();
+
+    let quality = match (depth, rate) {
+        (Some(depth), Some(rate)) => format!("{} / {}", bits_text(depth), khz_text(rate)),
+        _ => {
+            let kbps = songs.iter().filter_map(|s| s.bit_rate).max()?;
+            format!("{kbps} kbps")
+        }
+    };
+
+    let uniform = songs.iter().all(|s| {
+        s.suffix == first.suffix
+            && s.bit_depth == first.bit_depth
+            && s.sampling_rate == first.sampling_rate
+    });
+    let text = if uniform {
+        format!("{format} · {quality}")
+    } else {
+        // Translators: tracks of one album differ in quality, e.g. "FLAC · up to 24 bit / 96 kHz".
+        gettext("{format} · up to {quality}")
+            .replace("{format}", &format)
+            .replace("{quality}", &quality)
+    };
+
+    let hi_res = depth.unwrap_or(0) > 16 || rate.unwrap_or(0) > 48_000;
+    Some((text, hi_res))
+}
+
+fn bits_text(depth: u32) -> String {
+    // Translators: audio bit depth, e.g. "24 bit".
+    gettext("{n} bit").replace("{n}", &depth.to_string())
+}
+
+fn khz_text(rate: u32) -> String {
+    let whole = rate / 1000;
+    let fraction = (rate % 1000) / 100;
+    if fraction == 0 {
+        // Translators: sample rate, e.g. "96 kHz".
+        gettext("{khz} kHz").replace("{khz}", &whole.to_string())
+    } else {
+        // Translators: sample rate with one decimal, e.g. "44.1 kHz"; use your decimal separator.
+        gettext("{whole}.{fraction} kHz")
+            .replace("{whole}", &whole.to_string())
+            .replace("{fraction}", &fraction.to_string())
     }
 }

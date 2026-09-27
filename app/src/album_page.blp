@@ -82,6 +82,17 @@ template $MusePlayerAlbumPage: Adw.NavigationPage {
                   "dim-label",
                 ]
               }
+
+              // Shown once the tracks are known, e.g. "FLAC · 24 bit / 96 kHz".
+              Label quality {
+                xalign: 0;
+                halign: start;
+                visible: false;
+
+                styles [
+                  "quality-badge",
+                ]
+              }
             }
           }
 

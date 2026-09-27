@@ -2,3 +2,18 @@
 .album-cover {
   box-shadow: 0 6px 20px alpha(black, 0.35);
 }
+
+/* Audio quality pill on the album page. */
+.quality-badge {
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: alpha(currentColor, 0.1);
+  font-size: smaller;
+  font-weight: bold;
+}
+
+/* More than CD quality: highlighted with the system accent colour. */
+.quality-badge.hi-res {
+  color: var(--accent-color);
+  background: color-mix(in srgb, var(--accent-bg-color) 20%, transparent);
+}
