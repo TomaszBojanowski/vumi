@@ -103,10 +103,14 @@ fn build_ui(app: &adw::Application) {
         });
     }
 
+    // Short in-app messages (e.g. a failed action) appear over the whole window.
+    let toasts = adw::ToastOverlay::new();
+    toasts.set_child(Some(&nav));
+
     let window = adw::ApplicationWindow::builder()
         .application(app)
         .title(APP_NAME)
-        .content(&nav)
+        .content(&toasts)
         .build();
 
     // Restore the window size and state from the last session.

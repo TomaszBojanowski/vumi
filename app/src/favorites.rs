@@ -1,5 +1,6 @@
-//! Star toggle for favourites. It flips at once and talks to the server in the
-//! background; if the server refuses, it flips back.
+//! Star toggle for favourites. It flips at once, then waits for the server
+//! before it can be changed again; if the server refuses, it flips back and
+//! the window shows a short message.
 
 use gettextrs::gettext;
 use gtk::glib;
@@ -49,6 +50,10 @@ pub(crate) fn star_button(
             return;
         };
         let starred = button.is_active();
+
+        // One request at a time: no second click can overtake this one.
+        button.set_sensitive(false);
+
         let item = item.clone();
         let button = button.downgrade();
         let reverting = reverting.clone();
@@ -56,13 +61,16 @@ pub(crate) fn star_button(
             let result = runtime()
                 .spawn(async move { client.set_starred(item.as_starrable(), starred).await })
                 .await;
+            let Some(button) = button.upgrade() else {
+                return;
+            };
+            button.set_sensitive(true);
+
             if !matches!(result, Ok(Ok(()))) {
-                eprintln!("Could not change the favourite on the server");
-                if let Some(button) = button.upgrade() {
-                    reverting.set(true);
-                    button.set_active(!starred);
-                    reverting.set(false);
-                }
+                reverting.set(true);
+                button.set_active(!starred);
+                reverting.set(false);
+                show_toast(&button, &gettext("Could not change favorites. Please try again."));
             }
         });
     });
@@ -76,5 +84,15 @@ fn update_icon(button: &gtk::ToggleButton) {
     } else {
         button.set_icon_name("non-starred-symbolic");
         button.set_tooltip_text(Some(&gettext("Add to favorites")));
+    }
+}
+
+/// Shows `message` in the nearest toast overlay above `widget` (the whole window).
+fn show_toast(widget: &impl IsA<gtk::Widget>, message: &str) {
+    if let Some(overlay) = widget
+        .ancestor(adw::ToastOverlay::static_type())
+        .and_downcast::<adw::ToastOverlay>()
+    {
+        overlay.add_toast(adw::Toast::new(message));
     }
 }
