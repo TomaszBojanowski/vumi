@@ -5,12 +5,16 @@ project(
 )
 
 gnome = import('gnome')
+i18n = import('i18n')
 
 application_id = 'io.github.tomaszbojanowski.MusePlayer'
+localedir = get_option('prefix') / get_option('localedir')
 
 subdir('data')
+subdir('po')
 
 # Meson drives cargo; the binary is copied into the build dir and installed.
+# LOCALEDIR is read by the Rust code at compile time (option_env!).
 cargo = find_program('cargo')
 cargo_target_dir = meson.project_build_root() / 'target'
 
@@ -23,6 +27,7 @@ custom_target(
   install: true,
   install_dir: get_option('bindir'),
   command: [
+    'env', 'LOCALEDIR=' + localedir,
     cargo, 'build', '--release',
     '--manifest-path', meson.project_source_root() / 'Cargo.toml',
     '--target-dir', cargo_target_dir,

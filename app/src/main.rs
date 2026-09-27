@@ -1,14 +1,31 @@
 mod secrets;
 
 use adw::prelude::*;
+use gettextrs::{gettext, LocaleCategory};
 use gtk::{gio, glib};
 use std::sync::OnceLock;
 use tokio::runtime::Runtime;
 
-// Working ID, will change together with the final app name.
+// Working ID and name, will change together with the final app name.
 pub const APP_ID: &str = "io.github.tomaszbojanowski.MusePlayer";
+const APP_NAME: &str = "muse-player";
+
+const GETTEXT_PACKAGE: &str = "muse-player";
+// Set by Meson at build time; the fallback matches the Flatpak prefix.
+const LOCALEDIR: &str = match option_env!("LOCALEDIR") {
+    Some(dir) => dir,
+    None => "/app/share/locale",
+};
 
 fn main() -> glib::ExitCode {
+    // Translations: use the system language and our installed catalogs.
+    // SAFETY: called first in main, before tokio or GTK start any threads.
+    unsafe { gettextrs::setlocale(LocaleCategory::LcAll, "") };
+    gettextrs::bindtextdomain(GETTEXT_PACKAGE, LOCALEDIR).expect("failed to bind text domain");
+    gettextrs::bind_textdomain_codeset(GETTEXT_PACKAGE, "UTF-8")
+        .expect("failed to set text domain encoding");
+    gettextrs::textdomain(GETTEXT_PACKAGE).expect("failed to set text domain");
+
     let app = adw::Application::builder().application_id(APP_ID).build();
     app.connect_activate(build_ui);
     app.run()
@@ -30,10 +47,10 @@ struct MainView {
 
 impl MainView {
     fn new() -> Self {
-        let banner = adw::Banner::builder().button_label("Retry").build();
+        let banner = adw::Banner::builder().button_label(gettext("Retry")).build();
         let status = adw::StatusPage::builder()
             .icon_name("audio-x-generic-symbolic")
-            .title("Library")
+            .title(gettext("Library"))
             .build();
 
         let toolbar = adw::ToolbarView::new();
@@ -42,29 +59,29 @@ impl MainView {
         toolbar.set_content(Some(&status));
 
         let page = adw::NavigationPage::builder()
-            .title("muse-player")
+            .title(APP_NAME)
             .child(&toolbar)
             .build();
         Self { page, status, banner }
     }
 
     fn show_connecting(&self) {
-        self.status.set_description(Some("Connecting…"));
+        self.status.set_description(Some(&gettext("Connecting…")));
     }
 
     fn show_connected(&self, r: &subsonic::Response) {
         self.banner.set_revealed(false);
-        self.status.set_description(Some(&format!(
-            "Connected to {} {}",
-            r.server_type.as_deref().unwrap_or("server"),
-            r.server_version.as_deref().unwrap_or("")
-        )));
+        // Translators: {server} is the server software (e.g. navidrome), {version} its version.
+        let text = gettext("Connected to {server} {version}")
+            .replace("{server}", r.server_type.as_deref().unwrap_or("server"))
+            .replace("{version}", r.server_version.as_deref().unwrap_or(""));
+        self.status.set_description(Some(&text));
     }
 
     fn show_offline(&self, message: &str) {
         self.banner.set_title(message);
         self.banner.set_revealed(true);
-        self.status.set_description(Some("Offline"));
+        self.status.set_description(Some(&gettext("Offline")));
     }
 }
 
@@ -108,7 +125,7 @@ fn build_ui(app: &adw::Application) {
 
     let window = adw::ApplicationWindow::builder()
         .application(app)
-        .title("muse-player")
+        .title(APP_NAME)
         .content(&nav)
         .build();
 
@@ -166,7 +183,7 @@ fn auto_connect(
                 nav.replace(&[login_page]);
             }
             Ok(Some(Err(e))) => main.show_offline(&error_message(&e)),
-            Err(_) => main.show_offline("Something went wrong. Please try again."),
+            Err(_) => main.show_offline(&gettext("Something went wrong. Please try again.")),
         }
     });
 }
@@ -190,29 +207,30 @@ fn build_welcome_page(
     let carousel = adw::Carousel::builder().hexpand(true).vexpand(true).build();
     carousel.append(&feature_page(
         "audio-x-generic-symbolic",
-        "Welcome to muse-player",
-        "A fast music player for your own music server.",
+        // Translators: {app_name} is the name of this application.
+        &gettext("Welcome to {app_name}").replace("{app_name}", APP_NAME),
+        &gettext("A fast music player for your own music server."),
     ));
     carousel.append(&feature_page(
         "view-grid-symbolic",
-        "Your Library, Instantly",
-        "Browse thousands of albums without waiting. Everything stays smooth, even with huge collections.",
+        &gettext("Your Library, Instantly"),
+        &gettext("Browse thousands of albums without waiting. Everything stays smooth, even with huge collections."),
     ));
     carousel.append(&feature_page(
         "system-search-symbolic",
-        "Discover Music",
-        "Similar songs, endless radio and search by mood, powered by AudioMuse-AI.",
+        &gettext("Discover Music"),
+        &gettext("Similar songs, endless radio and search by mood, powered by AudioMuse-AI."),
     ));
     carousel.append(&feature_page(
         "audio-speakers-symbolic",
-        "Hear Every Detail",
-        "Original quality streaming, gapless playback and bit-perfect output.",
+        &gettext("Hear Every Detail"),
+        &gettext("Original quality streaming, gapless playback and bit-perfect output."),
     ));
 
     let dots = adw::CarouselIndicatorDots::builder().carousel(&carousel).build();
 
     let next_button = gtk::Button::builder()
-        .label("Next")
+        .label(gettext("Next"))
         .halign(gtk::Align::Center)
         .css_classes(["suggested-action", "pill"])
         .build();
@@ -221,7 +239,8 @@ fn build_welcome_page(
     let button_for_label = next_button.clone();
     carousel.connect_page_changed(move |carousel, index| {
         let last = index + 1 == carousel.n_pages();
-        button_for_label.set_label(if last { "Get Started" } else { "Next" });
+        let label = if last { gettext("Get Started") } else { gettext("Next") };
+        button_for_label.set_label(&label);
     });
 
     // Next page, or the login screen when we are on the last one.
@@ -259,7 +278,7 @@ fn build_welcome_page(
     toolbar.set_content(Some(&content));
 
     adw::NavigationPage::builder()
-        .title("muse-player")
+        .title(APP_NAME)
         .child(&toolbar)
         .build()
 }
@@ -274,14 +293,16 @@ fn build_login_page(
     let saved_user = settings.string("username").to_string();
 
     let url_row = adw::EntryRow::builder()
-        .title("Server address")
+        .title(gettext("Server address"))
         .text(saved_url.as_str())
         .build();
     let user_row = adw::EntryRow::builder()
-        .title("Username")
+        .title(gettext("Username"))
         .text(saved_user.as_str())
         .build();
-    let password_row = adw::PasswordEntryRow::builder().title("Password").build();
+    let password_row = adw::PasswordEntryRow::builder()
+        .title(gettext("Password"))
+        .build();
 
     // Fill in the saved password in the background; the window never waits for it.
     if !saved_url.is_empty() && !saved_user.is_empty() {
@@ -313,7 +334,7 @@ fn build_login_page(
         .build();
 
     let connect_button = gtk::Button::builder()
-        .label("Connect")
+        .label(gettext("Connect"))
         .halign(gtk::Align::Center)
         .css_classes(["suggested-action", "pill"])
         .build();
@@ -331,8 +352,8 @@ fn build_login_page(
     let status = adw::StatusPage::builder()
         .icon_name("network-server-symbolic")
         .css_classes(["compact"])
-        .title("Connect to Your Server")
-        .description("Navidrome or another Subsonic-compatible server")
+        .title(gettext("Connect to Your Server"))
+        .description(gettext("Navidrome or another Subsonic-compatible server"))
         .child(&clamp)
         .build();
 
@@ -364,7 +385,7 @@ fn build_login_page(
             let client = subsonic::Client::new(&url, &user, &password);
             let result = runtime().spawn(async move { client.ping().await }).await;
 
-            button.set_label("Connect");
+            button.set_label(&gettext("Connect"));
             button.set_sensitive(true);
             group.set_sensitive(true);
 
@@ -386,7 +407,7 @@ fn build_login_page(
                     error_label.set_visible(true);
                 }
                 Err(_) => {
-                    error_label.set_label("Something went wrong. Please try again.");
+                    error_label.set_label(&gettext("Something went wrong. Please try again."));
                     error_label.set_visible(true);
                 }
             }
@@ -398,7 +419,7 @@ fn build_login_page(
     toolbar.set_content(Some(&status));
 
     adw::NavigationPage::builder()
-        .title("Connect")
+        .title(gettext("Connect"))
         .child(&toolbar)
         .build()
 }
@@ -407,10 +428,11 @@ fn build_login_page(
 fn error_message(e: &subsonic::Error) -> String {
     use subsonic::Error::*;
     match e {
-        WrongCredentials => "Wrong username or password.".into(),
-        Unreachable(_) => "Cannot reach the server. Check the address and your connection.".into(),
-        InvalidAddress(_) => "Invalid server address. It should start with http:// or https://".into(),
-        BadResponse(_) => "The server answered, but it does not look like a Subsonic server.".into(),
-        Server { message, .. } => format!("Server error: {message}"),
+        WrongCredentials => gettext("Wrong username or password."),
+        Unreachable(_) => gettext("Cannot reach the server. Check the address and your connection."),
+        InvalidAddress(_) => gettext("Invalid server address. It should start with http:// or https://"),
+        BadResponse(_) => gettext("The server answered, but it does not look like a Subsonic server."),
+        // Translators: {message} is the error text sent by the server.
+        Server { message, .. } => gettext("Server error: {message}").replace("{message}", message),
     }
 }
