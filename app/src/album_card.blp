@@ -1,0 +1,45 @@
+using Gtk 4.0;
+
+template $MusePlayerAlbumCard: Box {
+  orientation: vertical;
+  spacing: 6;
+  margin-top: 6;
+  margin-bottom: 6;
+  margin-start: 6;
+  margin-end: 6;
+
+  // Placeholder until cover art arrives.
+  Image cover {
+    icon-name: "audio-x-generic-symbolic";
+    pixel-size: 64;
+    width-request: 160;
+    height-request: 160;
+
+    styles [
+      "card",
+    ]
+  }
+
+  // max-width-chars: 1 keeps long titles from widening the grid columns;
+  // the label still fills the card and ellipsizes at its edge.
+  Label title {
+    xalign: 0;
+    ellipsize: end;
+    max-width-chars: 1;
+
+    styles [
+      "heading",
+    ]
+  }
+
+  Label artist {
+    xalign: 0;
+    ellipsize: end;
+    max-width-chars: 1;
+
+    styles [
+      "dim-label",
+      "caption",
+    ]
+  }
+}

@@ -124,7 +124,7 @@ impl LoginPage {
         // Runs on the GTK main loop; only the network call goes to tokio.
         glib::spawn_future_local(async move {
             let client = subsonic::Client::new(&url, &user, &password);
-            let result = runtime().spawn(async move { client.ping().await }).await;
+            let result = runtime().spawn({ let client = client.clone(); async move { client.ping().await } }).await;
 
             let imp = page.imp();
             button.set_label(&gettext("Connect"));
@@ -141,7 +141,7 @@ impl LoginPage {
                             eprintln!("Could not save the password: {e}");
                         }
                     });
-                    main.show_connected(&response);
+                    main.show_connected(&response, client);
                     nav.replace(&[main.clone().upcast()]);
                 }
                 Ok(Err(e)) => {

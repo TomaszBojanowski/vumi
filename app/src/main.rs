@@ -1,3 +1,4 @@
+mod album_card;
 mod login_page;
 mod main_view;
 mod secrets;
@@ -134,16 +135,18 @@ fn auto_connect(
                         return None;
                     }
                 };
-                Some(subsonic::Client::new(&url, &user, &password).ping().await)
+                let client = subsonic::Client::new(&url, &user, &password);
+                let ping = client.ping().await;
+                Some((client, ping))
             })
             .await;
 
         match result {
-            Ok(Some(Ok(response))) => main.show_connected(&response),
-            Ok(Some(Err(subsonic::Error::WrongCredentials))) | Ok(None) => {
+            Ok(Some((client, Ok(response)))) => main.show_connected(&response, client),
+            Ok(Some((_, Err(subsonic::Error::WrongCredentials)))) | Ok(None) => {
                 nav.replace(&[login_page]);
             }
-            Ok(Some(Err(e))) => main.show_offline(&error_message(&e)),
+            Ok(Some((_, Err(e)))) => main.show_offline(&error_message(&e)),
             Err(_) => main.show_offline(&gettext("Something went wrong. Please try again.")),
         }
     });

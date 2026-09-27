@@ -209,3 +209,19 @@ impl Client {
         )
     }
 }
+
+impl Client {
+    /// Every album on the server, fetched in pages of 500 (the Subsonic maximum).
+    pub async fn all_albums(&self) -> Result<Vec<Album>> {
+        const PAGE: u32 = 500;
+        let mut all = Vec::new();
+        loop {
+            let page = self.album_list(PAGE, all.len() as u32).await?;
+            let done = page.len() < PAGE as usize;
+            all.extend(page);
+            if done {
+                return Ok(all);
+            }
+        }
+    }
+}

@@ -1,12 +1,15 @@
-//! Main view: the library will live here. For now it shows the connection
-//! state and an offline banner with a Retry button.
+//! Main view: the album grid, plus the connection state and an offline
+//! banner with a Retry button.
 
 use adw::prelude::*;
 use adw::subclass::prelude::*;
 use gettextrs::gettext;
-use gtk::glib;
+use gtk::{gio, glib};
+use std::cell::OnceCell;
+use std::time::Instant;
 
-use crate::APP_NAME;
+use crate::album_card::AlbumCard;
+use crate::{error_message, runtime, APP_NAME};
 
 mod imp {
     use super::*;
@@ -18,6 +21,12 @@ mod imp {
         pub banner: gtk::TemplateChild<adw::Banner>,
         #[template_child]
         pub status: gtk::TemplateChild<adw::StatusPage>,
+        #[template_child]
+        pub stack: gtk::TemplateChild<gtk::Stack>,
+        #[template_child]
+        pub grid: gtk::TemplateChild<gtk::GridView>,
+        /// Albums shown in the grid; items are subsonic::Album wrapped for GTK.
+        pub albums: OnceCell<gio::ListStore>,
     }
 
     #[glib::object_subclass]
@@ -51,7 +60,38 @@ impl MainView {
     pub(crate) fn new() -> Self {
         let view: Self = glib::Object::new();
         view.set_title(APP_NAME);
+        view.setup_grid();
         view
+    }
+
+    /// Connects the grid to the album store and tells it how to draw a card.
+    fn setup_grid(&self) {
+        let imp = self.imp();
+        let albums = gio::ListStore::new::<glib::BoxedAnyObject>();
+
+        let factory = gtk::SignalListItemFactory::new();
+        // Called only for as many cards as fit on screen.
+        factory.connect_setup(|_, item| {
+            if let Some(item) = item.downcast_ref::<gtk::ListItem>() {
+                item.set_child(Some(&AlbumCard::new()));
+            }
+        });
+        // Called whenever a card is (re)used for a given album.
+        factory.connect_bind(|_, item| {
+            let Some(item) = item.downcast_ref::<gtk::ListItem>() else {
+                return;
+            };
+            let card = item.child().and_downcast::<AlbumCard>();
+            let object = item.item().and_downcast::<glib::BoxedAnyObject>();
+            if let (Some(card), Some(object)) = (card, object) {
+                card.set_album(&object.borrow::<subsonic::Album>());
+            }
+        });
+
+        imp.grid
+            .set_model(Some(&gtk::NoSelection::new(Some(albums.clone()))));
+        imp.grid.set_factory(Some(&factory));
+        let _ = imp.albums.set(albums);
     }
 
     pub(crate) fn show_connecting(&self) {
@@ -60,7 +100,8 @@ impl MainView {
             .set_description(Some(&gettext("Connecting…")));
     }
 
-    pub(crate) fn show_connected(&self, r: &subsonic::Response) {
+    /// Called after a successful ping; loads the album list in the background.
+    pub(crate) fn show_connected(&self, r: &subsonic::Response, client: subsonic::Client) {
         let imp = self.imp();
         imp.banner.set_revealed(false);
         // Translators: {server} is the server software (e.g. navidrome), {version} its version.
@@ -68,6 +109,7 @@ impl MainView {
             .replace("{server}", r.server_type.as_deref().unwrap_or("server"))
             .replace("{version}", r.server_version.as_deref().unwrap_or(""));
         imp.status.set_description(Some(&text));
+        self.load_albums(client);
     }
 
     pub(crate) fn show_offline(&self, message: &str) {
@@ -80,5 +122,37 @@ impl MainView {
     /// Runs `f` when the user presses Retry in the offline banner.
     pub(crate) fn connect_retry<F: Fn() + 'static>(&self, f: F) {
         self.imp().banner.connect_button_clicked(move |_| f());
+    }
+
+    fn load_albums(&self, client: subsonic::Client) {
+        let view = self.downgrade();
+        glib::spawn_future_local(async move {
+            let started = Instant::now();
+            let result = runtime()
+                .spawn(async move { client.all_albums().await })
+                .await;
+            let Some(view) = view.upgrade() else {
+                return;
+            };
+            match result {
+                Ok(Ok(albums)) => {
+                    eprintln!("Loaded {} albums in {:.2?}", albums.len(), started.elapsed());
+                    view.show_albums(albums);
+                }
+                Ok(Err(e)) => view.show_offline(&error_message(&e)),
+                Err(_) => {}
+            }
+        });
+    }
+
+    fn show_albums(&self, albums: Vec<subsonic::Album>) {
+        let imp = self.imp();
+        let objects: Vec<glib::BoxedAnyObject> =
+            albums.into_iter().map(glib::BoxedAnyObject::new).collect();
+        if let Some(store) = imp.albums.get() {
+            // One change notification for the whole list, not one per album.
+            store.splice(0, store.n_items(), &objects);
+        }
+        imp.stack.set_visible_child_name("library");
     }
 }

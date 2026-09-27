@@ -14,9 +14,29 @@ template $MusePlayerMainView: Adw.NavigationPage {
       button-label: _("Retry");
     }
 
-    content: Adw.StatusPage status {
-      icon-name: "audio-x-generic-symbolic";
-      title: _("Library");
+    content: Stack stack {
+      StackPage {
+        name: "status";
+
+        child: Adw.StatusPage status {
+          icon-name: "audio-x-generic-symbolic";
+          title: _("Library");
+        };
+      }
+
+      StackPage {
+        name: "library";
+
+        child: ScrolledWindow {
+          hscrollbar-policy: never;
+
+          // Only visible cards exist; they are reused while scrolling.
+          child: GridView grid {
+            min-columns: 2;
+            max-columns: 12;
+          };
+        };
+      }
     };
   };
 }
