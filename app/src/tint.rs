@@ -1,12 +1,17 @@
 //! Page tint: a soft gradient in the dominant colour of the album cover.
+//! Every tinted widget gets its own style class and rule, removed again
+//! when the widget is destroyed, so pages never share or steal colours.
 
 use gtk::gdk;
 use gtk::prelude::*;
-use std::cell::OnceCell;
+use std::cell::{Cell, OnceCell, RefCell};
+use std::collections::BTreeMap;
 
 thread_local! {
-    /// One app-wide stylesheet, rewritten whenever an album page gets its colour.
+    /// One app-wide stylesheet holding the rules of all tinted widgets alive now.
     static PROVIDER: OnceCell<gtk::CssProvider> = const { OnceCell::new() };
+    static RULES: RefCell<BTreeMap<u64, String>> = const { RefCell::new(BTreeMap::new()) };
+    static NEXT_ID: Cell<u64> = const { Cell::new(0) };
 }
 
 /// Weighted average of the cover's pixels: colourful, bright pixels count most,
@@ -38,8 +43,36 @@ pub(crate) fn dominant_color(texture: &gdk::Texture) -> Option<(u8, u8, u8)> {
     Some(((r / total) as u8, (g / total) as u8, (b / total) as u8))
 }
 
-/// Sets the colour used by the "album-tint" style class.
-pub(crate) fn apply((r, g, b): (u8, u8, u8)) {
+/// Gives `widget` a background gradient in `color` that belongs to it alone.
+pub(crate) fn apply(widget: &impl IsA<gtk::Widget>, (r, g, b): (u8, u8, u8)) {
+    let id = NEXT_ID.with(|next| {
+        let id = next.get();
+        next.set(id + 1);
+        id
+    });
+    let class = format!("album-tint-{id}");
+
+    RULES.with(|rules| {
+        rules.borrow_mut().insert(
+            id,
+            format!(
+                ".{class} {{ background-image: linear-gradient(to bottom, \
+                 rgba({r}, {g}, {b}, 0.45), transparent 480px); }}"
+            ),
+        )
+    });
+    reload();
+    widget.add_css_class(&class);
+
+    // The page is gone: drop its rule too.
+    widget.connect_destroy(move |_| {
+        RULES.with(|rules| rules.borrow_mut().remove(&id));
+        reload();
+    });
+}
+
+fn reload() {
+    let css = RULES.with(|rules| rules.borrow().values().cloned().collect::<Vec<_>>().join("\n"));
     PROVIDER.with(|cell| {
         let provider = cell.get_or_init(|| {
             let provider = gtk::CssProvider::new();
@@ -52,9 +85,6 @@ pub(crate) fn apply((r, g, b): (u8, u8, u8)) {
             }
             provider
         });
-        provider.load_from_string(&format!(
-            ".album-tint {{ background-image: linear-gradient(to bottom, \
-             rgba({r}, {g}, {b}, 0.45), transparent 480px); }}"
-        ));
+        provider.load_from_string(&css);
     });
 }

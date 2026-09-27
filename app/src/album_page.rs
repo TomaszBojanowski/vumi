@@ -107,8 +107,7 @@ impl AlbumPage {
             if let Some(page) = page.upgrade() {
                 page.imp().cover.set_paintable(texture.as_ref());
                 if let Some(color) = texture.as_ref().and_then(tint::dominant_color) {
-                    tint::apply(color);
-                    page.imp().toolbar.add_css_class("album-tint");
+                    tint::apply(&page.imp().toolbar.get(), color);
                 }
             }
         });
