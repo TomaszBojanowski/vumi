@@ -95,6 +95,8 @@ pub struct AlbumWithSongs {
     pub artist: Option<String>,
     #[serde(default)]
     pub song: Vec<Song>,
+    #[serde(default)]
+    pub disc_titles: Vec<DiscTitle>,
 }
 
 #[derive(Deserialize)]
@@ -104,6 +106,7 @@ pub struct Song {
     pub title: String,
     pub artist: Option<String>,
     pub track: Option<u32>,
+    pub disc_number: Option<u32>,
     pub duration: Option<u32>,
     pub suffix: Option<String>,
     pub bit_rate: Option<u32>,
@@ -258,4 +261,11 @@ impl Client {
     pub fn server_key(&self) -> String {
         server_key(&self.base_url, &self.user)
     }
+}
+
+/// Name of one disc of a multi-disc album (OpenSubsonic).
+#[derive(Deserialize, Clone)]
+pub struct DiscTitle {
+    pub disc: u32,
+    pub title: String,
 }

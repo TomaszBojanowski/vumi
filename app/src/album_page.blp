@@ -108,12 +108,10 @@ template $MusePlayerAlbumPage: Adw.NavigationPage {
             StackPage {
               name: "tracks";
 
-              child: ListBox tracks {
-                selection-mode: none;
-
-                styles [
-                  "boxed-list",
-                ]
+              // One group per disc; filled in code.
+              child: Box tracks {
+                orientation: vertical;
+                spacing: 24;
               };
             }
 

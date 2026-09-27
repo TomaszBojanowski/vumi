@@ -1,10 +1,11 @@
-//! Album page: big cover, album info and the track list.
+//! Album page: big cover, album info and the track list, grouped by disc.
 //! The layout lives in album_page.blp; this file only holds the behaviour.
 
 use adw::prelude::*;
 use adw::subclass::prelude::*;
 use gettextrs::{gettext, ngettext};
 use gtk::glib;
+use std::collections::BTreeSet;
 
 use crate::{covers, error_message, runtime};
 
@@ -27,7 +28,7 @@ mod imp {
         #[template_child]
         pub tracks_stack: gtk::TemplateChild<gtk::Stack>,
         #[template_child]
-        pub tracks: gtk::TemplateChild<gtk::ListBox>,
+        pub tracks: gtk::TemplateChild<gtk::Box>,
         #[template_child]
         pub error_status: gtk::TemplateChild<adw::StatusPage>,
     }
@@ -108,17 +109,45 @@ impl AlbumPage {
                 return;
             };
             match result {
-                Ok(Ok(album)) => page.show_tracks(&album.song, year, album_artist.as_deref()),
+                Ok(Ok(album)) => page.show_tracks(&album, year, album_artist.as_deref()),
                 Ok(Err(e)) => page.show_error(&error_message(&e)),
                 Err(_) => page.show_error(&gettext("Something went wrong. Please try again.")),
             }
         });
     }
 
-    fn show_tracks(&self, songs: &[subsonic::Song], year: Option<i32>, album_artist: Option<&str>) {
+    fn show_tracks(
+        &self,
+        album: &subsonic::AlbumWithSongs,
+        year: Option<i32>,
+        album_artist: Option<&str>,
+    ) {
         let imp = self.imp();
+        let songs = &album.song;
+
+        // Headers only when the album really has more than one disc.
+        let discs: BTreeSet<u32> = songs.iter().filter_map(|s| s.disc_number).collect();
+        let multi_disc = discs.len() > 1;
+
+        // The server lists tracks disc by disc, so a new group starts when the disc changes.
+        let mut current: Option<(u32, adw::PreferencesGroup)> = None;
         for song in songs {
-            imp.tracks.append(&track_row(song, album_artist));
+            let disc = song.disc_number.unwrap_or(1);
+            if current.as_ref().map(|(d, _)| *d) != Some(disc) {
+                let group = adw::PreferencesGroup::new();
+                if multi_disc {
+                    // Translators: header above the tracks of one disc, e.g. "Disc 2".
+                    group.set_title(&gettext("Disc {n}").replace("{n}", &disc.to_string()));
+                    if let Some(t) = album.disc_titles.iter().find(|t| t.disc == disc) {
+                        group.set_description(Some(&glib::markup_escape_text(&t.title)));
+                    }
+                }
+                imp.tracks.append(&group);
+                current = Some((disc, group));
+            }
+            if let Some((_, group)) = &current {
+                group.add(&track_row(song, album_artist));
+            }
         }
 
         let count = songs.len() as u32;
@@ -128,12 +157,28 @@ impl AlbumPage {
         if let Some(year) = year {
             parts.push(year.to_string());
         }
+        if multi_disc {
+            let n = discs.len() as u32;
+            // Translators: {n} is a number of discs.
+            parts.push(ngettext("{n} disc", "{n} discs", n).replace("{n}", &n.to_string()));
+        }
         // Translators: {n} is a number of tracks.
         parts.push(ngettext("{n} track", "{n} tracks", count).replace("{n}", &count.to_string()));
         parts.push(format_duration(seconds));
         imp.details.set_label(&parts.join(" · "));
         self.show_quality(songs);
         imp.tracks_stack.set_visible_child_name("tracks");
+    }
+
+    fn show_quality(&self, songs: &[subsonic::Song]) {
+        let quality = &self.imp().quality;
+        if let Some((text, hi_res)) = quality_text(songs) {
+            quality.set_label(&text);
+            if hi_res {
+                quality.add_css_class("hi-res");
+            }
+            quality.set_visible(true);
+        }
     }
 
     fn show_error(&self, message: &str) {
@@ -185,19 +230,6 @@ fn format_duration(seconds: u32) -> String {
         gettext("{hours} h {minutes} min")
             .replace("{hours}", &(minutes / 60).to_string())
             .replace("{minutes}", &(minutes % 60).to_string())
-    }
-}
-
-impl AlbumPage {
-    fn show_quality(&self, songs: &[subsonic::Song]) {
-        let quality = &self.imp().quality;
-        if let Some((text, hi_res)) = quality_text(songs) {
-            quality.set_label(&text);
-            if hi_res {
-                quality.add_css_class("hi-res");
-            }
-            quality.set_visible(true);
-        }
     }
 }
 
