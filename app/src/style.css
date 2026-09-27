@@ -17,3 +17,9 @@
   color: var(--accent-color);
   background: color-mix(in srgb, var(--accent-bg-color) 20%, transparent);
 }
+
+/* Favourite star: yellow when set, no pressed-button background. */
+.star-button:checked {
+  background: none;
+  color: #f6d32d;
+}

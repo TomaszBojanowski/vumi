@@ -7,6 +7,7 @@ use gettextrs::{gettext, ngettext};
 use gtk::glib;
 use std::collections::BTreeSet;
 
+use crate::favorites::{star_button, Favorite};
 use crate::{covers, error_message, runtime, tint};
 
 mod imp {
@@ -27,6 +28,8 @@ mod imp {
         pub details: gtk::TemplateChild<gtk::Label>,
         #[template_child]
         pub quality: gtk::TemplateChild<gtk::Label>,
+        #[template_child]
+        pub actions: gtk::TemplateChild<gtk::Box>,
         #[template_child]
         pub tracks_stack: gtk::TemplateChild<gtk::Stack>,
         #[template_child]
@@ -109,13 +112,16 @@ impl AlbumPage {
         album_artist: Option<String>,
     ) {
         let page = self.downgrade();
+        let client_for_page = client.clone();
         glib::spawn_future_local(async move {
             let result = runtime().spawn(async move { client.album(&id).await }).await;
             let Some(page) = page.upgrade() else {
                 return;
             };
             match result {
-                Ok(Ok(album)) => page.show_tracks(&album, year, album_artist.as_deref()),
+                Ok(Ok(album)) => {
+                    page.show_tracks(&album, year, album_artist.as_deref(), client_for_page)
+                }
                 Ok(Err(e)) => page.show_error(&error_message(&e)),
                 Err(_) => page.show_error(&gettext("Something went wrong. Please try again.")),
             }
@@ -127,9 +133,16 @@ impl AlbumPage {
         album: &subsonic::AlbumWithSongs,
         year: Option<i32>,
         album_artist: Option<&str>,
+        client: subsonic::Client,
     ) {
         let imp = self.imp();
         let songs = &album.song;
+
+        imp.actions.append(&star_button(
+            album.starred.is_some(),
+            Some(client.clone()),
+            Favorite::Album(album.id.clone()),
+        ));
 
         // Headers only when the album really has more than one disc.
         let discs: BTreeSet<u32> = songs.iter().filter_map(|s| s.disc_number).collect();
@@ -152,7 +165,7 @@ impl AlbumPage {
                 current = Some((disc, group));
             }
             if let Some((_, group)) = &current {
-                group.add(&track_row(song, album_artist));
+                group.add(&track_row(song, album_artist, &client));
             }
         }
 
@@ -194,8 +207,13 @@ impl AlbumPage {
     }
 }
 
-/// One track: number, title, duration; the artist only if it differs from the album's.
-fn track_row(song: &subsonic::Song, album_artist: Option<&str>) -> adw::ActionRow {
+/// One track: number, title, duration, favourite star;
+/// the artist only if it differs from the album's.
+fn track_row(
+    song: &subsonic::Song,
+    album_artist: Option<&str>,
+    client: &subsonic::Client,
+) -> adw::ActionRow {
     let row = adw::ActionRow::builder()
         .title(song.title.as_str())
         .use_markup(false)
@@ -222,6 +240,12 @@ fn track_row(song: &subsonic::Song, album_artist: Option<&str>) -> adw::ActionRo
             .build();
         row.add_suffix(&duration);
     }
+
+    row.add_suffix(&star_button(
+        song.starred.is_some(),
+        Some(client.clone()),
+        Favorite::Song(song.id.clone()),
+    ));
     row
 }
 

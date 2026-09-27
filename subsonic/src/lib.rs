@@ -90,6 +90,7 @@ pub struct Album {
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AlbumWithSongs {
+    pub starred: Option<String>,
     pub id: String,
     pub name: String,
     pub artist: Option<String>,
@@ -112,6 +113,7 @@ pub struct Song {
     pub bit_rate: Option<u32>,
     pub bit_depth: Option<u32>,
     pub sampling_rate: Option<u32>,
+    pub starred: Option<String>,
 }
 
 impl Client {
@@ -268,4 +270,23 @@ impl Client {
 pub struct DiscTitle {
     pub disc: u32,
     pub title: String,
+}
+
+/// Something that can be added to the favourites on the server.
+pub enum Starrable<'a> {
+    Song(&'a str),
+    Album(&'a str),
+}
+
+impl Client {
+    /// Adds to (`starred` = true) or removes from the favourites on the server.
+    pub async fn set_starred(&self, item: Starrable<'_>, starred: bool) -> Result<()> {
+        let (key, id) = match item {
+            Starrable::Song(id) => ("id", id),
+            Starrable::Album(id) => ("albumId", id),
+        };
+        let endpoint = if starred { "star" } else { "unstar" };
+        self.call(endpoint, &[(key, id.to_string())]).await?;
+        Ok(())
+    }
 }

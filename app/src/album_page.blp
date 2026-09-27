@@ -99,6 +99,12 @@ template $MusePlayerAlbumPage: Adw.NavigationPage {
                     "quality-badge",
                   ]
                 }
+
+                // Album actions: the favourite star now, play buttons later.
+                Box actions {
+                  spacing: 6;
+                  margin-top: 6;
+                }
               }
             }
 
@@ -153,6 +159,7 @@ template $MusePlayerAlbumPage: Adw.NavigationPage {
         details.xalign: 0.5;
         details.justify: center;
         quality.halign: center;
+        actions.halign: center;
       }
     }
   };

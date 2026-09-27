@@ -1,6 +1,7 @@
 mod album_card;
 mod album_page;
 mod covers;
+mod favorites;
 mod library;
 mod login_page;
 mod main_view;
