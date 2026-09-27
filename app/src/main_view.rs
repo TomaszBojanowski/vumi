@@ -5,7 +5,7 @@ use adw::prelude::*;
 use adw::subclass::prelude::*;
 use gettextrs::gettext;
 use gtk::{gio, glib};
-use std::cell::OnceCell;
+use std::cell::{OnceCell, RefCell};
 use std::time::Instant;
 
 use crate::album_card::AlbumCard;
@@ -27,6 +27,8 @@ mod imp {
         pub grid: gtk::TemplateChild<gtk::GridView>,
         /// Albums shown in the grid; items are subsonic::Album wrapped for GTK.
         pub albums: OnceCell<gio::ListStore>,
+        /// The connected client, used by cards to fetch their covers.
+        pub client: RefCell<Option<subsonic::Client>>,
     }
 
     #[glib::object_subclass]
@@ -53,7 +55,7 @@ mod imp {
 glib::wrapper! {
     pub struct MainView(ObjectSubclass<imp::MainView>)
         @extends adw::NavigationPage, gtk::Widget,
-        @implements gtk::Buildable, gtk::ConstraintTarget;
+        @implements gtk::Accessible, gtk::Buildable, gtk::ConstraintTarget;
 }
 
 impl MainView {
@@ -77,14 +79,27 @@ impl MainView {
             }
         });
         // Called whenever a card is (re)used for a given album.
-        factory.connect_bind(|_, item| {
+        let view = self.downgrade();
+        factory.connect_bind(move |_, item| {
             let Some(item) = item.downcast_ref::<gtk::ListItem>() else {
                 return;
             };
             let card = item.child().and_downcast::<AlbumCard>();
             let object = item.item().and_downcast::<glib::BoxedAnyObject>();
-            if let (Some(card), Some(object)) = (card, object) {
-                card.set_album(&object.borrow::<subsonic::Album>());
+            let (Some(card), Some(object)) = (card, object) else {
+                return;
+            };
+
+            let cover_id = {
+                let album = object.borrow::<subsonic::Album>();
+                card.set_album(&album);
+                album.cover_art.clone()
+            };
+
+            // Covers are requested only for cards that are actually on screen.
+            let client = view.upgrade().and_then(|v| v.imp().client.borrow().clone());
+            if let (Some(client), Some(id)) = (client, cover_id) {
+                card.load_cover(client, id);
             }
         });
 
@@ -125,6 +140,7 @@ impl MainView {
     }
 
     fn load_albums(&self, client: subsonic::Client) {
+        self.imp().client.replace(Some(client.clone()));
         let view = self.downgrade();
         glib::spawn_future_local(async move {
             let started = Instant::now();

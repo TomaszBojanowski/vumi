@@ -1,4 +1,5 @@
 mod album_card;
+mod covers;
 mod login_page;
 mod main_view;
 mod secrets;

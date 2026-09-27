@@ -83,6 +83,7 @@ pub struct Album {
     pub artist: Option<String>,
     pub year: Option<i32>,
     pub song_count: Option<u32>,
+    pub cover_art: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -223,5 +224,24 @@ impl Client {
                 return Ok(all);
             }
         }
+    }
+}
+
+impl Client {
+    /// Cover image bytes, scaled by the server so the longer side is `size` pixels.
+    pub async fn cover_art(&self, id: &str, size: u32) -> Result<Vec<u8>> {
+        let url = self.build_url(
+            "getCoverArt",
+            &[("id", id.to_string()), ("size", size.to_string())],
+        )?;
+        let bytes = self
+            .http
+            .get(url)
+            .send()
+            .await?
+            .error_for_status()?
+            .bytes()
+            .await?;
+        Ok(bytes.to_vec())
     }
 }

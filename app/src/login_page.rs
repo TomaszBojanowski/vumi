@@ -53,7 +53,7 @@ mod imp {
 glib::wrapper! {
     pub struct LoginPage(ObjectSubclass<imp::LoginPage>)
         @extends adw::NavigationPage, gtk::Widget,
-        @implements gtk::Buildable, gtk::ConstraintTarget;
+        @implements gtk::Accessible, gtk::Buildable, gtk::ConstraintTarget;
 }
 
 impl LoginPage {

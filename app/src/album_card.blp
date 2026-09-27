@@ -8,16 +8,29 @@ template $MusePlayerAlbumCard: Box {
   margin-start: 6;
   margin-end: 6;
 
-  // Placeholder until cover art arrives.
-  Image cover {
-    icon-name: "audio-x-generic-symbolic";
-    pixel-size: 64;
+  // The note icon stays underneath; the cover covers it once loaded.
+  Overlay {
     width-request: 160;
     height-request: 160;
+    overflow: hidden;
 
     styles [
       "card",
     ]
+
+    child: Image {
+      icon-name: "audio-x-generic-symbolic";
+      pixel-size: 64;
+
+      styles [
+        "dim-label",
+      ]
+    };
+
+    [overlay]
+    Picture cover {
+      content-fit: cover;
+    }
   }
 
   // max-width-chars: 1 keeps long titles from widening the grid columns;
