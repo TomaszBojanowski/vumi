@@ -1,5 +1,7 @@
 data/io.github.tomaszbojanowski.MusePlayer.desktop.in
 app/src/main.rs
+app/src/main_view.rs
+app/src/main_view.blp
 app/src/login_page.rs
 app/src/login_page.blp
 app/src/welcome_page.rs

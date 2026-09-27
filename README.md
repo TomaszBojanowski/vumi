@@ -37,7 +37,7 @@ Later: year in music, forgotten albums, time-of-day mixes, command palette
 
 1. [x] Subsonic client: token auth, ping, album list (CLI)
 2. [x] Playback in CLI: GStreamer, raw FLAC stream from Navidrome
-3. [ ] GUI foundation
+3. [x] GUI foundation
    - [x] Window on GNOME 51 (GTK 4.24, libadwaita 1.10) via Flatpak
    - [x] Welcome carousel and login form
    - [x] Async client with typed errors
@@ -45,7 +45,7 @@ Later: year in music, forgotten albums, time-of-day mixes, command palette
    - [x] Window size remembered (GSettings)
    - [x] Credentials in the system keyring, server and user in settings,
          welcome shown only on first run
-   - [ ] gettext, Blueprint UI files, Meson build
+   - [x] gettext, Blueprint UI files, Meson build
 4. [ ] Player in GUI: now-playing bar, queue, MPRIS, background playback
 5. [ ] Local library: SQLite cache, background sync, FTS5 search, cover cache
 6. [ ] Scrobbling, play queue sync, ReplayGain, audio prefetch,

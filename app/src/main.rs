@@ -1,4 +1,5 @@
 mod login_page;
+mod main_view;
 mod secrets;
 mod welcome_page;
 
@@ -9,6 +10,7 @@ use std::sync::OnceLock;
 use tokio::runtime::Runtime;
 
 use login_page::LoginPage;
+use main_view::MainView;
 use welcome_page::WelcomePage;
 
 // Working ID and name, will change together with the final app name.
@@ -42,54 +44,6 @@ fn runtime() -> &'static Runtime {
     RUNTIME.get_or_init(|| Runtime::new().expect("failed to start tokio runtime"))
 }
 
-/// The main view with its offline banner. The library will live here.
-#[derive(Clone)]
-struct MainView {
-    page: adw::NavigationPage,
-    status: adw::StatusPage,
-    banner: adw::Banner,
-}
-
-impl MainView {
-    fn new() -> Self {
-        let banner = adw::Banner::builder().button_label(gettext("Retry")).build();
-        let status = adw::StatusPage::builder()
-            .icon_name("audio-x-generic-symbolic")
-            .title(gettext("Library"))
-            .build();
-
-        let toolbar = adw::ToolbarView::new();
-        toolbar.add_top_bar(&adw::HeaderBar::new());
-        toolbar.add_top_bar(&banner);
-        toolbar.set_content(Some(&status));
-
-        let page = adw::NavigationPage::builder()
-            .title(APP_NAME)
-            .child(&toolbar)
-            .build();
-        Self { page, status, banner }
-    }
-
-    fn show_connecting(&self) {
-        self.status.set_description(Some(&gettext("Connecting…")));
-    }
-
-    fn show_connected(&self, r: &subsonic::Response) {
-        self.banner.set_revealed(false);
-        // Translators: {server} is the server software (e.g. navidrome), {version} its version.
-        let text = gettext("Connected to {server} {version}")
-            .replace("{server}", r.server_type.as_deref().unwrap_or("server"))
-            .replace("{version}", r.server_version.as_deref().unwrap_or(""));
-        self.status.set_description(Some(&text));
-    }
-
-    fn show_offline(&self, message: &str) {
-        self.banner.set_title(message);
-        self.banner.set_revealed(true);
-        self.status.set_description(Some(&gettext("Offline")));
-    }
-}
-
 fn build_ui(app: &adw::Application) {
     let settings = gio::Settings::new(APP_ID);
 
@@ -102,7 +56,7 @@ fn build_ui(app: &adw::Application) {
     let saved_url = settings.string("server-url").to_string();
     let saved_user = settings.string("username").to_string();
     if !saved_url.is_empty() && !saved_user.is_empty() {
-        nav.push(&main.page);
+        nav.push(&main);
         auto_connect(&nav, &login_page, &main, saved_url, saved_user);
     } else if settings.boolean("welcome-shown") {
         nav.push(&login_page);
@@ -111,19 +65,22 @@ fn build_ui(app: &adw::Application) {
     }
 
     // "Retry" in the offline banner reconnects with the saved credentials.
+    // A weak reference, so the view does not keep itself alive through its own banner.
     {
         let nav = nav.clone();
         let login_page = login_page.clone();
-        let main_for_retry = main.clone();
+        let main_weak = main.downgrade();
         let settings = settings.clone();
-        main.banner.connect_button_clicked(move |_| {
-            auto_connect(
-                &nav,
-                &login_page,
-                &main_for_retry,
-                settings.string("server-url").to_string(),
-                settings.string("username").to_string(),
-            );
+        main.connect_retry(move || {
+            if let Some(main) = main_weak.upgrade() {
+                auto_connect(
+                    &nav,
+                    &login_page,
+                    &main,
+                    settings.string("server-url").to_string(),
+                    settings.string("username").to_string(),
+                );
+            }
         });
     }
 

@@ -142,7 +142,7 @@ impl LoginPage {
                         }
                     });
                     main.show_connected(&response);
-                    nav.replace(&[main.page.clone()]);
+                    nav.replace(&[main.clone().upcast()]);
                 }
                 Ok(Err(e)) => {
                     imp.error_label.set_label(&error_message(&e));

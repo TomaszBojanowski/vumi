@@ -1,0 +1,22 @@
+using Gtk 4.0;
+using Adw 1;
+
+translation-domain "muse-player";
+
+template $MusePlayerMainView: Adw.NavigationPage {
+  child: Adw.ToolbarView {
+    [top]
+    Adw.HeaderBar {}
+
+    // Hidden until the server cannot be reached.
+    [top]
+    Adw.Banner banner {
+      button-label: _("Retry");
+    }
+
+    content: Adw.StatusPage status {
+      icon-name: "audio-x-generic-symbolic";
+      title: _("Library");
+    };
+  };
+}
