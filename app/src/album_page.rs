@@ -7,7 +7,7 @@ use gettextrs::{gettext, ngettext};
 use gtk::glib;
 use std::collections::BTreeSet;
 
-use crate::{covers, error_message, runtime};
+use crate::{covers, error_message, runtime, tint};
 
 mod imp {
     use super::*;
@@ -17,6 +17,8 @@ mod imp {
     pub struct AlbumPage {
         #[template_child]
         pub cover: gtk::TemplateChild<gtk::Picture>,
+        #[template_child]
+        pub toolbar: gtk::TemplateChild<adw::ToolbarView>,
         #[template_child]
         pub title: gtk::TemplateChild<gtk::Label>,
         #[template_child]
@@ -91,6 +93,10 @@ impl AlbumPage {
             let texture = covers::load(client, id).await;
             if let Some(page) = page.upgrade() {
                 page.imp().cover.set_paintable(texture.as_ref());
+                if let Some(color) = texture.as_ref().and_then(tint::dominant_color) {
+                    tint::apply(color);
+                    page.imp().toolbar.add_css_class("album-tint");
+                }
             }
         });
     }

@@ -5,6 +5,7 @@ mod library;
 mod login_page;
 mod main_view;
 mod secrets;
+mod tint;
 mod welcome_page;
 
 use adw::prelude::*;
