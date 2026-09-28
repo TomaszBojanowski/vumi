@@ -133,7 +133,7 @@ impl Player {
     /// Like play(), but starts the track at `seconds` (resuming where playback
     /// stopped). GStreamer ignores seeks until the track is ready, so the seek
     /// waits for AsyncDone.
-    #[allow(dead_code)] // Used by the Start page, a later step.
+
     pub(crate) fn play_from(
         &self,
         client: subsonic::Client,

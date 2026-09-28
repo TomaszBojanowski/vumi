@@ -208,3 +208,13 @@ button.album-action {
 button.shelf-card {
   padding: 6px;
 }
+
+/* "Continue listening" card on the Start page. */
+.continue-card {
+  padding: 14px;
+}
+
+.continue-cover {
+  border-radius: 8px;
+  background-color: alpha(currentColor, 0.08);
+}
