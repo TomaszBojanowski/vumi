@@ -48,6 +48,8 @@ mod imp {
         pub error_status: gtk::TemplateChild<adw::StatusPage>,
         /// Which album this page shows, so it is not opened twice.
         pub album_id: std::cell::RefCell<String>,
+        /// Track rows, to mark the one that is playing.
+        pub(crate) rows: std::cell::RefCell<Vec<super::TrackRow>>,
     }
 
     #[glib::object_subclass]
@@ -224,6 +226,7 @@ impl AlbumPage {
 
         // The server lists tracks disc by disc, so a new group starts when the disc changes.
         let mut current: Option<(u32, adw::PreferencesGroup)> = None;
+        let mut rows = Vec::new();
         for (index, song) in songs.iter().enumerate() {
             let disc = song.disc_number.unwrap_or(1);
             if current.as_ref().map(|(d, _)| *d) != Some(disc) {
@@ -239,9 +242,24 @@ impl AlbumPage {
                 current = Some((disc, group));
             }
             if let Some((_, group)) = &current {
-                group.add(&track_row(song, album_artist, &client, index, &queue));
+                let track = track_row(song, album_artist, &client, index, &queue);
+                group.add(&track.row);
+                rows.push(track);
             }
         }
+
+        imp.rows.replace(rows);
+
+        // Mark the playing track now and whenever the player changes; the page
+        // stops listening when it is closed.
+        self.mark_playing();
+        let page = self.downgrade();
+        let listener = player::get().connect_changed(move || {
+            if let Some(page) = page.upgrade() {
+                page.mark_playing();
+            }
+        });
+        self.connect_destroy(move |_| player::get().disconnect(listener));
 
         let count = songs.len() as u32;
         let seconds: u32 = songs.iter().filter_map(|s| s.duration).sum();
@@ -281,7 +299,15 @@ impl AlbumPage {
     }
 }
 
-/// One track: number, title, duration, favourite star;
+/// A track row and the widgets that show whether it is playing.
+pub(crate) struct TrackRow {
+    song_id: String,
+    row: adw::ActionRow,
+    slot: gtk::Stack,
+    icon: gtk::Image,
+}
+
+/// One track: number (or a playing icon), title, duration, favourite star;
 /// the artist only if it differs from the album's.
 fn track_row(
     song: &subsonic::Song,
@@ -289,7 +315,7 @@ fn track_row(
     client: &subsonic::Client,
     index: usize,
     queue: &Rc<[subsonic::Song]>,
-) -> adw::ActionRow {
+) -> TrackRow {
     let row = adw::ActionRow::builder()
         .title(song.title.as_str())
         .use_markup(false)
@@ -309,13 +335,24 @@ fn track_row(
         }
     }
 
+    // The track number, swapped for an icon while this track plays. The stack
+    // keeps one width for both, so the titles stay aligned.
     let number = gtk::Label::builder()
         .label(song.track.map(|n| n.to_string()).unwrap_or_default())
         .width_chars(3)
         .xalign(1.0)
         .css_classes(["dim-label", "numeric"])
         .build();
-    row.add_prefix(&number);
+    let icon = gtk::Image::builder()
+        .icon_name("audio-volume-high-symbolic")
+        .halign(gtk::Align::End)
+        .css_classes(["playing-icon"])
+        .build();
+    let slot = gtk::Stack::new();
+    slot.add_named(&number, Some("number"));
+    slot.add_named(&icon, Some("icon"));
+    slot.set_visible_child_name("number");
+    row.add_prefix(&slot);
 
     if let Some(d) = song.duration {
         let duration = gtk::Label::builder()
@@ -330,7 +367,13 @@ fn track_row(
         Some(client.clone()),
         Favorite::Song(song.id.clone()),
     ));
-    row
+
+    TrackRow {
+        song_id: song.id.clone(),
+        row,
+        slot,
+        icon,
+    }
 }
 
 /// "47 minutes" for most albums, "6 h 9 min" for long ones.
@@ -430,5 +473,31 @@ impl AlbumPage {
 impl AlbumPage {
     pub(crate) fn album_id(&self) -> String {
         self.imp().album_id.borrow().clone()
+    }
+}
+
+impl AlbumPage {
+    /// Shows the playing icon and the accent colour on the track that is playing
+    /// (a pause icon while paused), and the number on all the others.
+    fn mark_playing(&self) {
+        let player = player::get();
+        let current = player.current().map(|song| song.id);
+        let icon = if player.is_playing() {
+            "audio-volume-high-symbolic"
+        } else {
+            "media-playback-pause-symbolic"
+        };
+        for track in self.imp().rows.borrow().iter() {
+            let playing = current.as_deref() == Some(track.song_id.as_str());
+            track
+                .slot
+                .set_visible_child_name(if playing { "icon" } else { "number" });
+            track.icon.set_icon_name(Some(icon));
+            if playing {
+                track.row.add_css_class("playing");
+            } else {
+                track.row.remove_css_class("playing");
+            }
+        }
     }
 }

@@ -15,7 +15,8 @@ pub(crate) struct Player {
     playing: Cell<bool>,
     client: RefCell<Option<subsonic::Client>>,
     /// Called after every change of track or state.
-    listeners: RefCell<Vec<Box<dyn Fn()>>>,
+    listeners: RefCell<Vec<(u64, Box<dyn Fn()>)>>,
+    next_listener: Cell<u64>,
     /// Keeps the bus watch alive for as long as the player exists.
     _bus_watch: gst::bus::BusWatchGuard,
 }
@@ -55,17 +56,28 @@ impl Player {
                 playing: Cell::new(false),
                 client: RefCell::new(None),
                 listeners: RefCell::new(Vec::new()),
+                next_listener: Cell::new(0),
                 _bus_watch: bus_watch,
             }
         })
     }
 
-    pub(crate) fn connect_changed(&self, f: impl Fn() + 'static) {
-        self.listeners.borrow_mut().push(Box::new(f));
+    /// Registers `f`, called after every change; the returned id removes it again.
+    pub(crate) fn connect_changed(&self, f: impl Fn() + 'static) -> u64 {
+        let id = self.next_listener.get();
+        self.next_listener.set(id + 1);
+        self.listeners.borrow_mut().push((id, Box::new(f)));
+        id
+    }
+
+    pub(crate) fn disconnect(&self, id: u64) {
+        self.listeners
+            .borrow_mut()
+            .retain(|(listener_id, _)| *listener_id != id);
     }
 
     fn notify(&self) {
-        for listener in self.listeners.borrow().iter() {
+        for (_, listener) in self.listeners.borrow().iter() {
             listener();
         }
     }

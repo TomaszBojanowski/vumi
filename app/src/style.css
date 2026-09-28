@@ -131,3 +131,13 @@
   background-color: var(--headerbar-bg-color);
   box-shadow: inset 0 1px var(--headerbar-shade-color);
 }
+
+/* The track that is playing on an album page: accent-coloured title and icon. */
+row.playing .title {
+  color: var(--accent-color);
+  font-weight: bold;
+}
+
+.playing-icon {
+  color: var(--accent-color);
+}
