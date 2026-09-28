@@ -48,4 +48,4 @@ Later: year in music, forgotten albums, time-of-day mixes, command palette
 10. [ ] Queue in a right-hand panel, later synced lyrics as a second tab
 11. [ ] Gapless playback, MPRIS, playback after the window is closed
 12. [ ] AudioMuse-AI direct: song paths, library map; signal path panel
-13. [ ] HTTPS with trust for self-signed certificates; server settings, logout
+13. [ ] HTTPS: done with system certificates; still to do: self-signed certificates, server settings, logout
