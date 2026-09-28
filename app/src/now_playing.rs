@@ -114,6 +114,8 @@ impl NowPlaying {
                 song_count: None,
                 cover_art: song.cover_art.clone(),
                 created: None,
+                artist_id: None,
+                starred: None,
             };
             if let Some(main) = bar
                 .ancestor(MainView::static_type())

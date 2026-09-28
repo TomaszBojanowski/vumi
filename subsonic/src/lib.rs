@@ -90,6 +90,8 @@ pub struct Album {
     pub year: Option<i32>,
     pub song_count: Option<u32>,
     pub created: Option<String>,
+    pub artist_id: Option<String>,
+    pub starred: Option<String>,
     pub cover_art: Option<String>,
 }
 

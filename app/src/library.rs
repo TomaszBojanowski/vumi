@@ -80,6 +80,17 @@ fn migrate(conn: &mut Connection) -> rusqlite::Result<()> {
         )?;
         tx.commit()?;
     }
+    if version < 3 {
+        // Version 3: the album's star and artist id, so album pages can be
+        // built from here without waiting for the server.
+        let tx = conn.transaction()?;
+        tx.execute_batch(
+            "ALTER TABLE albums ADD COLUMN artist_id TEXT;
+             ALTER TABLE albums ADD COLUMN starred TEXT;
+             PRAGMA user_version = 3;",
+        )?;
+        tx.commit()?;
+    }
     Ok(())
 }
 
@@ -87,7 +98,7 @@ fn migrate(conn: &mut Connection) -> rusqlite::Result<()> {
 pub(crate) fn load_albums(server: &str) -> rusqlite::Result<Vec<subsonic::Album>> {
     let conn = open()?;
     let mut stmt = conn.prepare(
-        "SELECT id, name, artist, year, song_count, cover_art, created
+        "SELECT id, name, artist, year, song_count, cover_art, created, artist_id, starred
          FROM albums WHERE server = ?1 ORDER BY position",
     )?;
     let rows = stmt.query_map(params![server], |row| {
@@ -99,6 +110,8 @@ pub(crate) fn load_albums(server: &str) -> rusqlite::Result<Vec<subsonic::Album>
             song_count: row.get(4)?,
             cover_art: row.get(5)?,
             created: row.get(6)?,
+            artist_id: row.get(7)?,
+            starred: row.get(8)?,
         })
     })?;
     let albums = rows.collect::<rusqlite::Result<Vec<_>>>();
@@ -113,8 +126,9 @@ pub(crate) fn save_albums(server: &str, albums: &[Arc<subsonic::Album>]) -> rusq
     {
         let mut insert = tx.prepare(
             "INSERT INTO albums
-                 (server, position, id, name, artist, year, song_count, cover_art, created)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
+                 (server, position, id, name, artist, year, song_count, cover_art, created,
+                  artist_id, starred)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
         )?;
         for (position, a) in albums.iter().enumerate() {
             insert.execute(params![
@@ -126,7 +140,9 @@ pub(crate) fn save_albums(server: &str, albums: &[Arc<subsonic::Album>]) -> rusq
                 a.year,
                 a.song_count,
                 a.cover_art,
-                a.created
+                a.created,
+                a.artist_id,
+                a.starred
             ])?;
         }
     }
