@@ -10,6 +10,7 @@ mod main_view;
 mod mini_player;
 mod now_playing;
 mod player;
+mod resume;
 mod secrets;
 mod tint;
 mod welcome_page;
@@ -50,7 +51,7 @@ fn main() -> glib::ExitCode {
 
     let app = adw::Application::builder().application_id(APP_ID).build();
     app.connect_startup(|_| load_css());
-    app.connect_shutdown(|_| player::shutdown());
+    app.connect_shutdown(|_| { resume::save_now(); player::shutdown() });
     app.connect_activate(build_ui);
     app.run()
 }
@@ -123,6 +124,9 @@ fn build_ui(app: &adw::Application) {
         }
     });
     main.set_mini_player(&mini);
+
+    // Remember what plays, for "Continue listening" on the next start.
+    resume::watch();
     toasts.set_child(Some(&nav));
 
     let window = adw::ApplicationWindow::builder()
