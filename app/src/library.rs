@@ -187,7 +187,7 @@ pub(crate) fn save_songs(server: &str, songs: &[subsonic::Song]) -> rusqlite::Re
 }
 
 /// The songs of one album, disc by disc and track by track.
-#[allow(dead_code)] // Used by the album page, the next step.
+
 pub(crate) fn load_album_songs(
     server: &str,
     album_id: &str,

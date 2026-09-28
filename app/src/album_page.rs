@@ -58,6 +58,18 @@ mod imp {
         pub animations: std::cell::RefCell<Vec<adw::TimedAnimation>>,
         /// Layer under the whole page that carries the cover-coloured gradient.
         pub backdrop: std::cell::RefCell<Option<gtk::Box>>,
+        /// The album this page was opened with (star and artist id included).
+        pub album: std::cell::RefCell<Option<subsonic::Album>>,
+        /// The play queue: the album's songs, read by the buttons when clicked.
+        pub queue: std::cell::RefCell<Option<Rc<[subsonic::Song]>>>,
+        /// The album's star button, replaced when the server knows better.
+        pub album_star: std::cell::RefCell<Option<gtk::Widget>>,
+        /// True once the parts made once per page exist (Play row, listener).
+        pub tracks_shown: std::cell::Cell<bool>,
+        /// True once the artist name opens the artist page.
+        pub artist_linked: std::cell::Cell<bool>,
+        /// Bumped by every show_tracks; older row batches stop.
+        pub row_generation: std::cell::Cell<u32>,
         /// The round Play button, which becomes Pause / Resume for this album.
         pub play_button: std::cell::RefCell<Option<gtk::Button>>,
     }
@@ -97,6 +109,7 @@ impl AlbumPage {
 
         page.set_title(&album.name);
         imp.album_id.replace(album.id.clone());
+        imp.album.replace(Some(album.clone()));
         // The cover-coloured gradient gets its own layer under the page, so it
         // can fade in (a libadwaita animation) instead of popping in.
         page.add_backdrop();
@@ -156,6 +169,19 @@ impl AlbumPage {
         year: Option<i32>,
         album_artist: Option<String>,
     ) {
+        // The local copy first, read right here (a quick indexed query), so the
+        // page slides in already filled.
+        let local = crate::library::load_album_songs(&client.server_key(), &id).unwrap_or_default();
+        let local_album = if local.is_empty() {
+            None
+        } else {
+            self.local_album(local)
+        };
+        if let Some(album) = &local_album {
+            self.show_tracks(album, year, album_artist.as_deref(), client.clone());
+        }
+
+        // Then the server, which may know better: new tracks, stars, disc titles.
         let page = self.downgrade();
         let client_for_page = client.clone();
         glib::spawn_future_local(async move {
@@ -165,16 +191,25 @@ impl AlbumPage {
             };
             match result {
                 Ok(Ok(album)) => {
+                    // Nothing new: the page stays exactly as it is.
+                    if local_album.as_ref().is_some_and(|local| same_album(local, &album)) {
+                        return;
+                    }
                     page.after_shown(move |page| {
                         page.show_tracks(&album, year, album_artist.as_deref(), client_for_page)
                     })
                 }
+                // With the local copy on screen, a failed refresh needs no error page.
+                Ok(Err(_)) | Err(_) if local_album.is_some() => {}
                 Ok(Err(e)) => page.show_error(&error_message(&e)),
                 Err(_) => page.show_error(&gettext("Something went wrong. Please try again.")),
             }
         });
     }
 
+    /// Shows the album's tracks. Called with the local copy (before the page
+    /// slides in) and again if the server's answer differs: the parts made once
+    /// per page are made only once, the rows and the star are rebuilt.
     fn show_tracks(
         &self,
         album: &subsonic::AlbumWithSongs,
@@ -185,88 +220,49 @@ impl AlbumPage {
         let imp = self.imp();
         let songs = &album.song;
 
-        // The whole album as one shared play queue: buttons and rows point at it.
+        // The whole album as one shared play queue; the buttons read it when clicked.
         let queue: Rc<[subsonic::Song]> = songs.as_slice().into();
+        imp.queue.replace(Some(queue.clone()));
 
-        // Play the whole album, in order or shuffled: round icon buttons, so their
-        // size never changes, whatever the state or the language.
-        let play_button = gtk::Button::builder()
-            .icon_name("media-playback-start-symbolic")
-            .tooltip_text(gettext("Play"))
-            .valign(gtk::Align::Center)
-            .css_classes(["circular", "album-play"])
-            .build();
-        imp.play_button.replace(Some(play_button.clone()));
-        let shuffle_button = gtk::Button::builder()
-            .icon_name("media-playlist-shuffle-symbolic")
-            .tooltip_text(gettext("Shuffle"))
-            .valign(gtk::Align::Center)
-            .css_classes(["circular", "flat", "album-action"])
-            .build();
-        {
-            let client = client.clone();
-            let queue = queue.clone();
-            let album_id = album.id.clone();
-            play_button.connect_clicked(move |_| {
-                let player = player::get();
-                // This album is already playing: the button pauses and resumes it.
-                let album_playing = player
-                    .current()
-                    .is_some_and(|s| s.album_id.as_deref() == Some(album_id.as_str()));
-                if album_playing && player.is_active() {
-                    player.toggle_pause();
-                } else {
-                    player.play(client.clone(), queue.clone(), 0);
+        if !imp.tracks_shown.replace(true) {
+            self.build_actions(&album.id, client.clone());
+            // Mark the playing track whenever the player changes; the page stops
+            // listening when it is closed.
+            let page = self.downgrade();
+            let listener = player::get().connect_changed(move || {
+                if let Some(page) = page.upgrade() {
+                    page.mark_playing();
                 }
             });
+            self.connect_destroy(move |_| player::get().disconnect(listener));
         }
-        {
-            let client = client.clone();
-            let queue = queue.clone();
-            shuffle_button.connect_clicked(move |_| {
-                // A new order needs its own copy, made only when Shuffle is pressed.
-                let mut shuffled = queue.to_vec();
-                fastrand::shuffle(&mut shuffled);
-                player::get().play(client.clone(), shuffled.into(), 0);
-            });
-        }
-        imp.actions.append(&play_button);
-        imp.actions.append(&shuffle_button);
+        self.connect_artist(album, &client);
 
-        imp.actions.append(&star_button(
+        // The album's star is replaced: the server may know better than the local copy.
+        if let Some(old) = imp.album_star.take() {
+            imp.actions.remove(&old);
+        }
+        let star = star_button(
             album.starred.is_some(),
             Some(client.clone()),
             Favorite::Album(album.id.clone()),
-        ));
-
-        // The artist name opens the artist page.
-        if let Some(artist_id) = album.artist_id.clone() {
-            let name = album.artist.clone().unwrap_or_default();
-            let client = client.clone();
-            let page = self.downgrade();
-            imp.artist_button.connect_clicked(move |_| {
-                let Some(page) = page.upgrade() else {
-                    return;
-                };
-                let artist_page = ArtistPage::new(&artist_id, &name, client.clone());
-                if let Some(nav) = page
-                    .ancestor(adw::NavigationView::static_type())
-                    .and_downcast::<adw::NavigationView>()
-                {
-                    nav.push(&artist_page);
-                }
-            });
-        }
+        );
+        imp.actions.append(&star);
+        imp.album_star.replace(Some(star.upcast::<gtk::Widget>()));
 
         // Headers only when the album really has more than one disc.
         let discs: BTreeSet<u32> = songs.iter().filter_map(|s| s.disc_number).collect();
         let multi_disc = discs.len() > 1;
 
-        // Rows are built in batches: the first screenful right away, the rest
-        // between frames, so even a 100-track album never freezes the window.
+        // The rows start over (a refresh); batches of an older call stop by themselves.
+        while let Some(child) = imp.tracks.first_child() {
+            imp.tracks.remove(&child);
+        }
         imp.rows.replace(Vec::new());
+        let generation = imp.row_generation.get() + 1;
+        imp.row_generation.set(generation);
         let builder = Rc::new(RowBuilder {
-            queue: queue.clone(),
+            queue,
             album_artist: album_artist.map(str::to_owned),
             client: client.clone(),
             disc_titles: album
@@ -275,6 +271,7 @@ impl AlbumPage {
                 .map(|t| (t.disc, t.title.clone()))
                 .collect(),
             multi_disc,
+            generation,
             next: std::cell::Cell::new(0),
             group: std::cell::RefCell::new(None),
         });
@@ -294,17 +291,7 @@ impl AlbumPage {
                 }
             });
         }
-
-        // Mark the playing track now and whenever the player changes; the page
-        // stops listening when it is closed.
         self.mark_playing();
-        let page = self.downgrade();
-        let listener = player::get().connect_changed(move || {
-            if let Some(page) = page.upgrade() {
-                page.mark_playing();
-            }
-        });
-        self.connect_destroy(move |_| player::get().disconnect(listener));
 
         let count = songs.len() as u32;
         let seconds: u32 = songs.iter().filter_map(|s| s.duration).sum();
@@ -323,10 +310,15 @@ impl AlbumPage {
         parts.push(format_duration(seconds));
         imp.details.set_label(&parts.join(" · "));
         self.show_quality(songs);
+
+        // The list fades in only when it arrives while the page is on screen; the
+        // local copy is there before the page slides in and needs no fade.
+        let already_visible = imp.tracks_stack.visible_child_name().as_deref() == Some("tracks");
         imp.tracks_stack.set_visible_child_name("tracks");
-        // The list and the Play row fade in instead of popping in.
-        self.fade_in(&*imp.tracks);
-        self.fade_in(&*imp.actions);
+        if !already_visible && imp.shown.get() {
+            self.fade_in(&*imp.tracks);
+            self.fade_in(&*imp.actions);
+        }
     }
 
     fn show_quality(&self, songs: &[subsonic::Song]) {
@@ -606,6 +598,8 @@ struct RowBuilder {
     /// Disc number and title, for albums whose discs have names.
     disc_titles: Vec<(u32, String)>,
     multi_disc: bool,
+    /// Which call of show_tracks this belongs to; batches of an older one stop.
+    generation: u32,
     /// The next track to build a row for.
     next: std::cell::Cell<usize>,
     /// The disc group rows are being added to.
@@ -618,6 +612,9 @@ impl AlbumPage {
     /// disc changes, whichever batch that happens in.
     fn build_rows(&self, builder: &RowBuilder, count: usize) -> bool {
         let imp = self.imp();
+        if builder.generation != imp.row_generation.get() {
+            return false;
+        }
         let start = builder.next.get();
         let end = (start + count).min(builder.queue.len());
 
@@ -719,4 +716,120 @@ impl AlbumPage {
             None => tint::apply(&imp.toolbar.get(), color),
         }
     }
+}
+
+impl AlbumPage {
+    /// The round Play and Shuffle buttons (once per page). They read the queue
+    /// when clicked, so after a refresh they play the current track list.
+    fn build_actions(&self, album_id: &str, client: subsonic::Client) {
+        let imp = self.imp();
+        let play_button = gtk::Button::builder()
+            .icon_name("media-playback-start-symbolic")
+            .tooltip_text(gettext("Play"))
+            .valign(gtk::Align::Center)
+            .css_classes(["circular", "album-play"])
+            .build();
+        imp.play_button.replace(Some(play_button.clone()));
+        let shuffle_button = gtk::Button::builder()
+            .icon_name("media-playlist-shuffle-symbolic")
+            .tooltip_text(gettext("Shuffle"))
+            .valign(gtk::Align::Center)
+            .css_classes(["circular", "flat", "album-action"])
+            .build();
+        {
+            let client = client.clone();
+            let album_id = album_id.to_owned();
+            let page = self.downgrade();
+            play_button.connect_clicked(move |_| {
+                let Some(page) = page.upgrade() else {
+                    return;
+                };
+                let player = player::get();
+                // This album is already playing: the button pauses and resumes it.
+                let album_playing = player
+                    .current()
+                    .is_some_and(|s| s.album_id.as_deref() == Some(album_id.as_str()));
+                if album_playing && player.is_active() {
+                    player.toggle_pause();
+                } else if let Some(queue) = page.imp().queue.borrow().clone() {
+                    player.play(client.clone(), queue, 0);
+                }
+            });
+        }
+        {
+            let page = self.downgrade();
+            shuffle_button.connect_clicked(move |_| {
+                let Some(page) = page.upgrade() else {
+                    return;
+                };
+                let Some(queue) = page.imp().queue.borrow().clone() else {
+                    return;
+                };
+                // A new order needs its own copy, made only when Shuffle is pressed.
+                let mut shuffled = queue.to_vec();
+                fastrand::shuffle(&mut shuffled);
+                player::get().play(client.clone(), shuffled.into(), 0);
+            });
+        }
+        imp.actions.append(&play_button);
+        imp.actions.append(&shuffle_button);
+    }
+
+    /// The artist name opens the artist page, once the artist id is known.
+    fn connect_artist(&self, album: &subsonic::AlbumWithSongs, client: &subsonic::Client) {
+        let imp = self.imp();
+        if imp.artist_linked.get() {
+            return;
+        }
+        let Some(artist_id) = album.artist_id.clone() else {
+            return;
+        };
+        imp.artist_linked.set(true);
+        let name = album.artist.clone().unwrap_or_default();
+        let client = client.clone();
+        let page = self.downgrade();
+        imp.artist_button.connect_clicked(move |_| {
+            let Some(page) = page.upgrade() else {
+                return;
+            };
+            let artist_page = ArtistPage::new(&artist_id, &name, client.clone());
+            if let Some(nav) = page
+                .ancestor(adw::NavigationView::static_type())
+                .and_downcast::<adw::NavigationView>()
+            {
+                nav.push(&artist_page);
+            }
+        });
+    }
+
+    /// The album as the local database knows it: the album row from the library
+    /// and its songs. Disc titles come only from the server.
+    fn local_album(&self, songs: Vec<subsonic::Song>) -> Option<subsonic::AlbumWithSongs> {
+        let album = self.imp().album.borrow().clone()?;
+        Some(subsonic::AlbumWithSongs {
+            artist_id: album.artist_id,
+            starred: album.starred,
+            id: album.id,
+            name: album.name,
+            artist: album.artist,
+            song: songs,
+            disc_titles: Vec::new(),
+        })
+    }
+}
+
+/// True if the server's answer shows nothing the local copy does not.
+fn same_album(local: &subsonic::AlbumWithSongs, server: &subsonic::AlbumWithSongs) -> bool {
+    local.starred == server.starred
+        && local.artist_id == server.artist_id
+        && server.disc_titles.is_empty()
+        && local.song.len() == server.song.len()
+        && local.song.iter().zip(&server.song).all(|(a, b)| {
+            a.id == b.id
+                && a.title == b.title
+                && a.starred == b.starred
+                && a.duration == b.duration
+                && a.track == b.track
+                && a.disc_number == b.disc_number
+        })
 }
