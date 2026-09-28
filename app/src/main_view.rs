@@ -236,6 +236,8 @@ impl MainView {
                         }
                     });
                     view.show_albums(albums);
+                    // Songs next, in the background: album pages open already filled.
+                    view.sync_songs();
                 }
                 Ok(Err(e)) => view.show_offline(&error_message(&e)),
                 Err(_) => {}
@@ -398,5 +400,39 @@ fn sort_albums(albums: &mut [Arc<subsonic::Album>], mode: &str) {
         // Dates compare as text (ISO 8601), so no key needs to be built.
         "added" => albums.sort_by(|a, b| b.created.cmp(&a.created)),
         _ => albums.sort_by_cached_key(|a| lower(&a.name)),
+    }
+}
+
+impl MainView {
+    /// Fetches every song in the background and stores it locally, so album
+    /// pages open already filled. Runs after the albums; nothing waits for it.
+    fn sync_songs(&self) {
+        let Some(client) = self.imp().client.borrow().clone() else {
+            return;
+        };
+        let server = client.server_key();
+        glib::spawn_future_local(async move {
+            let started = std::time::Instant::now();
+            let fetched = runtime()
+                .spawn(async move { client.all_songs().await })
+                .await;
+            let songs = match fetched {
+                Ok(Ok(songs)) => songs,
+                Ok(Err(e)) => {
+                    eprintln!("Could not sync songs: {e}");
+                    return;
+                }
+                Err(_) => return,
+            };
+            let count = songs.len();
+            let saved = runtime()
+                .spawn_blocking(move || library::save_songs(&server, &songs))
+                .await;
+            match saved {
+                Ok(Ok(())) => eprintln!("Synced {count} songs in {:.2?}", started.elapsed()),
+                Ok(Err(e)) => eprintln!("Could not save songs: {e}"),
+                Err(_) => {}
+            }
+        });
     }
 }
