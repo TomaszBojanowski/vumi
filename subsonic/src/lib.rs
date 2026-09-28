@@ -61,6 +61,7 @@ pub struct Response {
     pub server_version: Option<String>,
     pub error: Option<ApiError>,
     pub album_list2: Option<AlbumList>,
+    pub search_result3: Option<SearchResult3>,
     pub album: Option<AlbumWithSongs>,
     pub album_info: Option<AlbumInfo>,
     pub artist: Option<ArtistWithAlbums>,
@@ -243,6 +244,38 @@ impl Client {
             }
         }
     }
+
+    /// One page of songs from the whole library: search3 with an empty query
+    /// lists everything (Navidrome and other OpenSubsonic servers support this).
+    pub async fn song_page(&self, count: u32, offset: u32) -> Result<Vec<Song>> {
+        let response = self
+            .call(
+                "search3",
+                &[
+                    ("query", String::new()),
+                    ("artistCount", "0".to_string()),
+                    ("albumCount", "0".to_string()),
+                    ("songCount", count.to_string()),
+                    ("songOffset", offset.to_string()),
+                ],
+            )
+            .await?;
+        Ok(response.search_result3.map(|r| r.song).unwrap_or_default())
+    }
+
+    /// Every song on the server, fetched in pages of 500.
+    pub async fn all_songs(&self) -> Result<Vec<Song>> {
+        const PAGE: u32 = 500;
+        let mut all = Vec::new();
+        loop {
+            let page = self.song_page(PAGE, all.len() as u32).await?;
+            let done = page.len() < PAGE as usize;
+            all.extend(page);
+            if done {
+                return Ok(all);
+            }
+        }
+    }
 }
 
 impl Client {
@@ -348,4 +381,11 @@ impl Client {
         let response = self.call("getArtistInfo2", &[("id", id.to_string())]).await?;
         Ok(response.artist_info2.unwrap_or_default())
     }
+}
+
+/// Songs found by search3; with an empty query, a page of the whole library.
+#[derive(Deserialize)]
+pub struct SearchResult3 {
+    #[serde(default)]
+    pub song: Vec<Song>,
 }
