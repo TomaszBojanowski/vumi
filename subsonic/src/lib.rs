@@ -1,4 +1,5 @@
 use serde::Deserialize;
+use std::sync::Arc;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 const API_VERSION: &str = "1.16.1";
@@ -35,12 +36,12 @@ impl From<reqwest::Error> for Error {
     }
 }
 
-/// Cheap to clone: the HTTP client inside is shared.
+/// Cheap to clone: everything inside is shared (Arc), nothing is copied.
 #[derive(Clone)]
 pub struct Client {
-    base_url: String,
-    user: String,
-    password: String,
+    base_url: Arc<str>,
+    user: Arc<str>,
+    password: Arc<str>,
     http: reqwest::Client,
 }
 
@@ -133,9 +134,9 @@ impl Client {
             .build()
             .expect("failed to create HTTP client");
         Self {
-            base_url: base_url.trim_end_matches('/').to_string(),
-            user: user.to_string(),
-            password: password.to_string(),
+            base_url: base_url.trim_end_matches('/').into(),
+            user: user.into(),
+            password: password.into(),
             http,
         }
     }
@@ -149,7 +150,7 @@ impl Client {
         let salt = format!("{nanos:x}");
         let token = format!("{:x}", md5::compute(format!("{}{}", self.password, salt)));
         vec![
-            ("u", self.user.clone()),
+            ("u", self.user.to_string()),
             ("t", token),
             ("s", salt),
             ("v", API_VERSION.to_string()),
