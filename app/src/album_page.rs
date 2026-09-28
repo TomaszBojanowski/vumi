@@ -50,6 +50,8 @@ mod imp {
         pub album_id: std::cell::RefCell<String>,
         /// Track rows, to mark the one that is playing.
         pub(crate) rows: std::cell::RefCell<Vec<super::TrackRow>>,
+        /// The round Play button, which becomes Pause / Resume for this album.
+        pub play_button: std::cell::RefCell<Option<gtk::Button>>,
     }
 
     #[glib::object_subclass]
@@ -156,30 +158,36 @@ impl AlbumPage {
         // The whole album as one shared play queue: buttons and rows point at it.
         let queue: Rc<[subsonic::Song]> = songs.as_slice().into();
 
-        // Play the whole album, in order or shuffled.
+        // Play the whole album, in order or shuffled: round icon buttons, so their
+        // size never changes, whatever the state or the language.
         let play_button = gtk::Button::builder()
-            .child(
-                &adw::ButtonContent::builder()
-                    .icon_name("media-playback-start-symbolic")
-                    .label(gettext("Play"))
-                    .build(),
-            )
-            .css_classes(["suggested-action", "pill"])
+            .icon_name("media-playback-start-symbolic")
+            .tooltip_text(gettext("Play"))
+            .valign(gtk::Align::Center)
+            .css_classes(["circular", "album-play"])
             .build();
+        imp.play_button.replace(Some(play_button.clone()));
         let shuffle_button = gtk::Button::builder()
-            .child(
-                &adw::ButtonContent::builder()
-                    .icon_name("media-playlist-shuffle-symbolic")
-                    .label(gettext("Shuffle"))
-                    .build(),
-            )
-            .css_classes(["pill"])
+            .icon_name("media-playlist-shuffle-symbolic")
+            .tooltip_text(gettext("Shuffle"))
+            .valign(gtk::Align::Center)
+            .css_classes(["circular", "flat", "album-action"])
             .build();
         {
             let client = client.clone();
             let queue = queue.clone();
+            let album_id = album.id.clone();
             play_button.connect_clicked(move |_| {
-                player::get().play(client.clone(), queue.clone(), 0);
+                let player = player::get();
+                // This album is already playing: the button pauses and resumes it.
+                let album_playing = player
+                    .current()
+                    .is_some_and(|s| s.album_id.as_deref() == Some(album_id.as_str()));
+                if album_playing {
+                    player.toggle_pause();
+                } else {
+                    player.play(client.clone(), queue.clone(), 0);
+                }
             });
         }
         {
@@ -304,7 +312,7 @@ pub(crate) struct TrackRow {
     song_id: String,
     row: adw::ActionRow,
     slot: gtk::Stack,
-    icon: gtk::Image,
+    bars: gtk::Box,
 }
 
 /// One track: number (or a playing icon), title, duration, favourite star;
@@ -325,8 +333,15 @@ fn track_row(
     row.set_activatable(true);
     let client_for_play = client.clone();
     let queue = queue.clone();
+    let song_id = song.id.clone();
     row.connect_activated(move |_| {
-        player::get().play(client_for_play.clone(), queue.clone(), index);
+        let player = player::get();
+        // The playing track: pause or resume it instead of starting it again.
+        if player.current().is_some_and(|s| s.id == song_id) {
+            player.toggle_pause();
+        } else {
+            player.play(client_for_play.clone(), queue.clone(), index);
+        }
     });
 
     if let Some(artist) = song.artist.as_deref() {
@@ -343,14 +358,19 @@ fn track_row(
         .xalign(1.0)
         .css_classes(["dim-label", "numeric"])
         .build();
-    let icon = gtk::Image::builder()
-        .icon_name("audio-volume-high-symbolic")
+    // Three bars that bounce while the track plays and rest while it is paused.
+    let bars = gtk::Box::builder()
+        .spacing(2)
         .halign(gtk::Align::End)
-        .css_classes(["playing-icon"])
+        .valign(gtk::Align::Center)
+        .css_classes(["eq"])
         .build();
+    for _ in 0..3 {
+        bars.append(&gtk::Box::builder().css_classes(["eq-bar"]).build());
+    }
     let slot = gtk::Stack::new();
     slot.add_named(&number, Some("number"));
-    slot.add_named(&icon, Some("icon"));
+    slot.add_named(&bars, Some("icon"));
     slot.set_visible_child_name("number");
     row.add_prefix(&slot);
 
@@ -372,7 +392,7 @@ fn track_row(
         song_id: song.id.clone(),
         row,
         slot,
-        icon,
+        bars,
     }
 }
 
@@ -477,27 +497,44 @@ impl AlbumPage {
 }
 
 impl AlbumPage {
-    /// Shows the playing icon and the accent colour on the track that is playing
-    /// (a pause icon while paused), and the number on all the others.
+    /// Shows the bouncing bars and the highlight on the track that is playing
+    /// (resting bars while paused), and the number on all the others.
     fn mark_playing(&self) {
         let player = player::get();
         let current = player.current().map(|song| song.id);
-        let icon = if player.is_playing() {
-            "audio-volume-high-symbolic"
-        } else {
-            "media-playback-pause-symbolic"
-        };
         for track in self.imp().rows.borrow().iter() {
             let playing = current.as_deref() == Some(track.song_id.as_str());
             track
                 .slot
                 .set_visible_child_name(if playing { "icon" } else { "number" });
-            track.icon.set_icon_name(Some(icon));
+            if player.is_playing() {
+                track.bars.remove_css_class("paused");
+            } else {
+                track.bars.add_css_class("paused");
+            }
             if playing {
                 track.row.add_css_class("playing");
             } else {
                 track.row.remove_css_class("playing");
             }
+        }
+
+        // The round Play button follows too: Pause while this album plays.
+        let imp = self.imp();
+        if let Some(button) = imp.play_button.borrow().as_ref() {
+            let album_id = imp.album_id.borrow();
+            let album_playing = player
+                .current()
+                .is_some_and(|s| s.album_id.as_deref() == Some(album_id.as_str()));
+            let (icon, tooltip) = if album_playing && player.is_playing() {
+                ("media-playback-pause-symbolic", gettext("Pause"))
+            } else if album_playing {
+                ("media-playback-start-symbolic", gettext("Resume"))
+            } else {
+                ("media-playback-start-symbolic", gettext("Play"))
+            };
+            button.set_icon_name(icon);
+            button.set_tooltip_text(Some(&tooltip));
         }
     }
 }

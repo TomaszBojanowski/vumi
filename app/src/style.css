@@ -132,12 +132,74 @@
   box-shadow: inset 0 1px var(--headerbar-shade-color);
 }
 
-/* The track that is playing on an album page: accent-coloured title and icon. */
-row.playing .title {
-  color: var(--accent-color);
+/* The track that is playing on an album page: a slightly lighter row and a
+   bold title in the normal text colour, like the neutral Play button.
+   label.title only: ".title" alone would also match the box around the
+   title and the artist, and colour both. */
+row.playing {
+  background-color: color-mix(in srgb, var(--window-fg-color) 7%, var(--card-bg-color));
+}
+
+row.playing label.title {
+  color: var(--window-fg-color);
   font-weight: bold;
 }
 
-.playing-icon {
-  color: var(--accent-color);
+/* Bouncing bars on the playing track. Each bar has its own tempo and start,
+   so the motion looks natural. They are scaled, not resized, so only a few
+   pixels are redrawn. "Reduce animations" in GNOME stops them automatically. */
+.eq {
+  min-height: 12px;
+}
+
+.eq-bar {
+  min-width: 3px;
+  min-height: 12px;
+  border-radius: 1px;
+  background-color: var(--window-fg-color);
+  animation: eq-bounce 0.6s ease-in-out infinite alternate;
+}
+
+.eq-bar:nth-child(2) {
+  animation-duration: 0.45s;
+  animation-delay: -0.2s;
+}
+
+.eq-bar:nth-child(3) {
+  animation-duration: 0.75s;
+  animation-delay: -0.4s;
+}
+
+@keyframes eq-bounce {
+  from { transform: scaleY(0.3); }
+  to { transform: scaleY(1); }
+}
+
+/* Paused: the bars rest, low and still. */
+.eq.paused .eq-bar {
+  animation: none;
+  transform: scaleY(0.3);
+}
+
+/* Album page actions: a big round Play/Pause and smaller round icon buttons. */
+/* Inverted neutral colours: white on dark, black on light. Fits any cover,
+   unlike the system accent colour. */
+button.album-play {
+  min-width: 48px;
+  min-height: 48px;
+  background-color: var(--window-fg-color);
+  color: var(--window-bg-color);
+}
+
+button.album-play:hover {
+  background-color: color-mix(in srgb, var(--window-fg-color) 85%, var(--window-bg-color));
+}
+
+button.album-play:active {
+  background-color: color-mix(in srgb, var(--window-fg-color) 70%, var(--window-bg-color));
+}
+
+button.album-action {
+  min-width: 40px;
+  min-height: 40px;
 }
