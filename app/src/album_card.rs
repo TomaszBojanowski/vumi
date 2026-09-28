@@ -81,12 +81,7 @@ impl AlbumCard {
     }
 
     fn load_cover(&self, client: Option<subsonic::Client>, id: String) {
-        let card = self.downgrade();
-        glib::spawn_future_local(async move {
-            let texture = covers::load(client, id.clone()).await;
-            let Some(card) = card.upgrade() else {
-                return;
-            };
+        covers::load_for(self, client, id.clone(), move |card, texture| {
             // The card may have been reused for another album in the meantime.
             let imp = card.imp();
             if imp.cover_id.borrow().as_deref() == Some(id.as_str()) {

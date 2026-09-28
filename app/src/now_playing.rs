@@ -201,12 +201,7 @@ impl NowPlaying {
     }
 
     fn load_cover(&self, client: Option<subsonic::Client>, id: String, key: String) {
-        let bar = self.downgrade();
-        glib::spawn_future_local(async move {
-            let texture = covers::load(client, id.clone()).await;
-            let Some(bar) = bar.upgrade() else {
-                return;
-            };
+        covers::load_for(self, client, id, move |bar, texture| {
             let imp = bar.imp();
             if imp.cover_id.borrow().as_deref() != Some(key.as_str()) {
                 return;

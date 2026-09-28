@@ -109,14 +109,10 @@ impl AlbumPage {
     }
 
     fn load_cover(&self, client: Option<subsonic::Client>, id: String) {
-        let page = self.downgrade();
-        glib::spawn_future_local(async move {
-            let texture = covers::load(client, id).await;
-            if let Some(page) = page.upgrade() {
-                page.imp().cover.set_paintable(texture.as_ref());
-                if let Some(color) = texture.as_ref().and_then(tint::dominant_color) {
-                    tint::apply(&page.imp().toolbar.get(), color);
-                }
+        covers::load_for(self, client, id, |page, texture| {
+            page.imp().cover.set_paintable(texture.as_ref());
+            if let Some(color) = texture.as_ref().and_then(tint::dominant_color) {
+                tint::apply(&page.imp().toolbar.get(), color);
             }
         });
     }

@@ -97,3 +97,24 @@ async fn decode(bytes: Vec<u8>) -> Option<gdk::Texture> {
     .ok()
     .flatten()
 }
+
+/// Loads a cover in the background and hands it to `apply` on the main thread,
+/// but only if `owner` still exists by then: the page or card may have been
+/// closed while the cover was downloading. Checks that depend on the widget
+/// (was it reused for another album?) belong in `apply`.
+pub(crate) fn load_for<W>(
+    owner: &W,
+    client: Option<subsonic::Client>,
+    id: String,
+    apply: impl FnOnce(&W, Option<gtk::gdk::Texture>) + 'static,
+) where
+    W: gtk::glib::object::IsA<gtk::glib::Object>,
+{
+    let owner = gtk::glib::object::ObjectExt::downgrade(owner);
+    gtk::glib::spawn_future_local(async move {
+        let texture = load(client, id).await;
+        if let Some(owner) = owner.upgrade() {
+            apply(&owner, texture);
+        }
+    });
+}

@@ -108,13 +108,7 @@ impl MiniPlayer {
             imp.cover_id.replace(key.clone());
             match (song.cover_art.clone(), key) {
                 (Some(id), Some(key)) => {
-                    let mini = self.downgrade();
-                    let client = player.client();
-                    glib::spawn_future_local(async move {
-                        let texture = covers::load(client, id).await;
-                        let Some(mini) = mini.upgrade() else {
-                            return;
-                        };
+                    covers::load_for(self, player.client(), id, move |mini, texture| {
                         let imp = mini.imp();
                         if imp.cover_id.borrow().as_deref() == Some(key.as_str()) {
                             imp.cover.set_paintable(texture.as_ref());

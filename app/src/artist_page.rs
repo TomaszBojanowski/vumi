@@ -126,9 +126,8 @@ impl ArtistPage {
 
         // The photo goes through the same disk cache as album covers.
         if let Some(cover) = artist.cover_art.clone() {
-            let avatar = imp.avatar.get();
-            glib::spawn_future_local(async move {
-                if let Some(texture) = covers::load(Some(client), cover).await {
+            covers::load_for(&imp.avatar.get(), Some(client), cover, |avatar, texture| {
+                if let Some(texture) = texture {
                     avatar.set_custom_image(Some(&texture));
                 }
             });
