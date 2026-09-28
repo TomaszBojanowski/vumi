@@ -1,6 +1,7 @@
 //! Main view: the album grid, plus the connection state and an offline
 //! banner with a Retry button.
 
+use std::sync::Arc;
 use adw::prelude::*;
 use adw::subclass::prelude::*;
 use gettextrs::gettext;
@@ -43,7 +44,7 @@ mod imp {
         /// Albums shown in the grid; items are subsonic::Album wrapped for GTK.
         pub albums: OnceCell<gio::ListStore>,
         /// A copy of what the grid shows, to skip redraws when nothing changed.
-        pub current: RefCell<Vec<subsonic::Album>>,
+        pub current: RefCell<Vec<Arc<subsonic::Album>>>,
         /// The connected client, used by cards to fetch their covers.
         pub client: RefCell<Option<subsonic::Client>>,
         /// Every card the grid created (only as many as fit on screen, plus a few).
@@ -120,7 +121,7 @@ impl MainView {
             // Covers come from the disk cache even before the server answers;
             // the client is only needed for covers that are not cached yet.
             let client = view.upgrade().and_then(|v| v.imp().client.borrow().clone());
-            card.set_album(&object.borrow::<subsonic::Album>(), client);
+            card.set_album(&object.borrow::<Arc<subsonic::Album>>(), client);
         });
 
         // A click on a card opens the album page on top of the library.
@@ -137,7 +138,7 @@ impl MainView {
                 return;
             };
             let client = view.imp().client.borrow().clone();
-            let page = AlbumPage::new(&object.borrow::<subsonic::Album>(), client);
+            let page = AlbumPage::new(&object.borrow::<Arc<subsonic::Album>>(), client);
             if let Some(nav) = grid
                 .ancestor(adw::NavigationView::static_type())
                 .and_downcast::<adw::NavigationView>()
@@ -164,7 +165,9 @@ impl MainView {
                 return;
             };
             match result {
-                Ok(Ok(albums)) if !albums.is_empty() => view.show_albums(albums),
+                Ok(Ok(albums)) if !albums.is_empty() => {
+                    view.show_albums(albums.into_iter().map(Arc::new).collect())
+                }
                 Ok(Ok(_)) => {}
                 Ok(Err(e)) => eprintln!("Could not read the library database: {e}"),
                 Err(_) => {}
@@ -224,6 +227,8 @@ impl MainView {
             match result {
                 Ok(Ok(albums)) => {
                     eprintln!("Synced {} albums in {:.2?}", albums.len(), started.elapsed());
+                    // Shared, not copied: the grid and the save below point at the same albums.
+                    let albums: Vec<Arc<subsonic::Album>> = albums.into_iter().map(Arc::new).collect();
                     let to_save = albums.clone();
                     runtime().spawn_blocking(move || {
                         if let Err(e) = library::save_albums(&server, &to_save) {
@@ -238,7 +243,7 @@ impl MainView {
         });
     }
 
-    fn show_albums(&self, albums: Vec<subsonic::Album>) {
+    fn show_albums(&self, albums: Vec<Arc<subsonic::Album>>) {
         let imp = self.imp();
 
         // Same list as on screen: nothing to redraw.
@@ -287,7 +292,7 @@ impl MainView {
             .iter()
             .find(|a| a.id == id)
             .cloned()
-            .unwrap_or(fallback);
+            .unwrap_or_else(|| Arc::new(fallback));
         let client = imp.client.borrow().clone();
 
         imp.views.set_visible_child_name("library");
@@ -373,30 +378,25 @@ impl MainView {
 
 /// Sorts albums in place: "name", "artist" (then by year), "year-desc",
 /// "year-asc" (albums without a year go last) or "added" (newest first).
-fn sort_albums(albums: &mut [subsonic::Album], mode: &str) {
-    use std::cmp::Ordering;
+/// Each sort key is computed once per album, not on every comparison.
+fn sort_albums(albums: &mut [Arc<subsonic::Album>], mode: &str) {
+    use std::cmp::Reverse;
 
-    fn text(a: &str, b: &str) -> Ordering {
-        a.to_lowercase().cmp(&b.to_lowercase())
-    }
-    let artist = |a: &subsonic::Album| a.artist.clone().unwrap_or_default();
-
+    let lower = |text: &str| text.to_lowercase();
     match mode {
-        "artist" => albums.sort_by(|a, b| {
-            text(&artist(a), &artist(b))
-                .then_with(|| a.year.cmp(&b.year))
-                .then_with(|| text(&a.name, &b.name))
+        "artist" => albums.sort_by_cached_key(|a| {
+            (
+                lower(a.artist.as_deref().unwrap_or("")),
+                a.year,
+                lower(&a.name),
+            )
         }),
-        "year-desc" => {
-            albums.sort_by(|a, b| b.year.cmp(&a.year).then_with(|| text(&a.name, &b.name)))
+        "year-desc" => albums.sort_by_cached_key(|a| (Reverse(a.year), lower(&a.name))),
+        "year-asc" => {
+            albums.sort_by_cached_key(|a| (a.year.unwrap_or(i32::MAX), lower(&a.name)))
         }
-        "year-asc" => albums.sort_by(|a, b| {
-            a.year
-                .unwrap_or(i32::MAX)
-                .cmp(&b.year.unwrap_or(i32::MAX))
-                .then_with(|| text(&a.name, &b.name))
-        }),
+        // Dates compare as text (ISO 8601), so no key needs to be built.
         "added" => albums.sort_by(|a, b| b.created.cmp(&a.created)),
-        _ => albums.sort_by(|a, b| text(&a.name, &b.name)),
+        _ => albums.sort_by_cached_key(|a| lower(&a.name)),
     }
 }
