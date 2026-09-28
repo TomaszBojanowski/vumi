@@ -151,6 +151,9 @@ impl AlbumPage {
         let imp = self.imp();
         let songs = &album.song;
 
+        // The whole album as one shared play queue: buttons and rows point at it.
+        let queue: Rc<[subsonic::Song]> = songs.as_slice().into();
+
         // Play the whole album, in order or shuffled.
         let play_button = gtk::Button::builder()
             .child(
@@ -172,18 +175,19 @@ impl AlbumPage {
             .build();
         {
             let client = client.clone();
-            let songs = songs.clone();
+            let queue = queue.clone();
             play_button.connect_clicked(move |_| {
-                player::get().play(client.clone(), songs.clone(), 0);
+                player::get().play(client.clone(), queue.clone(), 0);
             });
         }
         {
             let client = client.clone();
-            let songs = songs.clone();
+            let queue = queue.clone();
             shuffle_button.connect_clicked(move |_| {
-                let mut shuffled = songs.clone();
+                // A new order needs its own copy, made only when Shuffle is pressed.
+                let mut shuffled = queue.to_vec();
                 fastrand::shuffle(&mut shuffled);
-                player::get().play(client.clone(), shuffled, 0);
+                player::get().play(client.clone(), shuffled.into(), 0);
             });
         }
         imp.actions.append(&play_button);
@@ -220,8 +224,6 @@ impl AlbumPage {
 
         // The server lists tracks disc by disc, so a new group starts when the disc changes.
         let mut current: Option<(u32, adw::PreferencesGroup)> = None;
-        // The whole album as a play queue, shared by all rows.
-        let queue = Rc::new(songs.clone());
         for (index, song) in songs.iter().enumerate() {
             let disc = song.disc_number.unwrap_or(1);
             if current.as_ref().map(|(d, _)| *d) != Some(disc) {
@@ -286,7 +288,7 @@ fn track_row(
     album_artist: Option<&str>,
     client: &subsonic::Client,
     index: usize,
-    queue: &Rc<Vec<subsonic::Song>>,
+    queue: &Rc<[subsonic::Song]>,
 ) -> adw::ActionRow {
     let row = adw::ActionRow::builder()
         .title(song.title.as_str())
@@ -298,7 +300,7 @@ fn track_row(
     let client_for_play = client.clone();
     let queue = queue.clone();
     row.connect_activated(move |_| {
-        player::get().play(client_for_play.clone(), (*queue).clone(), index);
+        player::get().play(client_for_play.clone(), queue.clone(), index);
     });
 
     if let Some(artist) = song.artist.as_deref() {

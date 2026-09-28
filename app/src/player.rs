@@ -10,7 +10,7 @@ use std::rc::{Rc, Weak};
 
 pub(crate) struct Player {
     playbin: gst::Element,
-    queue: RefCell<Vec<subsonic::Song>>,
+    queue: RefCell<Rc<[subsonic::Song]>>,
     position: Cell<usize>,
     playing: Cell<bool>,
     client: RefCell<Option<subsonic::Client>>,
@@ -50,7 +50,7 @@ impl Player {
 
             Player {
                 playbin,
-                queue: RefCell::new(Vec::new()),
+                queue: RefCell::new(Vec::new().into()),
                 position: Cell::new(0),
                 playing: Cell::new(false),
                 client: RefCell::new(None),
@@ -71,7 +71,7 @@ impl Player {
     }
 
     /// Replaces the queue with `songs` and starts playing the one at `start`.
-    pub(crate) fn play(&self, client: subsonic::Client, songs: Vec<subsonic::Song>, start: usize) {
+    pub(crate) fn play(&self, client: subsonic::Client, songs: Rc<[subsonic::Song]>, start: usize) {
         self.client.replace(Some(client));
         self.queue.replace(songs);
         self.play_at(start);
