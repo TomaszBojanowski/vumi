@@ -152,6 +152,14 @@ template $MusePlayerAlbumPage: Adw.NavigationPage {
             }
 
             Stack tracks_stack {
+              // Nothing at first; the spinner appears only if loading takes a
+              // while. The track list fades in from code (fade_in, album_page.rs).
+              StackPage {
+                name: "empty";
+
+                child: Adw.Bin {};
+              }
+
               StackPage {
                 name: "loading";
 

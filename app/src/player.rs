@@ -3,20 +3,37 @@
 //! and reports back through its bus, which the GTK main loop watches.
 //! Widgets that show the playback state register with connect_changed().
 
+use gettextrs::gettext;
 use gstreamer as gst;
 use gst::prelude::*;
 use std::cell::{Cell, OnceCell, RefCell};
 use std::rc::{Rc, Weak};
 
+/// What the player is doing. Paused and Ended look alike (nothing sounds),
+/// but act differently: Play resumes a paused track and restarts an ended queue.
+#[derive(Clone, Debug, PartialEq)]
+enum State {
+    /// Nothing has been played yet.
+    Idle,
+    Playing,
+    Paused,
+    /// The queue played to its end.
+    Ended,
+    /// Playback failed; the text is shown to the user.
+    Failed(String),
+}
+
 pub(crate) struct Player {
     playbin: gst::Element,
     queue: RefCell<Rc<[subsonic::Song]>>,
     position: Cell<usize>,
-    playing: Cell<bool>,
+    state: RefCell<State>,
     client: RefCell<Option<subsonic::Client>>,
     /// Called after every change of track or state.
     listeners: RefCell<Vec<(u64, Box<dyn Fn()>)>>,
     next_listener: Cell<u64>,
+    /// Shows playback errors to the user (a toast in the window).
+    error_handler: RefCell<Option<Box<dyn Fn(&str)>>>,
     /// Where to jump once the new track is ready (resuming playback).
     pending_seek: Cell<Option<f64>>,
     /// Keeps the bus watch alive for as long as the player exists.
@@ -55,10 +72,11 @@ impl Player {
                 playbin,
                 queue: RefCell::new(Vec::new().into()),
                 position: Cell::new(0),
-                playing: Cell::new(false),
+                state: RefCell::new(State::Idle),
                 client: RefCell::new(None),
                 listeners: RefCell::new(Vec::new()),
                 next_listener: Cell::new(0),
+                error_handler: RefCell::new(None),
                 pending_seek: Cell::new(None),
                 _bus_watch: bus_watch,
             }
@@ -79,9 +97,29 @@ impl Player {
             .retain(|(listener_id, _)| *listener_id != id);
     }
 
+    /// Sets how playback errors reach the user; the app shows them as toasts.
+    pub(crate) fn set_error_handler(&self, f: impl Fn(&str) + 'static) {
+        self.error_handler.replace(Some(Box::new(f)));
+    }
+
     fn notify(&self) {
         for (_, listener) in self.listeners.borrow().iter() {
             listener();
+        }
+    }
+
+    fn set_state(&self, state: State) {
+        self.state.replace(state);
+        self.notify();
+    }
+
+    /// Stops, remembers the error and tells the user.
+    fn fail(&self, message: String) {
+        eprintln!("Playback error: {message}");
+        let _ = self.playbin.set_state(gst::State::Null);
+        self.set_state(State::Failed(message.clone()));
+        if let Some(handler) = self.error_handler.borrow().as_ref() {
+            handler(&message);
         }
     }
 
@@ -95,7 +133,7 @@ impl Player {
     /// Like play(), but starts the track at `seconds` (resuming where playback
     /// stopped). GStreamer ignores seeks until the track is ready, so the seek
     /// waits for AsyncDone.
-    #[allow(dead_code)] // Used by the Start page, the next step.
+    #[allow(dead_code)] // Used by the Start page, a later step.
     pub(crate) fn play_from(
         &self,
         client: subsonic::Client,
@@ -115,24 +153,25 @@ impl Player {
         let song = self.queue.borrow().get(index).cloned();
         let client = self.client.borrow().clone();
         let (Some(song), Some(client)) = (song, client) else {
-            // Past the end of the queue: stop.
+            // Past the end of the queue: stop. The last track stays current,
+            // so it can still be shown and remembered.
             let _ = self.playbin.set_state(gst::State::Null);
-            self.playing.set(false);
-            self.notify();
-            return;
-        };
-        let Ok(url) = client.stream_url(&song.id) else {
+            self.set_state(State::Ended);
             return;
         };
 
         self.position.set(index);
+        let Ok(url) = client.stream_url(&song.id) else {
+            self.fail(gettext("Could not play the track"));
+            return;
+        };
         let _ = self.playbin.set_state(gst::State::Null);
         self.playbin.set_property("uri", url.as_str());
-        if let Err(e) = self.playbin.set_state(gst::State::Playing) {
-            eprintln!("Could not start playback: {e}");
+        match self.playbin.set_state(gst::State::Playing) {
+            Ok(_) => self.set_state(State::Playing),
+            // Errors found later (server gone, broken file) arrive on the bus.
+            Err(_) => self.fail(gettext("Could not start playback")),
         }
-        self.playing.set(true);
-        self.notify();
     }
 
     pub(crate) fn current(&self) -> Option<subsonic::Song> {
@@ -140,26 +179,39 @@ impl Player {
     }
 
     pub(crate) fn is_playing(&self) -> bool {
-        self.playing.get()
+        *self.state.borrow() == State::Playing
+    }
+
+    pub(crate) fn is_paused(&self) -> bool {
+        *self.state.borrow() == State::Paused
+    }
+
+    /// Playing or paused: the current track is in progress (not ended, not failed).
+    pub(crate) fn is_active(&self) -> bool {
+        self.is_playing() || self.is_paused()
     }
 
     pub(crate) fn client(&self) -> Option<subsonic::Client> {
         self.client.borrow().clone()
     }
 
+    /// Play/Pause: pauses or resumes; after the end of the queue it starts again,
+    /// after an error it tries the same track once more.
     pub(crate) fn toggle_pause(&self) {
-        if self.current().is_none() {
-            return;
+        let state = self.state.borrow().clone();
+        match state {
+            State::Playing => {
+                let _ = self.playbin.set_state(gst::State::Paused);
+                self.set_state(State::Paused);
+            }
+            State::Paused => match self.playbin.set_state(gst::State::Playing) {
+                Ok(_) => self.set_state(State::Playing),
+                Err(_) => self.fail(gettext("Could not start playback")),
+            },
+            State::Ended => self.play_at(0),
+            State::Failed(_) => self.play_at(self.position.get()),
+            State::Idle => {}
         }
-        let playing = !self.playing.get();
-        let state = if playing {
-            gst::State::Playing
-        } else {
-            gst::State::Paused
-        };
-        let _ = self.playbin.set_state(state);
-        self.playing.set(playing);
-        self.notify();
     }
 
     pub(crate) fn next(&self) {
@@ -195,15 +247,17 @@ impl Player {
     fn on_message(&self, message: &gst::Message) {
         match message.view() {
             gst::MessageView::Eos(..) => self.play_at(self.position.get() + 1),
-            // Only the short error text: the debug details may contain the stream
-            // URL, and with it the login token.
             // The new track is ready: a pending seek (resuming) takes effect now.
             gst::MessageView::AsyncDone(..) => {
                 if let Some(seconds) = self.pending_seek.take() {
                     self.seek(seconds);
                 }
             }
-            gst::MessageView::Error(err) => eprintln!("Playback error: {}", err.error()),
+            // Only the short error text: the debug details may contain the stream
+            // URL, and with it the login token.
+            gst::MessageView::Error(err) => {
+                self.fail(format!("{}: {}", gettext("Could not play the track"), err.error()));
+            }
             _ => {}
         }
     }

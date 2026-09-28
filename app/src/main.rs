@@ -127,6 +127,14 @@ fn build_ui(app: &adw::Application) {
 
     // Remember what plays, for "Continue listening" on the next start.
     resume::watch();
+
+    // Playback errors appear in the window, not only in the terminal.
+    let toasts_weak = toasts.downgrade();
+    player::get().set_error_handler(move |message| {
+        if let Some(toasts) = toasts_weak.upgrade() {
+            toasts.add_toast(adw::Toast::new(message));
+        }
+    });
     toasts.set_child(Some(&nav));
 
     let window = adw::ApplicationWindow::builder()

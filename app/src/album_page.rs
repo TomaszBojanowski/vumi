@@ -50,6 +50,12 @@ mod imp {
         pub album_id: std::cell::RefCell<String>,
         /// Track rows, to mark the one that is playing.
         pub(crate) rows: std::cell::RefCell<Vec<super::TrackRow>>,
+        /// True once the page has fully slid into view.
+        pub shown: std::cell::Cell<bool>,
+        /// Heavy work waiting for the end of the slide-in animation.
+        pub after_shown: std::cell::RefCell<Vec<Box<dyn FnOnce(&super::AlbumPage)>>>,
+        /// Running fade-in animations, kept alive until the page goes away.
+        pub animations: std::cell::RefCell<Vec<adw::TimedAnimation>>,
         /// The round Play button, which becomes Pause / Resume for this album.
         pub play_button: std::cell::RefCell<Option<gtk::Button>>,
     }
@@ -89,6 +95,27 @@ impl AlbumPage {
 
         page.set_title(&album.name);
         imp.album_id.replace(album.id.clone());
+        // The spinner only if loading takes longer than half a second, so a fast
+        // server never flashes it.
+        let page_weak = page.downgrade();
+        glib::timeout_add_local_once(std::time::Duration::from_millis(500), move || {
+            if let Some(page) = page_weak.upgrade() {
+                let stack = &page.imp().tracks_stack;
+                if stack.visible_child_name().as_deref() == Some("empty") {
+                    stack.set_visible_child_name("loading");
+                }
+            }
+        });
+
+        // Heavy work (all track rows, the restyle for the cover colour) waits
+        // until the slide-in animation has finished, so it keeps its frames.
+        page.connect_shown(|page| {
+            let imp = page.imp();
+            imp.shown.set(true);
+            for f in imp.after_shown.take() {
+                f(page);
+            }
+        });
         imp.title.set_label(&album.name);
         imp.artist.set_label(album.artist.as_deref().unwrap_or(""));
         imp.details
@@ -112,7 +139,7 @@ impl AlbumPage {
         covers::load_for(self, client, id, |page, texture| {
             page.imp().cover.set_paintable(texture.as_ref());
             if let Some(color) = texture.as_ref().and_then(tint::dominant_color) {
-                tint::apply(&page.imp().toolbar.get(), color);
+                page.after_shown(move |page| tint::apply(&page.imp().toolbar.get(), color));
             }
         });
     }
@@ -133,7 +160,9 @@ impl AlbumPage {
             };
             match result {
                 Ok(Ok(album)) => {
-                    page.show_tracks(&album, year, album_artist.as_deref(), client_for_page)
+                    page.after_shown(move |page| {
+                        page.show_tracks(&album, year, album_artist.as_deref(), client_for_page)
+                    })
                 }
                 Ok(Err(e)) => page.show_error(&error_message(&e)),
                 Err(_) => page.show_error(&gettext("Something went wrong. Please try again.")),
@@ -179,7 +208,7 @@ impl AlbumPage {
                 let album_playing = player
                     .current()
                     .is_some_and(|s| s.album_id.as_deref() == Some(album_id.as_str()));
-                if album_playing {
+                if album_playing && player.is_active() {
                     player.toggle_pause();
                 } else {
                     player.play(client.clone(), queue.clone(), 0);
@@ -228,31 +257,38 @@ impl AlbumPage {
         let discs: BTreeSet<u32> = songs.iter().filter_map(|s| s.disc_number).collect();
         let multi_disc = discs.len() > 1;
 
-        // The server lists tracks disc by disc, so a new group starts when the disc changes.
-        let mut current: Option<(u32, adw::PreferencesGroup)> = None;
-        let mut rows = Vec::new();
-        for (index, song) in songs.iter().enumerate() {
-            let disc = song.disc_number.unwrap_or(1);
-            if current.as_ref().map(|(d, _)| *d) != Some(disc) {
-                let group = adw::PreferencesGroup::new();
-                if multi_disc {
-                    // Translators: header above the tracks of one disc, e.g. "Disc 2".
-                    group.set_title(&gettext("Disc {n}").replace("{n}", &disc.to_string()));
-                    if let Some(t) = album.disc_titles.iter().find(|t| t.disc == disc) {
-                        group.set_description(Some(&glib::markup_escape_text(&t.title)));
-                    }
+        // Rows are built in batches: the first screenful right away, the rest
+        // between frames, so even a 100-track album never freezes the window.
+        imp.rows.replace(Vec::new());
+        let builder = Rc::new(RowBuilder {
+            queue: queue.clone(),
+            album_artist: album_artist.map(str::to_owned),
+            client: client.clone(),
+            disc_titles: album
+                .disc_titles
+                .iter()
+                .map(|t| (t.disc, t.title.clone()))
+                .collect(),
+            multi_disc,
+            next: std::cell::Cell::new(0),
+            group: std::cell::RefCell::new(None),
+        });
+        if self.build_rows(&builder, ROW_BATCH) {
+            let page = self.downgrade();
+            glib::idle_add_local(move || {
+                // The page was closed meanwhile: stop building.
+                let Some(page) = page.upgrade() else {
+                    return glib::ControlFlow::Break;
+                };
+                let more = page.build_rows(&builder, ROW_BATCH);
+                page.mark_playing();
+                if more {
+                    glib::ControlFlow::Continue
+                } else {
+                    glib::ControlFlow::Break
                 }
-                imp.tracks.append(&group);
-                current = Some((disc, group));
-            }
-            if let Some((_, group)) = &current {
-                let track = track_row(song, album_artist, &client, index, &queue);
-                group.add(&track.row);
-                rows.push(track);
-            }
+            });
         }
-
-        imp.rows.replace(rows);
 
         // Mark the playing track now and whenever the player changes; the page
         // stops listening when it is closed.
@@ -283,6 +319,9 @@ impl AlbumPage {
         imp.details.set_label(&parts.join(" · "));
         self.show_quality(songs);
         imp.tracks_stack.set_visible_child_name("tracks");
+        // The list and the Play row fade in instead of popping in.
+        self.fade_in(&*imp.tracks);
+        self.fade_in(&*imp.actions);
     }
 
     fn show_quality(&self, songs: &[subsonic::Song]) {
@@ -333,7 +372,7 @@ fn track_row(
     row.connect_activated(move |_| {
         let player = player::get();
         // The playing track: pause or resume it instead of starting it again.
-        if player.current().is_some_and(|s| s.id == song_id) {
+        if player.is_active() && player.current().is_some_and(|s| s.id == song_id) {
             player.toggle_pause();
         } else {
             player.play(client_for_play.clone(), queue.clone(), index);
@@ -497,7 +536,10 @@ impl AlbumPage {
     /// (resting bars while paused), and the number on all the others.
     fn mark_playing(&self) {
         let player = player::get();
-        let current = player.current().map(|song| song.id);
+        let current = player
+            .current()
+            .filter(|_| player.is_active())
+            .map(|song| song.id);
         for track in self.imp().rows.borrow().iter() {
             let playing = current.as_deref() == Some(track.song_id.as_str());
             track
@@ -524,7 +566,7 @@ impl AlbumPage {
                 .is_some_and(|s| s.album_id.as_deref() == Some(album_id.as_str()));
             let (icon, tooltip) = if album_playing && player.is_playing() {
                 ("media-playback-pause-symbolic", gettext("Pause"))
-            } else if album_playing {
+            } else if album_playing && player.is_paused() {
                 ("media-playback-start-symbolic", gettext("Resume"))
             } else {
                 ("media-playback-start-symbolic", gettext("Play"))
@@ -532,5 +574,99 @@ impl AlbumPage {
             button.set_icon_name(icon);
             button.set_tooltip_text(Some(&tooltip));
         }
+    }
+}
+
+impl AlbumPage {
+    /// Runs `f` once the page has fully slid into view, or right away if it
+    /// already has.
+    fn after_shown(&self, f: impl FnOnce(&AlbumPage) + 'static) {
+        let imp = self.imp();
+        if imp.shown.get() {
+            f(self);
+        } else {
+            imp.after_shown.borrow_mut().push(Box::new(f));
+        }
+    }
+}
+
+/// How many track rows are built at a time (about one screenful).
+const ROW_BATCH: usize = 15;
+
+/// Where building the track rows has got to (see show_tracks).
+struct RowBuilder {
+    queue: Rc<[subsonic::Song]>,
+    album_artist: Option<String>,
+    client: subsonic::Client,
+    /// Disc number and title, for albums whose discs have names.
+    disc_titles: Vec<(u32, String)>,
+    multi_disc: bool,
+    /// The next track to build a row for.
+    next: std::cell::Cell<usize>,
+    /// The disc group rows are being added to.
+    group: std::cell::RefCell<Option<(u32, adw::PreferencesGroup)>>,
+}
+
+impl AlbumPage {
+    /// Adds up to `count` more track rows; returns true while rows remain.
+    /// The server lists tracks disc by disc, so a new group starts when the
+    /// disc changes, whichever batch that happens in.
+    fn build_rows(&self, builder: &RowBuilder, count: usize) -> bool {
+        let imp = self.imp();
+        let start = builder.next.get();
+        let end = (start + count).min(builder.queue.len());
+
+        for index in start..end {
+            let song = &builder.queue[index];
+            let disc = song.disc_number.unwrap_or(1);
+            let same_disc = builder.group.borrow().as_ref().map(|(d, _)| *d) == Some(disc);
+            if !same_disc {
+                let group = adw::PreferencesGroup::new();
+                if builder.multi_disc {
+                    // Translators: header above the tracks of one disc, e.g. "Disc 2".
+                    group.set_title(&gettext("Disc {n}").replace("{n}", &disc.to_string()));
+                    if let Some((_, title)) = builder.disc_titles.iter().find(|(d, _)| *d == disc) {
+                        group.set_description(Some(&glib::markup_escape_text(title)));
+                    }
+                }
+                imp.tracks.append(&group);
+                builder.group.replace(Some((disc, group)));
+            }
+            if let Some((_, group)) = builder.group.borrow().as_ref() {
+                let track = track_row(
+                    song,
+                    builder.album_artist.as_deref(),
+                    &builder.client,
+                    index,
+                    &builder.queue,
+                );
+                group.add(&track.row);
+                imp.rows.borrow_mut().push(track);
+            }
+        }
+
+        builder.next.set(end);
+        end < builder.queue.len()
+    }
+}
+
+impl AlbumPage {
+    /// Fades `widget` in over a quarter of a second. A libadwaita animation,
+    /// like the page slide itself, so it follows "Reduce animations" in GNOME.
+    fn fade_in(&self, widget: &impl IsA<gtk::Widget>) {
+        // As a plain gtk::Widget, which the compiler knows to be a GObject.
+        let widget = widget.upcast_ref::<gtk::Widget>();
+        widget.set_opacity(0.0);
+        let target = adw::PropertyAnimationTarget::new(widget, "opacity");
+        let animation = adw::TimedAnimation::builder()
+            .widget(widget)
+            .target(&target)
+            .value_from(0.0)
+            .value_to(1.0)
+            .duration(250)
+            .easing(adw::Easing::EaseOutCubic)
+            .build();
+        animation.play();
+        self.imp().animations.borrow_mut().push(animation);
     }
 }
