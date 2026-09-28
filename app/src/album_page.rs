@@ -56,6 +56,8 @@ mod imp {
         pub after_shown: std::cell::RefCell<Vec<Box<dyn FnOnce(&super::AlbumPage)>>>,
         /// Running fade-in animations, kept alive until the page goes away.
         pub animations: std::cell::RefCell<Vec<adw::TimedAnimation>>,
+        /// Layer under the whole page that carries the cover-coloured gradient.
+        pub backdrop: std::cell::RefCell<Option<gtk::Box>>,
         /// The round Play button, which becomes Pause / Resume for this album.
         pub play_button: std::cell::RefCell<Option<gtk::Button>>,
     }
@@ -95,6 +97,9 @@ impl AlbumPage {
 
         page.set_title(&album.name);
         imp.album_id.replace(album.id.clone());
+        // The cover-coloured gradient gets its own layer under the page, so it
+        // can fade in (a libadwaita animation) instead of popping in.
+        page.add_backdrop();
         // The spinner only if loading takes longer than half a second, so a fast
         // server never flashes it.
         let page_weak = page.downgrade();
@@ -139,7 +144,7 @@ impl AlbumPage {
         covers::load_for(self, client, id, |page, texture| {
             page.imp().cover.set_paintable(texture.as_ref());
             if let Some(color) = texture.as_ref().and_then(tint::dominant_color) {
-                page.after_shown(move |page| tint::apply(&page.imp().toolbar.get(), color));
+                page.after_shown(move |page| page.show_tint(color));
             }
         });
     }
@@ -668,5 +673,50 @@ impl AlbumPage {
             .build();
         animation.play();
         self.imp().animations.borrow_mut().push(animation);
+    }
+}
+
+impl AlbumPage {
+    /// Puts an empty layer under the whole page, header bar included, for the
+    /// cover-coloured gradient; the toolbar view on top of it is transparent.
+    fn add_backdrop(&self) {
+        let imp = self.imp();
+        let toolbar = imp.toolbar.get();
+        let Some(parent) = toolbar.parent() else {
+            return;
+        };
+        let backdrop = gtk::Box::builder().can_target(false).build();
+        let overlay = gtk::Overlay::new();
+        overlay.set_child(Some(&backdrop));
+
+        // Move the toolbar view from its parent onto the new layer.
+        let reparent = |set_child: &dyn Fn(Option<&gtk::Widget>)| {
+            set_child(None);
+            overlay.add_overlay(&toolbar);
+            overlay.set_measure_overlay(&toolbar, true);
+            set_child(Some(overlay.upcast_ref()));
+        };
+        if let Some(bin) = parent.downcast_ref::<adw::BreakpointBin>() {
+            reparent(&|child| bin.set_child(child));
+        } else if let Some(page) = parent.downcast_ref::<adw::NavigationPage>() {
+            reparent(&|child| page.set_child(child));
+        } else {
+            // Unknown layout: keep the old way (gradient on the toolbar, no fade).
+            return;
+        }
+        imp.backdrop.replace(Some(backdrop));
+    }
+
+    /// Applies the cover colour and fades it in.
+    fn show_tint(&self, color: (u8, u8, u8)) {
+        let imp = self.imp();
+        let backdrop = imp.backdrop.borrow().clone();
+        match backdrop {
+            Some(backdrop) => {
+                tint::apply(&backdrop, color);
+                self.fade_in(&backdrop);
+            }
+            None => tint::apply(&imp.toolbar.get(), color),
+        }
     }
 }
