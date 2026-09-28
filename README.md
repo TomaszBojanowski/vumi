@@ -39,7 +39,7 @@ Later: year in music, forgotten albums, time-of-day mixes, command palette
 2. [x] GUI foundation: GNOME 51, login, keyring, Meson, gettext, Blueprint
 3. [x] Library: SQLite cache, instant start, covers, album and artist pages
 4. [x] Player: GStreamer, sidebar card, compact bar on narrow windows
-5. [ ] Shared data instead of copies (Arc client, Rc lists)
+5. [x] Shared data instead of copies (Arc client, Rc lists)
 6. [ ] Remember the last playback (song, album, position)
 7. [ ] Start page: continue listening, recently added, similar to what played last (AudioMuse)
 8. [ ] AudioMuse-AI via Navidrome: similar songs, endless radio, album radio
