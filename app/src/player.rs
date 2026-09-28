@@ -17,6 +17,8 @@ pub(crate) struct Player {
     /// Called after every change of track or state.
     listeners: RefCell<Vec<(u64, Box<dyn Fn()>)>>,
     next_listener: Cell<u64>,
+    /// Where to jump once the new track is ready (resuming playback).
+    pending_seek: Cell<Option<f64>>,
     /// Keeps the bus watch alive for as long as the player exists.
     _bus_watch: gst::bus::BusWatchGuard,
 }
@@ -57,6 +59,7 @@ impl Player {
                 client: RefCell::new(None),
                 listeners: RefCell::new(Vec::new()),
                 next_listener: Cell::new(0),
+                pending_seek: Cell::new(None),
                 _bus_watch: bus_watch,
             }
         })
@@ -89,7 +92,26 @@ impl Player {
         self.play_at(start);
     }
 
+    /// Like play(), but starts the track at `seconds` (resuming where playback
+    /// stopped). GStreamer ignores seeks until the track is ready, so the seek
+    /// waits for AsyncDone.
+    #[allow(dead_code)] // Used by the Start page, the next step.
+    pub(crate) fn play_from(
+        &self,
+        client: subsonic::Client,
+        songs: Rc<[subsonic::Song]>,
+        start: usize,
+        seconds: f64,
+    ) {
+        self.play(client, songs, start);
+        if seconds > 0.0 {
+            self.pending_seek.set(Some(seconds));
+        }
+    }
+
     fn play_at(&self, index: usize) {
+        // A new track: a seek meant for the previous one must not land here.
+        self.pending_seek.set(None);
         let song = self.queue.borrow().get(index).cloned();
         let client = self.client.borrow().clone();
         let (Some(song), Some(client)) = (song, client) else {
@@ -175,6 +197,12 @@ impl Player {
             gst::MessageView::Eos(..) => self.play_at(self.position.get() + 1),
             // Only the short error text: the debug details may contain the stream
             // URL, and with it the login token.
+            // The new track is ready: a pending seek (resuming) takes effect now.
+            gst::MessageView::AsyncDone(..) => {
+                if let Some(seconds) = self.pending_seek.take() {
+                    self.seek(seconds);
+                }
+            }
             gst::MessageView::Error(err) => eprintln!("Playback error: {}", err.error()),
             _ => {}
         }
