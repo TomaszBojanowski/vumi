@@ -26,14 +26,15 @@ custom_target(
   console: true,
   install: true,
   install_dir: get_option('bindir'),
+  # Cargo build and copy in one script: Meson runs commands without a shell.
   command: [
-    'env', 'LOCALEDIR=' + localedir,
-    cargo, 'build', '--release',
-    '--manifest-path', meson.project_source_root() / 'Cargo.toml',
-    '--target-dir', cargo_target_dir,
-    '-p', 'app',
-    '&&',
-    'cp', cargo_target_dir / 'release' / meson.project_name(), '@OUTPUT@',
+    find_program('build-aux/cargo-build.sh'),
+    cargo,
+    meson.project_source_root() / 'Cargo.toml',
+    cargo_target_dir,
+    localedir,
+    meson.project_name(),
+    '@OUTPUT@',
   ],
 )
 
