@@ -57,7 +57,13 @@ pub(crate) async fn load(client: Option<subsonic::Client>, id: String) -> Option
             let path = cache_path(&server, &id);
 
             if let Ok(bytes) = tokio::fs::read(&path).await {
-                return decode(bytes).await;
+                if let Some(texture) = decode(bytes).await {
+                    return Some(texture);
+                }
+                // A broken file (a disk error, or a save cut off by an older
+                // version): remove it and fetch the cover again below.
+                eprintln!("Cover {id}: cached file is broken, fetching it again");
+                let _ = tokio::fs::remove_file(&path).await;
             }
 
             // Not cached and not connected (yet): nothing to show for now.
@@ -81,7 +87,13 @@ pub(crate) async fn load(client: Option<subsonic::Client>, id: String) -> Option
             if let Some(dir) = path.parent() {
                 let _ = tokio::fs::create_dir_all(dir).await;
             }
-            let _ = tokio::fs::write(&path, &bytes).await;
+            // Written to a temporary file and renamed: a rename is atomic, so a
+            // save cut off halfway (the app closed meanwhile) never leaves a
+            // broken file under the real name.
+            let temporary = path.with_extension("part");
+            if tokio::fs::write(&temporary, &bytes).await.is_ok() {
+                let _ = tokio::fs::rename(&temporary, &path).await;
+            }
             Some(texture)
         })
         .await;
