@@ -39,6 +39,8 @@ mod imp {
         pub library_nav: gtk::TemplateChild<adw::NavigationView>,
         #[template_child]
         pub albums_page: gtk::TemplateChild<adw::ViewStackPage>,
+        #[template_child]
+        pub start_page: gtk::TemplateChild<crate::start_page::StartPage>,
         /// How the grid is sorted (see sort_albums).
         pub sort: RefCell<String>,
         /// Albums shown in the grid; items are subsonic::Album wrapped for GTK.
@@ -61,6 +63,8 @@ mod imp {
         type ParentType = adw::NavigationPage;
 
         fn class_init(klass: &mut Self::Class) {
+            // The Start page is used in this template, so its type must exist first.
+            crate::start_page::StartPage::static_type();
             klass.bind_template();
         }
 
@@ -208,6 +212,8 @@ impl MainView {
     /// Fetches the album list from the server, shows it and stores it locally.
     fn sync_albums(&self, client: subsonic::Client) {
         self.imp().client.replace(Some(client.clone()));
+        // Covers on the Start page can now come from the server too.
+        self.refresh_start();
         // Cards drawn before the connection could not fetch uncached covers:
         // every card that still shows the placeholder tries again now.
         for card in self.imp().cards.borrow().iter().filter_map(|c| c.upgrade()) {
@@ -256,6 +262,7 @@ impl MainView {
         imp.albums_page.set_badge_number(albums.len() as u32);
         imp.current.replace(albums);
         self.refresh_grid();
+        self.refresh_start();
         imp.stack.set_visible_child_name("library");
 
         if !imp.reported.replace(true) {
@@ -434,5 +441,14 @@ impl MainView {
                 Err(_) => {}
             }
         });
+    }
+}
+
+impl MainView {
+    /// Refreshes the Start page from the albums in memory.
+    fn refresh_start(&self) {
+        let imp = self.imp();
+        imp.start_page
+            .update(&imp.current.borrow(), imp.client.borrow().clone());
     }
 }

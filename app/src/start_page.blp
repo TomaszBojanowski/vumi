@@ -1,0 +1,45 @@
+using Gtk 4.0;
+using Adw 1;
+
+translation-domain "muse-player";
+
+// The Start page: shelves that answer "what shall I listen to now".
+template $MusePlayerStartPage: Adw.Bin {
+  child: ScrolledWindow {
+    hscrollbar-policy: never;
+
+    child: Box {
+      orientation: vertical;
+      spacing: 24;
+      margin-top: 24;
+      margin-bottom: 24;
+      margin-start: 24;
+      margin-end: 24;
+
+      // Hidden until there is something to show.
+      Box recent_shelf {
+        orientation: vertical;
+        spacing: 12;
+        visible: false;
+
+        Label {
+          label: _("Recently Added");
+          xalign: 0;
+
+          styles [
+            "title-4",
+          ]
+        }
+
+        // One row of albums; it scrolls sideways when the window is narrow.
+        ScrolledWindow {
+          vscrollbar-policy: never;
+
+          child: Box recent_row {
+            spacing: 12;
+          };
+        }
+      }
+    };
+  };
+}

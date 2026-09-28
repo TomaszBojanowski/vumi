@@ -203,3 +203,8 @@ button.album-action {
   min-width: 40px;
   min-height: 40px;
 }
+
+/* Album cards on the Start page shelves: a flat button around the card. */
+button.shelf-card {
+  padding: 6px;
+}

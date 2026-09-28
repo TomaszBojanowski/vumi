@@ -16,3 +16,4 @@ app/src/now_playing.rs
 app/src/now_playing.blp
 app/src/mini_player.rs
 app/src/player.rs
+app/src/start_page.blp
