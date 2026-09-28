@@ -1,5 +1,5 @@
-//! Now-playing pill floating at the bottom of the window: cover, title,
-//! controls and a thin progress line, coloured after the album cover.
+//! Now-playing card at the bottom of the sidebar: cover, title, album,
+//! quality, progress and controls, tinted after the album cover.
 //! Only while music plays does it refresh the progress, twice a second.
 
 use adw::subclass::prelude::*;
