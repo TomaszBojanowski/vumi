@@ -35,22 +35,16 @@ Later: year in music, forgotten albums, time-of-day mixes, command palette
 
 ## Roadmap
 
-1. [x] Subsonic client: token auth, ping, album list (CLI)
-2. [x] Playback in CLI: GStreamer, raw FLAC stream from Navidrome
-3. [x] GUI foundation
-   - [x] Window on GNOME 51 (GTK 4.24, libadwaita 1.10) via Flatpak
-   - [x] Welcome carousel and login form
-   - [x] Async client with typed errors
-   - [x] Real login (ping in background, clear error messages)
-   - [x] Window size remembered (GSettings)
-   - [x] Credentials in the system keyring, server and user in settings,
-         welcome shown only on first run
-   - [x] gettext, Blueprint UI files, Meson build
-4. [ ] Player in GUI: now-playing bar, queue, MPRIS, background playback
-5. [ ] Local library: [x] SQLite cache, [x] background sync, [x] cover cache, [ ] FTS5 search
-6. [ ] Scrobbling, play queue sync, ReplayGain, audio prefetch,
-       HTTPS with trust for self-signed certificates
-7. [ ] Signature 1: AudioMuse-AI discovery
-8. [ ] Signature 2: signal path and bit-perfect output
-9. [ ] Signature 3: GNOME Shell search provider
-10. [ ] Synced lyrics, offline downloads, the "later" ideas
+1. [x] Subsonic client, CLI playback
+2. [x] GUI foundation: GNOME 51, login, keyring, Meson, gettext, Blueprint
+3. [x] Library: SQLite cache, instant start, covers, album and artist pages
+4. [x] Player: GStreamer, sidebar card, compact bar on narrow windows
+5. [ ] Shared data instead of copies (Arc client, Rc lists)
+6. [ ] Start page: recently added, not played in a while, continue listening
+7. [ ] AudioMuse-AI via Navidrome: similar songs, endless radio, album radio
+8. [ ] Search in the sidebar (FTS5), with a description mode (AudioMuse CLAP)
+9. [ ] Album page: full-width cover-coloured header, row states, track menu
+10. [ ] Queue in a right-hand panel, later synced lyrics as a second tab
+11. [ ] Gapless playback, MPRIS, playback after the window is closed
+12. [ ] AudioMuse-AI direct: song paths, library map; signal path panel
+13. [ ] HTTPS with trust for self-signed certificates; server settings, logout
