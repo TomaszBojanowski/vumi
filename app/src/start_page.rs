@@ -194,6 +194,8 @@ impl StartPage {
             let imp = self.imp();
             connect_arrows(&imp.recent_scroll, &imp.recent_prev, &imp.recent_next);
             connect_arrows(&imp.similar_scroll, &imp.similar_prev, &imp.similar_next);
+            connect_wheel(&imp.recent_scroll);
+            connect_wheel(&imp.similar_scroll);
         }
         // The radio button next to "Similar to …" plays all the similar songs.
         {
@@ -455,4 +457,31 @@ fn connect_arrows(scroll: &gtk::ScrolledWindow, prev: &gtk::Button, next: &gtk::
             adw::prelude::AnimationExt::play(&animation);
         });
     }
+}
+
+/// The mouse wheel over a shelf moves it sideways. At the end of the row the
+/// wheel scrolls the page again, and a touchpad keeps its own two-finger
+/// scrolling.
+fn connect_wheel(scroll: &gtk::ScrolledWindow) {
+    let adj = scroll.hadjustment();
+    let wheel = gtk::EventControllerScroll::new(gtk::EventControllerScrollFlags::VERTICAL);
+    // Before the row's own scrolling, which would pass the wheel to the page.
+    wheel.set_propagation_phase(gtk::PropagationPhase::Capture);
+    wheel.connect_scroll(move |controller, _, dy| {
+        let touchpad = controller
+            .current_event_device()
+            .is_some_and(|device| device.source() == gtk::gdk::InputSource::Touchpad);
+        if touchpad {
+            return gtk::glib::Propagation::Proceed;
+        }
+        let end = adj.upper() - adj.page_size();
+        let to = (adj.value() + dy * adj.page_size() / 3.0).clamp(adj.lower(), end);
+        // Nothing left to move in that direction: the page scrolls instead.
+        if (to - adj.value()).abs() < 0.5 {
+            return gtk::glib::Propagation::Proceed;
+        }
+        adj.set_value(to);
+        gtk::glib::Propagation::Stop
+    });
+    scroll.add_controller(wheel);
 }
