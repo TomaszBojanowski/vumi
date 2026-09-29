@@ -135,17 +135,50 @@ template $MusePlayerStartPage: Adw.Bin {
           spacing: 12;
           visible: false;
 
-          Label {
-            label: _("Recently Added");
-            xalign: 0;
+          Box {
+            spacing: 8;
 
-            styles [
-              "title-4",
-            ]
+            Label {
+              label: _("Recently Added");
+              xalign: 0;
+
+              styles [
+                "title-4",
+              ]
+            }
+
+            // ‹ ›: move the row by what is visible (see connect_arrows).
+            Box {
+              hexpand: true;
+              halign: end;
+              spacing: 6;
+
+              Button recent_prev {
+                icon-name: "go-previous-symbolic";
+                tooltip-text: _("Previous");
+                valign: center;
+
+                styles [
+                  "circular",
+                  "flat",
+                ]
+              }
+
+              Button recent_next {
+                icon-name: "go-next-symbolic";
+                tooltip-text: _("Next");
+                valign: center;
+
+                styles [
+                  "circular",
+                  "flat",
+                ]
+              }
+            }
           }
 
           // One row of albums; it scrolls sideways when the window is narrow.
-          ScrolledWindow {
+          ScrolledWindow recent_scroll {
             vscrollbar-policy: never;
 
             child: Box recent_row {
@@ -183,9 +216,38 @@ template $MusePlayerStartPage: Adw.Bin {
                 "flat",
               ]
             }
+
+            // ‹ ›: move the row by what is visible (see connect_arrows).
+            Box {
+              hexpand: true;
+              halign: end;
+              spacing: 6;
+
+              Button similar_prev {
+                icon-name: "go-previous-symbolic";
+                tooltip-text: _("Previous");
+                valign: center;
+
+                styles [
+                  "circular",
+                  "flat",
+                ]
+              }
+
+              Button similar_next {
+                icon-name: "go-next-symbolic";
+                tooltip-text: _("Next");
+                valign: center;
+
+                styles [
+                  "circular",
+                  "flat",
+                ]
+              }
+            }
           }
 
-          ScrolledWindow {
+          ScrolledWindow similar_scroll {
             vscrollbar-policy: never;
 
             child: Box similar_row {

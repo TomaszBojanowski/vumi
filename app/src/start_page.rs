@@ -26,6 +26,12 @@ mod imp {
         pub recent_shelf: gtk::TemplateChild<gtk::Box>,
         #[template_child]
         pub recent_row: gtk::TemplateChild<gtk::Box>,
+        #[template_child]
+        pub recent_scroll: gtk::TemplateChild<gtk::ScrolledWindow>,
+        #[template_child]
+        pub recent_prev: gtk::TemplateChild<gtk::Button>,
+        #[template_child]
+        pub recent_next: gtk::TemplateChild<gtk::Button>,
         /// The albums on each shelf now, so an unchanged shelf is not rebuilt.
         pub recent_ids: RefCell<Vec<String>>,
         pub similar_ids: RefCell<Vec<String>>,
@@ -51,6 +57,12 @@ mod imp {
         pub similar_radio: gtk::TemplateChild<gtk::Button>,
         #[template_child]
         pub similar_row: gtk::TemplateChild<gtk::Box>,
+        #[template_child]
+        pub similar_scroll: gtk::TemplateChild<gtk::ScrolledWindow>,
+        #[template_child]
+        pub similar_prev: gtk::TemplateChild<gtk::Button>,
+        #[template_child]
+        pub similar_next: gtk::TemplateChild<gtk::Button>,
         /// The similar songs, played by the radio button next to the shelf title.
         pub similar: RefCell<Option<Rc<[subsonic::Song]>>>,
         /// The song they are similar to, so the server is asked once per song.
@@ -178,6 +190,11 @@ pub(crate) struct Resume {
 impl StartPage {
     /// Connects the Continue button (once, when the page is created).
     fn setup(&self) {
+        {
+            let imp = self.imp();
+            connect_arrows(&imp.recent_scroll, &imp.recent_prev, &imp.recent_next);
+            connect_arrows(&imp.similar_scroll, &imp.similar_prev, &imp.similar_next);
+        }
         // The radio button next to "Similar to …" plays all the similar songs.
         {
             let page = self.downgrade();
@@ -393,5 +410,45 @@ impl StartPage {
         imp.similar_shelf.set_visible(!shelf.is_empty());
         let songs: Rc<[subsonic::Song]> = songs.into();
         imp.similar.replace(Some(songs));
+    }
+}
+
+/// The ‹ › buttons of a shelf: each moves the row by what is visible, and is
+/// greyed out at its end of the row; both hide when the whole row fits.
+fn connect_arrows(scroll: &gtk::ScrolledWindow, prev: &gtk::Button, next: &gtk::Button) {
+    let adj = scroll.hadjustment();
+    let update = {
+        let prev = prev.downgrade();
+        let next = next.downgrade();
+        move |adj: &gtk::Adjustment| {
+            let (Some(prev), Some(next)) = (prev.upgrade(), next.upgrade()) else {
+                return;
+            };
+            let end = adj.upper() - adj.page_size();
+            let overflow = end - adj.lower() > 1.0;
+            prev.set_visible(overflow);
+            next.set_visible(overflow);
+            prev.set_sensitive(adj.value() > adj.lower() + 1.0);
+            next.set_sensitive(adj.value() < end - 1.0);
+        }
+    };
+    adj.connect_value_changed(update.clone());
+    // Also when the row or the window changes size.
+    adj.connect_changed(update.clone());
+    update(&adj);
+
+    for (button, direction) in [(prev, -1.0), (next, 1.0)] {
+        let adj = adj.clone();
+        button.connect_clicked(move |button| {
+            let to = (adj.value() + direction * adj.page_size())
+                .clamp(adj.lower(), adj.upper() - adj.page_size());
+            let target = adw::CallbackAnimationTarget::new({
+                let adj = adj.clone();
+                move |value| adj.set_value(value)
+            });
+            let animation = adw::TimedAnimation::new(button, adj.value(), to, 250, target);
+            animation.set_easing(adw::Easing::EaseOutCubic);
+            adw::prelude::AnimationExt::play(&animation);
+        });
     }
 }
