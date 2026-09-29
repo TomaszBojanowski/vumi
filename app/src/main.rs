@@ -11,6 +11,7 @@ mod mini_player;
 mod now_playing;
 mod mpris;
 mod player;
+mod preferences;
 mod resume;
 mod search_page;
 mod start_page;
@@ -179,6 +180,20 @@ fn build_ui(app: &adw::Application) {
     });
     window.add_action(&search);
     app.set_accels_for_action("win.search", &["<Control>f"]);
+
+    // Preferences (Ctrl+,): a dialog over the window.
+    let preferences = gtk::gio::SimpleAction::new("preferences", None);
+    let window_weak = window.downgrade();
+    preferences.connect_activate(move |_, _| {
+        if let Some(window) = window_weak.upgrade() {
+            adw::prelude::AdwDialogExt::present(
+                &crate::preferences::Preferences::new(),
+                Some(&window),
+            );
+        }
+    });
+    app.add_action(&preferences);
+    app.set_accels_for_action("app.preferences", &["<Control>comma"]);
 
     window.present();
 }

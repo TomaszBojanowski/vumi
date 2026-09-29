@@ -45,5 +45,9 @@
       <default>false</default>
       <summary>When the queue ends, keep playing songs similar to the last one</summary>
     </key>
+    <key name="background-playback" type="b">
+      <default>false</default>
+      <summary>Keep playing after the window is closed</summary>
+    </key>
   </schema>
 </schemalist>

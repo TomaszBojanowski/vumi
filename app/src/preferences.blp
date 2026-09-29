@@ -1,0 +1,26 @@
+using Gtk 4.0;
+using Adw 1;
+
+translation-domain "muse-player";
+
+// The Preferences dialog (Ctrl+,). Playback for now; account and library next.
+template $MusePlayerPreferences: Adw.PreferencesDialog {
+  Adw.PreferencesPage {
+    title: _("General");
+    icon-name: "preferences-system-symbolic";
+
+    Adw.PreferencesGroup {
+      title: _("Playback");
+
+      Adw.SwitchRow endless_radio {
+        title: _("Endless Radio");
+        subtitle: _("When the queue ends, keep playing songs similar to the last one");
+      }
+
+      Adw.SwitchRow background_playback {
+        title: _("Play After the Window Is Closed");
+        subtitle: _("The music goes on; the controls stay in the system menu");
+      }
+    }
+  }
+}
