@@ -11,12 +11,13 @@ use crate::player;
 
 /// Gives `row` a ⋮ menu (and the same menu on a right click) for the song at
 /// `index` in `songs`. The list is shared, not copied; the song is taken from
-/// it when the menu is used.
+/// it when the menu is used. `go_to_album` is false on the album's own page.
 pub(crate) fn attach(
     row: &adw::ActionRow,
     songs: &Rc<[subsonic::Song]>,
     index: usize,
     client: Option<subsonic::Client>,
+    go_to_album: bool,
 ) {
     let actions = gio::SimpleActionGroup::new();
     let add = |name: &str, run: Box<dyn Fn(&adw::ActionRow, subsonic::Song, subsonic::Client)>| {
@@ -87,9 +88,12 @@ pub(crate) fn attach(
     let radio = gio::Menu::new();
     radio.append(Some(&gettext("Play Similar")), Some("song.play-similar"));
     menu.append_section(None, &radio);
-    let navigation = gio::Menu::new();
-    navigation.append(Some(&gettext("Go to Album")), Some("song.go-to-album"));
-    menu.append_section(None, &navigation);
+    // On the album's own page, going to the album would lead nowhere.
+    if go_to_album {
+        let navigation = gio::Menu::new();
+        navigation.append(Some(&gettext("Go to Album")), Some("song.go-to-album"));
+        menu.append_section(None, &navigation);
+    }
     let info = gio::Menu::new();
     info.append(Some(&gettext("Song Information")), Some("song.info"));
     menu.append_section(None, &info);

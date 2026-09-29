@@ -418,7 +418,7 @@ fn track_row(
     ));
 
     // The ⋮ menu, last in the row: after the time and the star.
-    crate::song_menu::attach(&row, queue, index, Some(client.clone()));
+    crate::song_menu::attach(&row, queue, index, Some(client.clone()), false);
 
     TrackRow {
         song_id: song.id.clone(),
