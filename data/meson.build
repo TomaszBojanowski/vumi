@@ -12,10 +12,8 @@ i18n.merge_file(
   install_dir: get_option('datadir') / 'applications',
 )
 
-install_data(
-  'icons' / (application_id + '.svg'),
-  install_dir: get_option('datadir') / 'icons' / 'hicolor' / 'scalable' / 'apps',
-)
+# The application icon in every size, and its symbolic variant.
+subdir('icons')
 
 # Symbolic icons the app uses inside (the Radio button), next to the app icon.
 install_data(

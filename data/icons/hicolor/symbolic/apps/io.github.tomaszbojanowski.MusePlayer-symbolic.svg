@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
+  <title>Stereo VU meters</title>
+  <g fill="#2e3436">
+    <path fill-rule="evenodd" d="M3 2h10a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zM3 3a1 1 0 0 0-1 1v5a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1V4a1 1 0 0 0-1-1zm7 0a1 1 0 0 0-1 1v5a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1V4a1 1 0 0 0-1-1zm-3.5 8a.5.5 0 0 0 0 1h3a.5.5 0 0 0 0-1z"/>
+    <path d="M4 4h1v1.5H4zM2.5 5.2l.7-.4.7 1.2-.7.4zM4 8l2.2-2.5L5 9z"/>
+    <circle cx="4.5" cy="8.5" r=".8"/>
+    <path d="M11 4h1v1.5h-1zM9.5 5.2l.7-.4.7 1.2-.7.4zM11 8l2.2-2.5L12 9z"/>
+    <circle cx="11.5" cy="8.5" r=".8"/>
+  </g>
+</svg>
