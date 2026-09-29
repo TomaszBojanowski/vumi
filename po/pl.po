@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: muse-player\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-30 01:16+0200\n"
+"POT-Creation-Date: 2026-09-30 01:35+0200\n"
 "PO-Revision-Date: 2026-09-27 20:40+0200\n"
 "Last-Translator: Tomasz Bojanowski <tomasz@bojanowski.me>\n"
 "Language-Team: Polish\n"
@@ -168,7 +168,7 @@ msgstr "Rok (od najnowszych)"
 msgid "Year (Oldest)"
 msgstr "Rok (od najstarszych)"
 
-#: app/src/main_view.blp:365 app/src/start_page.blp:139
+#: app/src/main_view.blp:365 app/src/start_page.blp:142
 msgid "Recently Added"
 msgstr "Ostatnio dodane"
 
@@ -406,7 +406,15 @@ msgstr "Ostatnio słuchane"
 msgid "Continue"
 msgstr "Kontynuuj"
 
-#: app/src/start_page.blp:178
+#: app/src/start_page.blp:158 app/src/start_page.blp:228
+msgid "Previous Albums"
+msgstr "Poprzednie albumy"
+
+#: app/src/start_page.blp:169 app/src/start_page.blp:239
+msgid "Next Albums"
+msgstr "Następne albumy"
+
+#: app/src/start_page.blp:211
 msgid "Play Similar Songs"
 msgstr "Odtwórz podobne utwory"
 
