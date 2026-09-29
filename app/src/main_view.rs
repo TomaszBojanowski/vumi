@@ -41,6 +41,10 @@ mod imp {
         pub albums_page: gtk::TemplateChild<adw::ViewStackPage>,
         #[template_child]
         pub search_entry: gtk::TemplateChild<gtk::SearchEntry>,
+        #[template_child]
+        pub sync_button: gtk::TemplateChild<gtk::Button>,
+        /// True while albums and then songs are being synced.
+        pub syncing: std::cell::Cell<bool>,
         /// The search results, made on first use and reused.
         pub search_page: std::cell::OnceCell<crate::search_page::SearchPage>,
         /// Bumped by every search; results of an older one are dropped.
@@ -226,6 +230,11 @@ impl MainView {
 
     /// Fetches the album list from the server, shows it and stores it locally.
     fn sync_albums(&self, client: subsonic::Client) {
+        // One sync at a time: the button waits for the current one to finish.
+        if self.imp().syncing.get() {
+            return;
+        }
+        self.set_syncing(true);
         self.imp().client.replace(Some(client.clone()));
         // Covers on the Start page can now come from the server too.
         self.refresh_start();
@@ -261,8 +270,11 @@ impl MainView {
                     // Songs next, in the background: album pages open already filled.
                     view.sync_songs();
                 }
-                Ok(Err(e)) => view.show_offline(&error_message(&e)),
-                Err(_) => {}
+                Ok(Err(e)) => {
+                    view.show_offline(&error_message(&e));
+                    view.set_syncing(false);
+                }
+                Err(_) => view.set_syncing(false),
             }
         });
     }
@@ -447,6 +459,8 @@ impl MainView {
         let server = client.server_key();
         let view = self.downgrade();
         glib::spawn_future_local(async move {
+            // Whatever happens inside, the sync is over when this block ends.
+            async {
             let started = std::time::Instant::now();
             let fetched = runtime()
                 .spawn(async move { client.all_songs().await })
@@ -473,6 +487,11 @@ impl MainView {
                 }
                 Ok(Err(e)) => eprintln!("Could not save songs: {e}"),
                 Err(_) => {}
+            }
+            }
+            .await;
+            if let Some(view) = view.upgrade() {
+                view.set_syncing(false);
             }
         });
     }
@@ -622,5 +641,22 @@ impl MainView {
             };
             view.imp().favorites.show(&albums, found.songs, Some(client));
         });
+    }
+}
+
+impl MainView {
+    /// The sync button shows a spinner while a sync runs, and cannot be clicked
+    /// again until it is over.
+    fn set_syncing(&self, syncing: bool) {
+        let imp = self.imp();
+        imp.syncing.set(syncing);
+        // The refresh icon itself turns while a sync runs (style.css: .syncing).
+        if syncing {
+            imp.sync_button.add_css_class("syncing");
+        } else {
+            imp.sync_button.remove_css_class("syncing");
+        }
+        // Stays sensitive: an insensitive button would dim the spinner; a second
+        // click is ignored by sync_albums anyway.
     }
 }

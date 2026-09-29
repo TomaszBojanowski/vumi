@@ -224,3 +224,13 @@ button.shelf-card {
 .continue-card progressbar > trough {
   min-width: 40px;
 }
+
+/* The sync button: its refresh icon turns in place while a sync runs. */
+button.syncing > image {
+  animation: sync-turn 1s linear infinite;
+}
+
+@keyframes sync-turn {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}

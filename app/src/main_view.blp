@@ -34,6 +34,14 @@ template $MusePlayerMainView: Adw.NavigationPage {
             tooltip-text: _("Main Menu");
             menu-model: main_menu;
           }
+
+          // Runs app.sync; a spinner while a sync runs (set_syncing, main_view.rs).
+          [end]
+          Button sync_button {
+            icon-name: "view-refresh-symbolic";
+            tooltip-text: _("Sync Library");
+            action-name: "app.sync";
+          }
         }
 
         content: Box {
