@@ -486,6 +486,7 @@ impl MainView {
                     // The "Continue" card may need songs that have only just arrived.
                     if let Some(view) = view.upgrade() {
                         view.refresh_start();
+                        view.refresh_favorites();
                     }
                 }
                 Ok(Err(e)) => eprintln!("Could not save songs: {e}"),
@@ -620,7 +621,7 @@ impl MainView {
 impl MainView {
     /// The Favorites page: starred albums and songs from the local database,
     /// read in the background; refreshed with the library.
-    fn refresh_favorites(&self) {
+    pub(crate) fn refresh_favorites(&self) {
         let imp = self.imp();
         let Some(client) = imp.client.borrow().clone() else {
             return;

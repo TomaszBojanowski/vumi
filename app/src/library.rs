@@ -359,3 +359,28 @@ pub(crate) fn load_starred(server: &str) -> rusqlite::Result<SearchResults> {
 
     Ok(SearchResults { album_ids, songs })
 }
+
+/// Records a star, or its removal, locally right away, once the server has
+/// confirmed it; the next sync brings the server's own record.
+pub(crate) fn set_starred(
+    server: &str,
+    album: bool,
+    id: &str,
+    starred: bool,
+) -> rusqlite::Result<()> {
+    let conn = open()?;
+    let table = if album { "albums" } else { "songs" };
+    // The server keeps the date of the star; here any non-null value marks it.
+    let value: Option<String> = starred.then(|| {
+        glib::DateTime::now_utc()
+            .ok()
+            .and_then(|now| now.format_iso8601().ok())
+            .map(|s| s.to_string())
+            .unwrap_or_else(|| "1".to_string())
+    });
+    conn.execute(
+        &format!("UPDATE {table} SET starred = ?1 WHERE server = ?2 AND id = ?3"),
+        params![value, server, id],
+    )?;
+    Ok(())
+}

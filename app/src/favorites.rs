@@ -50,6 +50,12 @@ pub(crate) fn star_button(
             return;
         };
         let starred = button.is_active();
+        // For the local copy, once the server has confirmed the change.
+        let server = client.server_key();
+        let (is_album, id) = match &item {
+            Favorite::Album(id) => (true, id.clone()),
+            Favorite::Song(id) => (false, id.clone()),
+        };
 
         // One request at a time: no second click can overtake this one.
         button.set_sensitive(false);
@@ -71,6 +77,18 @@ pub(crate) fn star_button(
                 button.set_active(!starred);
                 reverting.set(false);
                 show_toast(&button, &gettext("Could not change favorites. Please try again."));
+            } else {
+                // Confirmed: the local database follows now, and the Favorites
+                // page with it, without waiting for the next sync.
+                let _ = runtime()
+                    .spawn_blocking(move || crate::library::set_starred(&server, is_album, &id, starred))
+                    .await;
+                if let Some(main) = button
+                    .ancestor(crate::main_view::MainView::static_type())
+                    .and_downcast::<crate::main_view::MainView>()
+                {
+                    main.refresh_favorites();
+                }
             }
         });
     });
