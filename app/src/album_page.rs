@@ -728,6 +728,22 @@ impl AlbumPage {
     /// when clicked, so after a refresh they play the current track list.
     fn build_actions(&self, album_id: &str, client: subsonic::Client) {
         let imp = self.imp();
+        // Radio: a random song of this album, then songs that sound like it.
+        let radio_button = gtk::Button::builder()
+            .icon_name("muse-player-radio-symbolic")
+            .tooltip_text(gettext("Radio"))
+            .valign(gtk::Align::Center)
+            .css_classes(["circular", "flat", "album-action"])
+            .build();
+        {
+            let client = client.clone();
+            let page = self.downgrade();
+            radio_button.connect_clicked(move |button| {
+                if let Some(page) = page.upgrade() {
+                    page.start_radio(client.clone(), button);
+                }
+            });
+        }
         let play_button = gtk::Button::builder()
             .icon_name("media-playback-start-symbolic")
             .tooltip_text(gettext("Play"))
@@ -778,6 +794,7 @@ impl AlbumPage {
         }
         imp.actions.append(&play_button);
         imp.actions.append(&shuffle_button);
+        imp.actions.append(&radio_button);
     }
 
     /// The artist name opens the artist page, once the artist id is known.
@@ -875,4 +892,54 @@ pub(crate) fn open(
             nav.push(&AlbumPage::new(&album, client, local));
         }
     });
+}
+
+impl AlbumPage {
+    /// Radio: a random song of this album, then about 50 songs that sound like
+    /// it (AudioMuse-AI through Navidrome). A short note in the window if the
+    /// server finds none, e.g. when the album has not been analysed yet.
+    fn start_radio(&self, client: subsonic::Client, button: &gtk::Button) {
+        let Some(queue) = self.imp().queue.borrow().clone() else {
+            return;
+        };
+        if queue.is_empty() {
+            return;
+        }
+        let seed = queue[fastrand::usize(..queue.len())].clone();
+
+        // One request at a time: the button waits for the answer.
+        button.set_sensitive(false);
+        let button = button.downgrade();
+        let page = self.downgrade();
+        glib::spawn_future_local(async move {
+            let request_client = client.clone();
+            let seed_id = seed.id.clone();
+            let result = runtime()
+                .spawn(async move { request_client.similar_songs(&seed_id, 50).await })
+                .await;
+            if let Some(button) = button.upgrade() {
+                button.set_sensitive(true);
+            }
+
+            let similar = match result {
+                Ok(Ok(songs)) => songs,
+                _ => Vec::new(),
+            };
+            if similar.is_empty() {
+                if let Some(toasts) = page
+                    .upgrade()
+                    .and_then(|page| page.ancestor(adw::ToastOverlay::static_type()))
+                    .and_downcast::<adw::ToastOverlay>()
+                {
+                    toasts.add_toast(adw::Toast::new(&gettext("No similar songs found")));
+                }
+                return;
+            }
+
+            let seed_id = seed.id.clone();
+            let mut songs = vec![seed];
+            songs.extend(similar.into_iter().filter(|s| s.id != seed_id));
+            player::get().play(client, songs.into(), 0);
+        });
+    }
 }

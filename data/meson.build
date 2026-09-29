@@ -16,3 +16,9 @@ install_data(
   'icons' / (application_id + '.svg'),
   install_dir: get_option('datadir') / 'icons' / 'hicolor' / 'scalable' / 'apps',
 )
+
+# Symbolic icons the app uses inside (the Radio button), next to the app icon.
+install_data(
+  'icons/muse-player-radio-symbolic.svg',
+  install_dir: get_option('datadir') / 'icons' / 'hicolor' / 'symbolic' / 'apps',
+)
