@@ -17,7 +17,8 @@ template $MusePlayerStartPage: Adw.Bin {
         orientation: vertical;
         spacing: 24;
         margin-top: 24;
-        margin-bottom: 24;
+        // More room at the end, so the last shelf does not touch the edge.
+        margin-bottom: 48;
         margin-start: 24;
         margin-end: 24;
 
@@ -180,6 +181,8 @@ template $MusePlayerStartPage: Adw.Bin {
           // One row of albums; it scrolls sideways when the window is narrow.
           ScrolledWindow recent_scroll {
             vscrollbar-policy: never;
+            // The ‹ › buttons move the row; no scrollbar over the album names.
+            hscrollbar-policy: external;
 
             child: Box recent_row {
               spacing: 12;
@@ -249,6 +252,8 @@ template $MusePlayerStartPage: Adw.Bin {
 
           ScrolledWindow similar_scroll {
             vscrollbar-policy: never;
+            // The ‹ › buttons move the row; no scrollbar over the album names.
+            hscrollbar-policy: external;
 
             child: Box similar_row {
               spacing: 12;
