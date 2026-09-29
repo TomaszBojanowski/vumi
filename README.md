@@ -40,8 +40,8 @@ Later: year in music, forgotten albums, time-of-day mixes, command palette
 3. [x] Library: SQLite cache, instant start, covers, album and artist pages
 4. [x] Player: GStreamer, sidebar card, compact bar on narrow windows
 5. [x] Shared data instead of copies (Arc client, Rc lists)
-6. [ ] Remember the last playback (song, album, position)
-7. [ ] Start page: continue listening, recently added, similar to what played last (AudioMuse)
+6. [x] Remember the last playback (song, album, position)
+7. [ ] Start page: continue listening and recently added done; similar to what played last (AudioMuse) still to do
 8. [ ] AudioMuse-AI via Navidrome: similar songs, endless radio, album radio
 8. [ ] Search in the sidebar (FTS5), with a description mode (AudioMuse CLAP)
 9. [ ] Album page: full-width cover-coloured header, row states, track menu
