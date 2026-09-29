@@ -158,6 +158,13 @@ fn handle_method(
             }
         }
         (_, "SetPosition") => {
+            // Only for the track the client meant: a late command about the
+            // previous track must not move this one (the MPRIS specification).
+            let wanted = params.child_value(0).get::<glib::variant::ObjectPath>();
+            let current = player.current().and_then(|song| track_path(&song.id));
+            if wanted.is_none() || wanted != current {
+                return;
+            }
             // Position in microseconds, from the start of the track.
             if let Some(position) = params.child_value(1).get::<i64>() {
                 let target = position as f64 / 1e6;
@@ -185,15 +192,7 @@ fn status() -> &'static str {
 fn metadata() -> glib::Variant {
     let dict = glib::VariantDict::new(None);
     if let Some(song) = player::get().current() {
-        // A track id must be a D-Bus object path: letters, digits and "_" only.
-        let id: String = song
-            .id
-            .chars()
-            .map(|c| if c.is_ascii_alphanumeric() { c } else { '_' })
-            .collect();
-        if let Ok(path) =
-            glib::variant::ObjectPath::try_from(format!("/io/github/tomaszbojanowski/MusePlayer/track/t{id}"))
-        {
+        if let Some(path) = track_path(&song.id) {
             dict.insert_value("mpris:trackid", &path.to_variant());
         }
         dict.insert_value("xesam:title", &song.title.to_variant());
@@ -314,4 +313,14 @@ fn fetch_missing_cover() {
             emit_changed();
         }
     });
+}
+
+/// The D-Bus object path that stands for a track (mpris:trackid). A path may
+/// hold only letters, digits and "_", so other characters become "_".
+fn track_path(song_id: &str) -> Option<glib::variant::ObjectPath> {
+    let id: String = song_id
+        .chars()
+        .map(|c| if c.is_ascii_alphanumeric() { c } else { '_' })
+        .collect();
+    glib::variant::ObjectPath::try_from(format!("/io/github/tomaszbojanowski/MusePlayer/track/t{id}")).ok()
 }
