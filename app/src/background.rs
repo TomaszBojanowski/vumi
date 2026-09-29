@@ -7,17 +7,16 @@ use gettextrs::gettext;
 use gtk::gio;
 use gtk::glib;
 use gtk::prelude::*;
-use std::cell::Cell;
+use std::cell::{Cell, RefCell};
 
 thread_local! {
     /// Each request gets its own token, so answers cannot be mixed up.
     static TOKEN: Cell<u32> = const { Cell::new(0) };
+    /// The listener for the pending answer; dropping it unsubscribes.
+    static SUBSCRIPTION: RefCell<Option<gio::SignalSubscription>> = const { RefCell::new(None) };
 }
 
 /// Asks for permission to run in the background.
-// signal_subscribe is deprecated in favour of subscribe_to_signal; it still
-// works, and the newer one is used once its exact shape is known.
-#[allow(deprecated)]
 pub(crate) fn request() {
     glib::spawn_future_local(async move {
         // The app is already on the session bus (GTK connects at startup).
@@ -39,15 +38,23 @@ pub(crate) fn request() {
         };
         let sender = sender.trim_start_matches(':').replace('.', "_");
         let request_path = format!("/org/freedesktop/portal/desktop/request/{sender}/{token}");
-        connection.signal_subscribe(
+        let subscription = connection.subscribe_to_signal(
             Some("org.freedesktop.portal.Desktop"),
             Some("org.freedesktop.portal.Request"),
             Some("Response"),
             Some(&request_path),
             None,
             gio::DBusSignalFlags::NONE,
-            |_, _, _, _, _, params| on_response(params),
+            |signal| {
+                on_response(signal.parameters);
+                // One answer per request: stop listening, but not from inside
+                // the callback that is still running.
+                glib::idle_add_local_once(|| {
+                    SUBSCRIPTION.with(|s| s.borrow_mut().take());
+                });
+            },
         );
+        SUBSCRIPTION.with(|s| s.replace(Some(subscription)));
 
         let options = glib::VariantDict::new(None);
         options.insert_value("handle_token", &token.to_variant());
