@@ -8,6 +8,8 @@ use gstreamer as gst;
 use gst::prelude::*;
 use std::cell::{Cell, OnceCell, RefCell};
 use std::rc::{Rc, Weak};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Mutex};
 
 /// What the player is doing. Paused and Ended look alike (nothing sounds),
 /// but act differently: Play resumes a paused track and restarts an ended queue.
@@ -36,6 +38,12 @@ pub(crate) struct Player {
     error_handler: RefCell<Option<Box<dyn Fn(&str)>>>,
     /// Where to jump once the new track is ready (resuming playback).
     pending_seek: Cell<Option<f64>>,
+    /// Gapless: the next track's address, read by GStreamer's about-to-finish
+    /// signal (on its own thread) to start that track without a gap.
+    next_uri: Arc<Mutex<Option<String>>>,
+    /// Set by about-to-finish when it queued the next track: the StreamStart
+    /// that follows then means "the next track has begun".
+    switched: Arc<AtomicBool>,
     /// Keeps the bus watch alive for as long as the player exists.
     _bus_watch: gst::bus::BusWatchGuard,
 }
@@ -56,6 +64,25 @@ impl Player {
             .build()
             .expect("GStreamer playbin is missing");
         let bus = playbin.bus().expect("playbin has a bus");
+
+        // Gapless: a few seconds before a track ends, GStreamer asks for the next
+        // one (on its own thread). The address was prepared on the main thread
+        // (prepare_next), so the track after starts without any silence.
+        let next_uri: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(None));
+        let switched = Arc::new(AtomicBool::new(false));
+        {
+            let next_uri = next_uri.clone();
+            let switched = switched.clone();
+            playbin.connect("about-to-finish", false, move |values| {
+                let playbin = values[0].get::<gst::Element>().ok()?;
+                let uri = next_uri.lock().ok().and_then(|mut next| next.take());
+                if let Some(uri) = uri {
+                    playbin.set_property("uri", uri.as_str());
+                    switched.store(true, Ordering::SeqCst);
+                }
+                None
+            });
+        }
 
         Rc::new_cyclic(|weak: &Weak<Player>| {
             let weak = weak.clone();
@@ -78,6 +105,8 @@ impl Player {
                 next_listener: Cell::new(0),
                 error_handler: RefCell::new(None),
                 pending_seek: Cell::new(None),
+                next_uri,
+                switched,
                 _bus_watch: bus_watch,
             }
         })
@@ -150,6 +179,8 @@ impl Player {
     fn play_at(&self, index: usize) {
         // A new track: a seek meant for the previous one must not land here.
         self.pending_seek.set(None);
+        // Nor may a gapless switch of the previous one move this track on.
+        self.switched.store(false, Ordering::SeqCst);
         let song = self.queue.borrow().get(index).cloned();
         let client = self.client.borrow().clone();
         let (Some(song), Some(client)) = (song, client) else {
@@ -178,7 +209,10 @@ impl Player {
         let _ = self.playbin.set_state(gst::State::Null);
         self.playbin.set_property("uri", url.as_str());
         match self.playbin.set_state(gst::State::Playing) {
-            Ok(_) => self.set_state(State::Playing),
+            Ok(_) => {
+                self.set_state(State::Playing);
+                self.prepare_next();
+            }
             // Errors found later (server gone, broken file) arrive on the bus.
             Err(_) => self.fail(gettext("Could not start playback")),
         }
@@ -257,6 +291,13 @@ impl Player {
     fn on_message(&self, message: &gst::Message) {
         match message.view() {
             gst::MessageView::Eos(..) => self.play_at(self.position.get() + 1),
+            // A track has begun: if about-to-finish queued it, this is the gapless
+            // step to the next track in the queue.
+            gst::MessageView::StreamStart(..) => {
+                if self.switched.swap(false, Ordering::SeqCst) {
+                    self.advance_gapless();
+                }
+            }
             // The new track is ready: a pending seek (resuming) takes effect now.
             gst::MessageView::AsyncDone(..) => {
                 if let Some(seconds) = self.pending_seek.take() {
@@ -349,5 +390,32 @@ impl Player {
             let _ = self.playbin.set_state(gst::State::Null);
             self.set_state(State::Ended);
         }
+    }
+}
+
+impl Player {
+    /// Gapless: the address of the track after the current one, ready for
+    /// about-to-finish. None at the end of the queue (then the queue simply ends,
+    /// or Endless Radio adds more).
+    fn prepare_next(&self) {
+        let next = self.position.get() + 1;
+        let uri = self.queue.borrow().get(next).and_then(|song| {
+            self.client
+                .borrow()
+                .as_ref()
+                .and_then(|client| client.stream_url(&song.id).ok())
+                .map(|url| url.to_string())
+        });
+        if let Ok(mut next_uri) = self.next_uri.lock() {
+            *next_uri = uri;
+        }
+    }
+
+    /// Gapless: the next track has begun on its own; the queue follows it.
+    fn advance_gapless(&self) {
+        self.pending_seek.set(None);
+        self.position.set(self.position.get() + 1);
+        self.set_state(State::Playing);
+        self.prepare_next();
     }
 }
