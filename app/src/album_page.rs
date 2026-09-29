@@ -820,16 +820,24 @@ impl AlbumPage {
 
 /// True if the server's answer shows nothing the local copy does not.
 fn same_album(local: &subsonic::AlbumWithSongs, server: &subsonic::AlbumWithSongs) -> bool {
-    local.starred == server.starred
+    local.name == server.name
+        && local.artist == server.artist
+        && local.starred == server.starred
         && local.artist_id == server.artist_id
         && server.disc_titles.is_empty()
         && local.song.len() == server.song.len()
         && local.song.iter().zip(&server.song).all(|(a, b)| {
             a.id == b.id
                 && a.title == b.title
+                && a.artist == b.artist
                 && a.starred == b.starred
                 && a.duration == b.duration
                 && a.track == b.track
                 && a.disc_number == b.disc_number
+                && a.cover_art == b.cover_art
+                && a.suffix == b.suffix
+                && a.bit_rate == b.bit_rate
+                && a.bit_depth == b.bit_depth
+                && a.sampling_rate == b.sampling_rate
         })
 }

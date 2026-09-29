@@ -21,7 +21,12 @@ pub(crate) fn save_now() {
 
 fn save(settings: &gio::Settings) {
     let player = player::get();
-    // Nothing playing (e.g. the queue ended): keep what was saved before.
+    // Only while a track is in progress (playing or paused). After an error or
+    // the end of the queue there is no position any more, and saving 0 would
+    // lose the real point to resume from.
+    if !player.is_active() {
+        return;
+    }
     let Some(song) = player.current() else {
         return;
     };

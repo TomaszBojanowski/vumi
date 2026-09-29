@@ -87,10 +87,11 @@ pub(crate) async fn load(client: Option<subsonic::Client>, id: String) -> Option
             if let Some(dir) = path.parent() {
                 let _ = tokio::fs::create_dir_all(dir).await;
             }
-            // Written to a temporary file and renamed: a rename is atomic, so a
-            // save cut off halfway (the app closed meanwhile) never leaves a
-            // broken file under the real name.
-            let temporary = path.with_extension("part");
+            // Written to a temporary file of its own and renamed: a rename is
+            // atomic, so a save cut off halfway never leaves a broken file under
+            // the real name, and two downloads of the same cover never write
+            // into one temporary file.
+            let temporary = path.with_extension(format!("part-{}", fastrand::u64(..)));
             if tokio::fs::write(&temporary, &bytes).await.is_ok() {
                 let _ = tokio::fs::rename(&temporary, &path).await;
             }

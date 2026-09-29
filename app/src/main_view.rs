@@ -418,6 +418,7 @@ impl MainView {
             return;
         };
         let server = client.server_key();
+        let view = self.downgrade();
         glib::spawn_future_local(async move {
             let started = std::time::Instant::now();
             let fetched = runtime()
@@ -436,7 +437,13 @@ impl MainView {
                 .spawn_blocking(move || library::save_songs(&server, &songs))
                 .await;
             match saved {
-                Ok(Ok(())) => eprintln!("Synced {count} songs in {:.2?}", started.elapsed()),
+                Ok(Ok(())) => {
+                    eprintln!("Synced {count} songs in {:.2?}", started.elapsed());
+                    // The "Continue" card may need songs that have only just arrived.
+                    if let Some(view) = view.upgrade() {
+                        view.refresh_start();
+                    }
+                }
                 Ok(Err(e)) => eprintln!("Could not save songs: {e}"),
                 Err(_) => {}
             }
