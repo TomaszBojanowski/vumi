@@ -518,3 +518,21 @@ impl Player {
         self.notify();
     }
 }
+
+impl Player {
+    /// Forgets everything (logging out): the queue, the client with its
+    /// credentials, the prepared next track. Play from MPRIS can then not
+    /// start the old account's music again.
+    pub(crate) fn reset(&self) {
+        let _ = self.playbin.set_state(gst::State::Null);
+        self.pending_seek.set(None);
+        self.switched.store(false, Ordering::SeqCst);
+        if let Ok(mut next_uri) = self.next_uri.lock() {
+            *next_uri = None;
+        }
+        self.queue.replace(Vec::new().into());
+        self.position.set(0);
+        self.client.replace(None);
+        self.set_state(State::Idle);
+    }
+}

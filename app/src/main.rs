@@ -208,7 +208,7 @@ fn build_ui(app: &adw::Application) {
         let settings = gtk::gio::Settings::new(APP_ID);
         let login_page = login_page.clone();
         logout.connect_activate(move |_, _| {
-            crate::player::get().stop();
+            crate::player::get().reset();
             let url = settings.string("server-url").to_string();
             let user = settings.string("username").to_string();
             gtk::glib::spawn_future_local(async move {
