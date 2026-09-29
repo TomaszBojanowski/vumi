@@ -116,7 +116,7 @@ impl QueuePage {
                 );
             }
 
-            // Right click: a small menu with "Remove from Queue", where it was clicked.
+            // A ⋮ menu at the end of the row: "Remove from Queue".
             let actions = gio::SimpleActionGroup::new();
             let remove = gio::SimpleAction::new("remove", None);
             remove.connect_activate(move |_, _| player::get().remove(index));
@@ -124,22 +124,15 @@ impl QueuePage {
             row.insert_action_group("queue", Some(&actions));
             let menu = gio::Menu::new();
             menu.append(Some(&gettext("Remove from Queue")), Some("queue.remove"));
-            let popover = gtk::PopoverMenu::from_model(Some(&menu));
-            popover.set_parent(&row);
-            popover.set_has_arrow(false);
-            let click = gtk::GestureClick::builder()
-                .button(gdk::BUTTON_SECONDARY)
-                .build();
-            {
-                let popover = popover.clone();
-                click.connect_pressed(move |_, _, x, y| {
-                    popover.set_pointing_to(Some(&gdk::Rectangle::new(x as i32, y as i32, 1, 1)));
-                    popover.popup();
-                });
-            }
-            row.add_controller(click);
-            // The menu hangs on the row: it must go when the row goes.
-            row.connect_destroy(move |_| popover.unparent());
+            row.add_suffix(
+                &gtk::MenuButton::builder()
+                    .icon_name("view-more-symbolic")
+                    .menu_model(&menu)
+                    .tooltip_text(gettext("More"))
+                    .valign(gtk::Align::Center)
+                    .css_classes(["flat", "circular"])
+                    .build(),
+            );
 
             // Drag and drop: a row carries its index; dropping it on another row
             // moves the track there. The whole row can be grabbed.

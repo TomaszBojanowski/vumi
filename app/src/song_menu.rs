@@ -1,9 +1,9 @@
 //! The menu of a song row (album pages, search results, favourites): a ⋮
-//! button at the end of the row, and the same menu on a right click.
+//! button at the end of the row.
 
 use adw::prelude::*;
 use gettextrs::gettext;
-use gtk::{gdk, gio, glib};
+use gtk::{gio, glib};
 use std::rc::Rc;
 
 use crate::main_view::MainView;
@@ -104,24 +104,6 @@ pub(crate) fn attach(
             .css_classes(["flat", "circular"])
             .build(),
     );
-
-    // The same menu on a right click, where it was clicked.
-    let popover = gtk::PopoverMenu::from_model(Some(&menu));
-    popover.set_parent(row);
-    popover.set_has_arrow(false);
-    let click = gtk::GestureClick::builder()
-        .button(gdk::BUTTON_SECONDARY)
-        .build();
-    {
-        let popover = popover.clone();
-        click.connect_pressed(move |_, _, x, y| {
-            popover.set_pointing_to(Some(&gdk::Rectangle::new(x as i32, y as i32, 1, 1)));
-            popover.popup();
-        });
-    }
-    row.add_controller(click);
-    // The menu hangs on the row: it must go when the row goes.
-    row.connect_destroy(move |_| popover.unparent());
 }
 
 /// Play Similar: this song, then songs that sound like it (AudioMuse-AI).
