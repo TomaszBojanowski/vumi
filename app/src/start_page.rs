@@ -198,8 +198,35 @@ impl StartPage {
         let Some(album) = imp.albums.borrow().iter().find(|a| a.id == album_id).cloned() else {
             return;
         };
-        let songs = crate::library::load_album_songs(&client.server_key(), &album.id)
-            .unwrap_or_default();
+        // The songs come from the database in the background; the rest of the
+        // card follows once they are there.
+        let page = self.downgrade();
+        let song_id = song_id.to_owned();
+        let server = client.server_key();
+        let album_id = album.id.clone();
+        glib::spawn_future_local(async move {
+            let songs = crate::runtime()
+                .spawn_blocking(move || crate::library::load_album_songs(&server, &album_id))
+                .await
+                .ok()
+                .and_then(Result::ok)
+                .unwrap_or_default();
+            if let Some(page) = page.upgrade() {
+                page.fill_continue(&album, client, songs, &song_id, seconds);
+            }
+        });
+    }
+
+    /// The rest of show_continue, once the album's songs are known.
+    fn fill_continue(
+        &self,
+        album: &Arc<subsonic::Album>,
+        client: subsonic::Client,
+        songs: Vec<subsonic::Song>,
+        song_id: &str,
+        seconds: f64,
+    ) {
+        let imp = self.imp();
         let Some(index) = songs.iter().position(|s| s.id == song_id) else {
             return;
         };

@@ -142,12 +142,12 @@ impl MainView {
                 return;
             };
             let client = view.imp().client.borrow().clone();
-            let page = AlbumPage::new(&object.borrow::<Arc<subsonic::Album>>(), client);
+            let album = (**object.borrow::<Arc<subsonic::Album>>()).clone();
             if let Some(nav) = grid
                 .ancestor(adw::NavigationView::static_type())
                 .and_downcast::<adw::NavigationView>()
             {
-                nav.push(&page);
+                crate::album_page::open(&nav, &album, client);
             }
         });
 
@@ -330,7 +330,7 @@ impl MainView {
                 }
             }
         }
-        imp.library_nav.push(&AlbumPage::new(&album, client));
+        crate::album_page::open(&imp.library_nav.get(), &album, client);
     }
 }
 

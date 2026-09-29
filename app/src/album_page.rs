@@ -103,7 +103,12 @@ glib::wrapper! {
 
 impl AlbumPage {
     /// `client` is None while offline: the cover still comes from the disk cache.
-    pub(crate) fn new(album: &subsonic::Album, client: Option<subsonic::Client>) -> Self {
+    /// Use open() instead: it reads the local songs off the main thread first.
+    fn new(
+        album: &subsonic::Album,
+        client: Option<subsonic::Client>,
+        local: Vec<subsonic::Song>,
+    ) -> Self {
         let page: Self = glib::Object::new();
         let imp = page.imp();
 
@@ -146,7 +151,7 @@ impl AlbumPage {
         match client {
             Some(client) => {
                 page.load_about(client.clone(), album.id.clone());
-                page.load_tracks(client, album.id.clone(), album.year, album.artist.clone());
+                page.load_tracks(client, album.id.clone(), album.year, album.artist.clone(), local);
             }
             None => page.show_error(&gettext("Connect to the server to see the tracks.")),
         }
@@ -168,10 +173,10 @@ impl AlbumPage {
         id: String,
         year: Option<i32>,
         album_artist: Option<String>,
+        local: Vec<subsonic::Song>,
     ) {
-        // The local copy first, read right here (a quick indexed query), so the
-        // page slides in already filled.
-        let local = crate::library::load_album_songs(&client.server_key(), &id).unwrap_or_default();
+        // The local copy first (read in the background by open()), so the page
+        // slides in already filled.
         let local_album = if local.is_empty() {
             None
         } else {
@@ -840,4 +845,34 @@ fn same_album(local: &subsonic::AlbumWithSongs, server: &subsonic::AlbumWithSong
                 && a.bit_depth == b.bit_depth
                 && a.sampling_rate == b.sampling_rate
         })
+}
+
+/// Opens an album page on `nav`. The album's songs are read from the local
+/// database in the background first, so the page slides in already filled and
+/// the window never waits for the disk.
+pub(crate) fn open(
+    nav: &adw::NavigationView,
+    album: &subsonic::Album,
+    client: Option<subsonic::Client>,
+) {
+    let nav = nav.downgrade();
+    let album = album.clone();
+    glib::spawn_future_local(async move {
+        let local = match &client {
+            Some(client) => {
+                let server = client.server_key();
+                let id = album.id.clone();
+                runtime()
+                    .spawn_blocking(move || crate::library::load_album_songs(&server, &id))
+                    .await
+                    .ok()
+                    .and_then(Result::ok)
+                    .unwrap_or_default()
+            }
+            None => Vec::new(),
+        };
+        if let Some(nav) = nav.upgrade() {
+            nav.push(&AlbumPage::new(&album, client, local));
+        }
+    });
 }

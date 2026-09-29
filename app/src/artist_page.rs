@@ -8,7 +8,6 @@ use gtk::glib;
 use std::cell::RefCell;
 
 use crate::album_card::AlbumCard;
-use crate::album_page::AlbumPage;
 use crate::{about, covers, runtime};
 
 mod imp {
@@ -84,12 +83,12 @@ impl ArtistPage {
             let Some(album) = album else {
                 return;
             };
-            let album_page = AlbumPage::new(&album, imp.client.borrow().clone());
+            let client = imp.client.borrow().clone();
             if let Some(nav) = page
                 .ancestor(adw::NavigationView::static_type())
                 .and_downcast::<adw::NavigationView>()
             {
-                nav.push(&album_page);
+                crate::album_page::open(&nav, &album, client);
             }
         });
 
