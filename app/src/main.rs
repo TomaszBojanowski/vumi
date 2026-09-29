@@ -9,6 +9,7 @@ mod login_page;
 mod main_view;
 mod mini_player;
 mod now_playing;
+mod mpris;
 mod player;
 mod resume;
 mod search_page;
@@ -129,6 +130,9 @@ fn build_ui(app: &adw::Application) {
 
     // Remember what plays, for "Continue listening" on the next start.
     resume::watch();
+
+    // Media controls in GNOME Shell, on the lock screen and on media keys.
+    mpris::start(app);
 
     // "Endless Radio" in the main menu, kept in GSettings.
     app.add_action(&gtk::gio::Settings::new(APP_ID).create_action("endless-radio"));

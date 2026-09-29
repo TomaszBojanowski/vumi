@@ -131,3 +131,11 @@ pub(crate) fn load_for<W>(
         }
     });
 }
+
+/// Where the cover `id` is cached on disk, if it is. MPRIS hands this path to
+/// GNOME Shell, which shows the cover in its media controls.
+pub(crate) fn cached_path(id: &str) -> Option<PathBuf> {
+    let server = current_server().lock().ok()?.clone();
+    let path = cache_path(&server, id);
+    path.exists().then_some(path)
+}

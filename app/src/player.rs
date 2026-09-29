@@ -336,3 +336,18 @@ impl Player {
         });
     }
 }
+
+impl Player {
+    /// True if there is a track after the current one (MPRIS: CanGoNext).
+    pub(crate) fn has_next(&self) -> bool {
+        self.position.get() + 1 < self.queue.borrow().len()
+    }
+
+    /// Stop (MPRIS): like reaching the end of the queue; Play starts it again.
+    pub(crate) fn stop(&self) {
+        if self.current().is_some() {
+            let _ = self.playbin.set_state(gst::State::Null);
+            self.set_state(State::Ended);
+        }
+    }
+}
