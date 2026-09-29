@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: muse-player\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-29 18:32+0200\n"
+"POT-Creation-Date: 2026-09-29 19:45+0200\n"
 "PO-Revision-Date: 2026-09-27 20:40+0200\n"
 "Last-Translator: Tomasz Bojanowski <tomasz@bojanowski.me>\n"
 "Language-Team: Polish\n"
@@ -29,45 +29,53 @@ msgstr "Szybki odtwarzacz muzyki z serwerów Navidrome i Subsonic"
 msgid "music;player;navidrome;subsonic;"
 msgstr "muzyka;odtwarzacz;navidrome;subsonic;music;player;"
 
-#: app/src/main.rs:307 app/src/login_page.rs:153 app/src/album_page.rs:210
+#: app/src/main.rs:308 app/src/login_page.rs:153 app/src/album_page.rs:210
 msgid "Something went wrong. Please try again."
 msgstr "Wystąpił nieoczekiwany błąd. Spróbuj ponownie."
 
-#: app/src/main.rs:316
+#: app/src/main.rs:317
 msgid "Wrong username or password."
 msgstr "Nieprawidłowa nazwa użytkownika lub hasło."
 
-#: app/src/main.rs:317
+#: app/src/main.rs:318
 msgid "Cannot reach the server. Check the address and your connection."
 msgstr ""
 "Nie uzyskano połączenia z serwerem. Sprawdź adres i połączenie sieciowe."
 
-#: app/src/main.rs:318
+#: app/src/main.rs:319
 msgid "Invalid server address. It should start with http:// or https://"
 msgstr ""
 "Nieprawidłowy adres serwera. Adres musi zaczynać się od http:// lub https://"
 
-#: app/src/main.rs:319
+#: app/src/main.rs:320
 msgid "The server answered, but it does not look like a Subsonic server."
 msgstr "Serwer odpowiedział, ale nie wygląda na serwer zgodny z Subsonic."
 
 #. Translators: {message} is the error text sent by the server.
-#: app/src/main.rs:321
+#: app/src/main.rs:322
 #, rust-format
 msgid "Server error: {message}"
 msgstr "Błąd serwera: {message}"
 
-#: app/src/main_view.rs:192
+#: app/src/main_view.rs:109
+msgid "No Favorites"
+msgstr "Brak ulubionych"
+
+#: app/src/main_view.rs:110
+msgid "Star albums and songs to see them here"
+msgstr "Albumy i utwory oznaczone gwiazdką pojawią się tutaj"
+
+#: app/src/main_view.rs:204
 msgid "Connecting…"
 msgstr "Łączenie…"
 
 #. Translators: {server} is the server software (e.g. navidrome), {version} its version.
-#: app/src/main_view.rs:200
+#: app/src/main_view.rs:212
 #, rust-format
 msgid "Connected to {server} {version}"
 msgstr "Połączono z serwerem {server} {version}"
 
-#: app/src/main_view.rs:211
+#: app/src/main_view.rs:223
 msgid "Offline"
 msgstr "Brak połączenia"
 
@@ -79,88 +87,93 @@ msgstr "Ukryj panel boczny"
 msgid "Main Menu"
 msgstr "Menu główne"
 
-#: app/src/main_view.blp:43
+#: app/src/main_view.blp:42
+msgid "Sync Library"
+msgstr "Synchronizuj bibliotekę"
+
+#: app/src/main_view.blp:51
 #, fuzzy
 msgid "Search Library"
 msgstr "Biblioteka"
 
-#: app/src/main_view.blp:69 app/src/main_view.blp:76
+#: app/src/main_view.blp:77 app/src/main_view.blp:83 app/src/main_view.blp:89
 msgid "Start"
 msgstr "Start"
 
-#: app/src/main_view.blp:82 app/src/main_view.blp:112 app/src/main_view.blp:176
-#: app/src/main_view.blp:205 app/src/main_view.blp:230
-#: app/src/main_view.blp:259
+#: app/src/main_view.blp:95 app/src/main_view.blp:127 app/src/main_view.blp:191
+#: app/src/main_view.blp:225 app/src/main_view.blp:249
+#: app/src/main_view.blp:278
 msgid "Show sidebar"
 msgstr "Wyświetl panel boczny"
 
-#: app/src/main_view.blp:96 app/src/main_view.blp:104 app/src/main_view.blp:137
-#: app/src/artist_page.blp:86 app/src/search_page.blp:37
+#: app/src/main_view.blp:111 app/src/main_view.blp:119
+#: app/src/main_view.blp:152 app/src/artist_page.blp:86
+#: app/src/results_view.blp:31
 msgid "Albums"
 msgstr "Albumy"
 
-#: app/src/main_view.blp:99 app/src/preferences.blp:59
+#: app/src/main_view.blp:114 app/src/preferences.blp:59
 msgid "Library"
 msgstr "Biblioteka"
 
-#: app/src/main_view.blp:120
+#: app/src/main_view.blp:135
 msgid "Sort"
 msgstr "Sortowanie"
 
-#: app/src/main_view.blp:128
+#: app/src/main_view.blp:143
 msgid "Retry"
 msgstr "Spróbuj ponownie"
 
-#: app/src/main_view.blp:167 app/src/main_view.blp:184
+#: app/src/main_view.blp:182 app/src/main_view.blp:199
 msgid "Artists"
 msgstr "Wykonawcy"
 
-#: app/src/main_view.blp:185 app/src/main_view.blp:214
-#: app/src/main_view.blp:239 app/src/main_view.blp:268
+#: app/src/main_view.blp:200 app/src/main_view.blp:258
+#: app/src/main_view.blp:287
 msgid "Coming soon"
 msgstr "Wkrótce"
 
-#: app/src/main_view.blp:194 app/src/main_view.blp:213
+#: app/src/main_view.blp:209 app/src/main_view.blp:217
 msgid "Favorites"
 msgstr "Ulubione"
 
-#: app/src/main_view.blp:197
+#: app/src/main_view.blp:212
 msgid "Collections"
 msgstr "Kolekcje"
 
-#: app/src/main_view.blp:221 app/src/main_view.blp:238
+#: app/src/main_view.blp:240 app/src/main_view.blp:257
 msgid "Playlists"
 msgstr "Listy odtwarzania"
 
-#: app/src/main_view.blp:248 app/src/main_view.blp:267
+#: app/src/main_view.blp:267 app/src/main_view.blp:286
 msgid "Similar and Radio"
 msgstr "Podobne i radio"
 
-#: app/src/main_view.blp:251
+#: app/src/main_view.blp:270
 msgid "Discover"
 msgstr "Odkrywanie"
 
-#: app/src/main_view.blp:299
+#: app/src/main_view.blp:318
 msgid "Name"
 msgstr "Nazwa"
 
-#: app/src/main_view.blp:305
+#: app/src/main_view.blp:324
 msgid "Artist"
 msgstr "Wykonawca"
 
-#: app/src/main_view.blp:311
+#: app/src/main_view.blp:330
 msgid "Year (Newest)"
 msgstr "Rok (od najnowszych)"
 
-#: app/src/main_view.blp:317
+#: app/src/main_view.blp:336
 msgid "Year (Oldest)"
 msgstr "Rok (od najstarszych)"
 
-#: app/src/main_view.blp:323 app/src/start_page.blp:139
+#: app/src/main_view.blp:342 app/src/start_page.blp:139
 msgid "Recently Added"
 msgstr "Ostatnio dodane"
 
-#: app/src/main_view.blp:334
+#: app/src/main_view.blp:353
 msgid "Preferences"
 msgstr "Preferencje"
 
@@ -373,11 +386,11 @@ msgstr "Przejdź do albumu"
 msgid "Previous"
 msgstr "Poprzedni"
 
-#: app/src/player.rs:175 app/src/player.rs:269
+#: app/src/player.rs:206 app/src/player.rs:310
 msgid "Could not play the track"
 msgstr "Nie można odtworzyć utworu"
 
-#: app/src/player.rs:183 app/src/player.rs:219
+#: app/src/player.rs:217 app/src/player.rs:253
 msgid "Could not start playback"
 msgstr "Nie można rozpocząć odtwarzania"
 
@@ -395,18 +408,6 @@ msgstr "Odtwórz podobne utwory"
 
 #: app/src/search_page.blp:8
 msgid "Search"
-msgstr ""
-
-#: app/src/search_page.blp:59
-msgid "Songs"
-msgstr ""
-
-#: app/src/search_page.blp:85
-msgid "No Results"
-msgstr ""
-
-#: app/src/search_page.blp:86
-msgid "Try other words"
 msgstr ""
 
 #: app/src/preferences.blp:9
@@ -472,6 +473,10 @@ msgstr "Nie można wyczyścić pamięci podręcznej okładek"
 #: app/src/background.rs:23
 msgid "Music keeps playing after the window is closed"
 msgstr "Muzyka gra dalej po zamknięciu okna"
+
+#: app/src/results_view.blp:53
+msgid "Songs"
+msgstr ""
 
 #~ msgid "Similar to “{title}”"
 #~ msgstr "Podobne do „{title}”"
