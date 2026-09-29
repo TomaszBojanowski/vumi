@@ -8,7 +8,6 @@ use gstreamer as gst;
 use gst::prelude::*;
 use std::cell::{Cell, OnceCell, RefCell};
 use std::rc::{Rc, Weak};
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 
 /// What the player is doing. Paused and Ended look alike (nothing sounds),
@@ -41,12 +40,12 @@ pub(crate) struct Player {
     command: Cell<u64>,
     /// Where to jump once the new track is ready (resuming playback).
     pending_seek: Cell<Option<f64>>,
-    /// Gapless: the next track's address, read by GStreamer's about-to-finish
-    /// signal (on its own thread) to start that track without a gap.
-    next_uri: Arc<Mutex<Option<String>>>,
-    /// Set by about-to-finish when it queued the next track: the StreamStart
-    /// that follows then means "the next track has begun".
-    switched: Arc<AtomicBool>,
+    /// Gapless: the next track (its id and address), read by GStreamer's
+    /// about-to-finish signal (on its own thread) to start it without a gap.
+    next_uri: Arc<Mutex<Option<(String, String)>>>,
+    /// Set by about-to-finish to the id of the track it queued: the StreamStart
+    /// that follows then means "that track has begun".
+    switched_to: Arc<Mutex<Option<String>>>,
     /// Keeps the bus watch alive for as long as the player exists.
     _bus_watch: gst::bus::BusWatchGuard,
 }
@@ -71,17 +70,19 @@ impl Player {
         // Gapless: a few seconds before a track ends, GStreamer asks for the next
         // one (on its own thread). The address was prepared on the main thread
         // (prepare_next), so the track after starts without any silence.
-        let next_uri: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(None));
-        let switched = Arc::new(AtomicBool::new(false));
+        let next_uri: Arc<Mutex<Option<(String, String)>>> = Arc::new(Mutex::new(None));
+        let switched_to: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(None));
         {
             let next_uri = next_uri.clone();
-            let switched = switched.clone();
+            let switched_to = switched_to.clone();
             playbin.connect("about-to-finish", false, move |values| {
                 let playbin = values[0].get::<gst::Element>().ok()?;
-                let uri = next_uri.lock().ok().and_then(|mut next| next.take());
-                if let Some(uri) = uri {
+                let next = next_uri.lock().ok().and_then(|mut next| next.take());
+                if let Some((id, uri)) = next {
                     playbin.set_property("uri", uri.as_str());
-                    switched.store(true, Ordering::SeqCst);
+                    if let Ok(mut switched) = switched_to.lock() {
+                        *switched = Some(id);
+                    }
                 }
                 None
             });
@@ -110,7 +111,7 @@ impl Player {
                 command: Cell::new(0),
                 pending_seek: Cell::new(None),
                 next_uri,
-                switched,
+                switched_to,
                 _bus_watch: bus_watch,
             }
         })
@@ -186,7 +187,7 @@ impl Player {
         // A new track: a seek meant for the previous one must not land here.
         self.pending_seek.set(None);
         // Nor may a gapless switch of the previous one move this track on.
-        self.switched.store(false, Ordering::SeqCst);
+        self.forget_switch();
         let song = self.queue.borrow().get(index).cloned();
         let client = self.client.borrow().clone();
         let (Some(song), Some(client)) = (song, client) else {
@@ -300,8 +301,9 @@ impl Player {
             // A track has begun: if about-to-finish queued it, this is the gapless
             // step to the next track in the queue.
             gst::MessageView::StreamStart(..) => {
-                if self.switched.swap(false, Ordering::SeqCst) {
-                    self.advance_gapless();
+                let begun = self.switched_to.lock().ok().and_then(|mut s| s.take());
+                if let Some(id) = begun {
+                    self.advance_gapless(&id);
                 }
             }
             // The new track is ready: a pending seek (resuming) takes effect now.
@@ -412,19 +414,42 @@ impl Player {
                 .borrow()
                 .as_ref()
                 .and_then(|client| client.stream_url(&song.id).ok())
-                .map(|url| url.to_string())
+                .map(|url| (song.id.clone(), url.to_string()))
         });
         if let Ok(mut next_uri) = self.next_uri.lock() {
             *next_uri = uri;
         }
     }
 
-    /// Gapless: the next track has begun on its own; the queue follows it.
-    fn advance_gapless(&self) {
+    /// Gapless: the track GStreamer switched to has begun; the queue follows it.
+    /// It is found by its id, not assumed to be "the next one": the queue may
+    /// have changed since it was prepared (Play Next, drag and drop, removal).
+    fn advance_gapless(&self, id: &str) {
         self.pending_seek.set(None);
-        self.position.set(self.position.get() + 1);
-        self.set_state(State::Playing);
-        self.prepare_next();
+        let queue = self.queue.borrow().clone();
+        let from = self.position.get();
+        let found = queue
+            .iter()
+            .skip(from)
+            .position(|song| song.id == id)
+            .map(|offset| offset + from)
+            .or_else(|| queue.iter().position(|song| song.id == id));
+        match found {
+            Some(index) => {
+                self.position.set(index);
+                self.set_state(State::Playing);
+                self.prepare_next();
+            }
+            // Removed from the queue meanwhile: play what is next now instead.
+            None => self.play_at(from + 1),
+        }
+    }
+
+    /// A switch queued for the previous track must not move the queue on.
+    fn forget_switch(&self) {
+        if let Ok(mut switched) = self.switched_to.lock() {
+            *switched = None;
+        }
     }
 }
 
@@ -534,7 +559,7 @@ impl Player {
     pub(crate) fn reset(&self) {
         let _ = self.playbin.set_state(gst::State::Null);
         self.pending_seek.set(None);
-        self.switched.store(false, Ordering::SeqCst);
+        self.forget_switch();
         if let Ok(mut next_uri) = self.next_uri.lock() {
             *next_uri = None;
         }
