@@ -21,3 +21,4 @@ app/src/search_page.blp
 app/src/preferences.blp
 app/src/preferences.rs
 app/src/background.rs
+app/src/results_view.blp

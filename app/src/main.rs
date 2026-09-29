@@ -13,6 +13,7 @@ mod now_playing;
 mod mpris;
 mod player;
 mod preferences;
+mod results_view;
 mod resume;
 mod search_page;
 mod start_page;

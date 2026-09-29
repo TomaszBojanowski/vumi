@@ -160,7 +160,7 @@ fn fill_shelf(
                 .ancestor(MainView::static_type())
                 .and_downcast::<MainView>()
             {
-                main.open_album(&album.id, (*album).clone());
+                main.open_album_from(button, &album.id, (*album).clone());
             }
         });
         row.append(&button);

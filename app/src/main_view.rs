@@ -47,6 +47,8 @@ mod imp {
         pub search_generation: std::cell::Cell<u32>,
         #[template_child]
         pub start_page: gtk::TemplateChild<crate::start_page::StartPage>,
+        #[template_child]
+        pub favorites: gtk::TemplateChild<crate::results_view::ResultsView>,
         /// How the grid is sorted (see sort_albums).
         pub sort: RefCell<String>,
         /// Albums shown in the grid; items are subsonic::Album wrapped for GTK.
@@ -71,6 +73,7 @@ mod imp {
         fn class_init(klass: &mut Self::Class) {
             // The Start page is used in this template, so its type must exist first.
             crate::start_page::StartPage::static_type();
+            crate::results_view::ResultsView::static_type();
             klass.bind_template();
         }
 
@@ -97,6 +100,11 @@ impl MainView {
         view.setup_grid();
         view.setup_sorting();
         view.setup_search();
+        view.imp().favorites.set_empty(
+            "starred-symbolic",
+            &gettext("No Favorites"),
+            &gettext("Star albums and songs to see them here"),
+        );
         view
     }
 
@@ -221,6 +229,7 @@ impl MainView {
         self.imp().client.replace(Some(client.clone()));
         // Covers on the Start page can now come from the server too.
         self.refresh_start();
+        self.refresh_favorites();
         // Cards drawn before the connection could not fetch uncached covers:
         // every card that still shows the placeholder tries again now.
         for card in self.imp().cards.borrow().iter().filter_map(|c| c.upgrade()) {
@@ -270,6 +279,7 @@ impl MainView {
         imp.current.replace(albums);
         self.refresh_grid();
         self.refresh_start();
+        self.refresh_favorites();
         imp.stack.set_visible_child_name("library");
 
         if !imp.reported.replace(true) {
@@ -298,9 +308,31 @@ impl MainView {
 }
 
 impl MainView {
-    /// Opens an album page in the library, e.g. the album that is playing.
-    /// Uses the full album from the library if it is there, else `fallback`.
+    /// Opens an album page in the Albums section, e.g. the album that plays
+    /// (from the sidebar card, which belongs to no section).
     pub(crate) fn open_album(&self, id: &str, fallback: subsonic::Album) {
+        let imp = self.imp();
+        imp.views.set_visible_child_name("library");
+        self.open_album_on(&imp.library_nav.get(), id, fallback);
+    }
+
+    /// Opens an album page in the section `from` belongs to (Start, Favorites,
+    /// search results), so that Back returns there.
+    pub(crate) fn open_album_from(
+        &self,
+        from: &impl IsA<gtk::Widget>,
+        id: &str,
+        fallback: subsonic::Album,
+    ) {
+        let nav = from
+            .ancestor(adw::NavigationView::static_type())
+            .and_downcast::<adw::NavigationView>()
+            .unwrap_or_else(|| self.imp().library_nav.get());
+        self.open_album_on(&nav, id, fallback);
+    }
+
+    /// Uses the full album from the library if it is there, else `fallback`.
+    fn open_album_on(&self, nav: &adw::NavigationView, id: &str, fallback: subsonic::Album) {
         let imp = self.imp();
         let album = imp
             .current
@@ -310,34 +342,22 @@ impl MainView {
             .cloned()
             .unwrap_or_else(|| Arc::new(fallback));
         let client = imp.client.borrow().clone();
-
-        imp.views.set_visible_child_name("library");
         if imp.split.is_collapsed() {
             imp.split.set_show_sidebar(false);
         }
-        // Already open somewhere in the library: go back to it instead of
-        // stacking another copy on top.
-        let stack = imp.library_nav.navigation_stack();
+
+        // Already open in this section: go back to it instead of stacking
+        // another copy on top.
+        let stack = nav.navigation_stack();
         for i in (0..stack.n_items()).rev() {
             if let Some(page) = stack.item(i).and_downcast::<AlbumPage>() {
                 if page.album_id() == id {
-                    imp.library_nav.pop_to_page(&page);
+                    nav.pop_to_page(&page);
                     return;
                 }
             }
         }
-        // Already open somewhere in the library: go back to it instead of
-        // stacking another copy on top.
-        let stack = imp.library_nav.navigation_stack();
-        for i in (0..stack.n_items()).rev() {
-            if let Some(page) = stack.item(i).and_downcast::<AlbumPage>() {
-                if page.album_id() == id {
-                    imp.library_nav.pop_to_page(&page);
-                    return;
-                }
-            }
-        }
-        crate::album_page::open(&imp.library_nav.get(), &album, client);
+        crate::album_page::open(nav, &album, client);
     }
 }
 
@@ -572,5 +592,35 @@ impl MainView {
         if let Some(client) = client {
             self.sync_albums(client);
         }
+    }
+}
+
+impl MainView {
+    /// The Favorites page: starred albums and songs from the local database,
+    /// read in the background; refreshed with the library.
+    fn refresh_favorites(&self) {
+        let imp = self.imp();
+        let Some(client) = imp.client.borrow().clone() else {
+            return;
+        };
+        let server = client.server_key();
+        let view = self.downgrade();
+        glib::spawn_future_local(async move {
+            let result = runtime()
+                .spawn_blocking(move || library::load_starred(&server))
+                .await;
+            let (Some(view), Ok(Ok(found))) = (view.upgrade(), result) else {
+                return;
+            };
+            let albums: Vec<Arc<subsonic::Album>> = {
+                let current = view.imp().current.borrow();
+                found
+                    .album_ids
+                    .iter()
+                    .filter_map(|id| current.iter().find(|a| a.id == *id).cloned())
+                    .collect()
+            };
+            view.imp().favorites.show(&albums, found.songs, Some(client));
+        });
     }
 }

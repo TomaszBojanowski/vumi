@@ -293,7 +293,8 @@ pub(crate) fn load_album_songs(
     songs
 }
 
-/// What a search found: album ids (the albums themselves are in memory) and
+/// What a search (or the favourites) found: album ids (the albums themselves
+/// are in memory) and
 /// songs, best matches first.
 pub(crate) struct SearchResults {
     pub(crate) album_ids: Vec<String>,
@@ -330,6 +331,30 @@ pub(crate) fn search(server: &str, query: &str, limit: usize) -> rusqlite::Resul
     )?;
     let songs = stmt
         .query_map(params![server, fts, limit as i64], song_from_row)?
+        .collect::<rusqlite::Result<Vec<_>>>()?;
+
+    Ok(SearchResults { album_ids, songs })
+}
+
+/// Starred albums and songs of one server, most recently starred first.
+pub(crate) fn load_starred(server: &str) -> rusqlite::Result<SearchResults> {
+    let conn = open()?;
+    let mut stmt = conn.prepare(
+        "SELECT id FROM albums WHERE server = ?1 AND starred IS NOT NULL
+         ORDER BY starred DESC",
+    )?;
+    let album_ids = stmt
+        .query_map(params![server], |row| row.get(0))?
+        .collect::<rusqlite::Result<Vec<String>>>()?;
+
+    let mut stmt = conn.prepare(
+        "SELECT id, title, artist, track, disc_number, album, album_id, duration,
+                suffix, bit_rate, cover_art, bit_depth, sampling_rate, starred
+         FROM songs WHERE server = ?1 AND starred IS NOT NULL
+         ORDER BY starred DESC",
+    )?;
+    let songs = stmt
+        .query_map(params![server], song_from_row)?
         .collect::<rusqlite::Result<Vec<_>>>()?;
 
     Ok(SearchResults { album_ids, songs })
