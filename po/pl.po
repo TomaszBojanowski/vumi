@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: muse-player\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-29 10:05+0200\n"
+"POT-Creation-Date: 2026-09-29 18:32+0200\n"
 "PO-Revision-Date: 2026-09-27 20:40+0200\n"
 "Last-Translator: Tomasz Bojanowski <tomasz@bojanowski.me>\n"
 "Language-Team: Polish\n"
@@ -29,30 +29,30 @@ msgstr "Szybki odtwarzacz muzyki z serwerów Navidrome i Subsonic"
 msgid "music;player;navidrome;subsonic;"
 msgstr "muzyka;odtwarzacz;navidrome;subsonic;music;player;"
 
-#: app/src/main.rs:277 app/src/login_page.rs:153 app/src/album_page.rs:210
+#: app/src/main.rs:307 app/src/login_page.rs:153 app/src/album_page.rs:210
 msgid "Something went wrong. Please try again."
 msgstr "Wystąpił nieoczekiwany błąd. Spróbuj ponownie."
 
-#: app/src/main.rs:286
+#: app/src/main.rs:316
 msgid "Wrong username or password."
 msgstr "Nieprawidłowa nazwa użytkownika lub hasło."
 
-#: app/src/main.rs:287
+#: app/src/main.rs:317
 msgid "Cannot reach the server. Check the address and your connection."
 msgstr ""
 "Nie uzyskano połączenia z serwerem. Sprawdź adres i połączenie sieciowe."
 
-#: app/src/main.rs:288
+#: app/src/main.rs:318
 msgid "Invalid server address. It should start with http:// or https://"
 msgstr ""
 "Nieprawidłowy adres serwera. Adres musi zaczynać się od http:// lub https://"
 
-#: app/src/main.rs:289
+#: app/src/main.rs:319
 msgid "The server answered, but it does not look like a Subsonic server."
 msgstr "Serwer odpowiedział, ale nie wygląda na serwer zgodny z Subsonic."
 
 #. Translators: {message} is the error text sent by the server.
-#: app/src/main.rs:291
+#: app/src/main.rs:321
 #, rust-format
 msgid "Server error: {message}"
 msgstr "Błąd serwera: {message}"
@@ -468,6 +468,10 @@ msgstr "Synchronizowanie biblioteki…"
 #: app/src/preferences.rs:119
 msgid "Could not clear the cover cache"
 msgstr "Nie można wyczyścić pamięci podręcznej okładek"
+
+#: app/src/background.rs:23
+msgid "Music keeps playing after the window is closed"
+msgstr "Muzyka gra dalej po zamknięciu okna"
 
 #~ msgid "Similar to “{title}”"
 #~ msgstr "Podobne do „{title}”"

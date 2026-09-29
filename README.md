@@ -46,6 +46,6 @@ Later: year in music, forgotten albums, time-of-day mixes, command palette
 8. [ ] Search in the sidebar (FTS5), with a description mode (AudioMuse CLAP)
 9. [ ] Album page: full-width cover-coloured header, row states, track menu
 10. [ ] Queue in a right-hand panel, later synced lyrics as a second tab
-11. [ ] Gapless playback, MPRIS, playback after the window is closed
+11. [ ] MPRIS and playback after the window is closed: done; gapless playback still to do
 12. [ ] AudioMuse-AI direct: song paths, library map; signal path panel
 13. [ ] HTTPS: done with system certificates; still to do: self-signed certificates, server settings, logout
