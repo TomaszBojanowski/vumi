@@ -5,148 +5,168 @@ translation-domain "muse-player";
 
 // The Start page: shelves that answer "what shall I listen to now".
 template $MusePlayerStartPage: Adw.Bin {
-  child: ScrolledWindow {
-    hscrollbar-policy: never;
+  // Lets the page react to its own width (see the breakpoint at the end).
+  child: Adw.BreakpointBin {
+    width-request: 300;
+    height-request: 200;
 
-    child: Box {
-      orientation: vertical;
-      spacing: 24;
-      margin-top: 24;
-      margin-bottom: 24;
-      margin-start: 24;
-      margin-end: 24;
+    child: ScrolledWindow {
+      hscrollbar-policy: never;
 
-      // "Continue listening": the album that played last, resumed where it
-      // stopped. Hidden until something has played.
-      Box continue_card {
-        spacing: 18;
-        halign: start;
-        width-request: 560;
-        visible: false;
+      child: Box {
+        orientation: vertical;
+        spacing: 24;
+        margin-top: 24;
+        margin-bottom: 24;
+        margin-start: 24;
+        margin-end: 24;
 
-        styles [
-          "card",
-          "continue-card",
-        ]
-
-        Overlay {
-          width-request: 120;
-          height-request: 120;
-          valign: center;
-          overflow: hidden;
+        // "Continue listening": the album that played last, resumed where it
+        // stopped. Hidden until something has played. 560 px wide, or the
+        // whole width on narrow windows (the breakpoint below).
+        Box continue_card {
+          spacing: 18;
+          halign: start;
+          width-request: 560;
+          visible: false;
 
           styles [
-            "continue-cover",
+            "card",
+            "continue-card",
           ]
 
-          child: Image {
-            icon-name: "audio-x-generic-symbolic";
-            pixel-size: 48;
+          Overlay continue_cover_frame {
+            width-request: 120;
+            height-request: 120;
+            valign: center;
+            overflow: hidden;
 
             styles [
-              "dim-label",
+              "continue-cover",
             ]
-          };
 
-          [overlay]
-          Picture continue_cover {
-            content-fit: cover;
-          }
-        }
+            child: Image {
+              icon-name: "audio-x-generic-symbolic";
+              pixel-size: 48;
 
-        Box {
-          orientation: vertical;
-          valign: center;
-          spacing: 4;
-          hexpand: true;
+              styles [
+                "dim-label",
+              ]
+            };
 
-          Label {
-            label: _("Last Played");
-            xalign: 0;
-
-            styles [
-              "caption",
-              "dim-label",
-            ]
-          }
-
-          Label continue_title {
-            xalign: 0;
-            ellipsize: end;
-
-            styles [
-              "title-2",
-            ]
-          }
-
-          Label continue_subtitle {
-            xalign: 0;
-            ellipsize: end;
-
-            styles [
-              "dim-label",
-            ]
-          }
-
-          // Where in the song it stopped: a progress bar and the time.
-          Box {
-            spacing: 10;
-            margin-top: 4;
-
-            ProgressBar continue_progress {
-              hexpand: true;
-              valign: center;
+            [overlay]
+            Picture continue_cover {
+              content-fit: cover;
             }
+          }
 
-            Label continue_time {
+          Box {
+            orientation: vertical;
+            valign: center;
+            spacing: 4;
+            hexpand: true;
+
+            Label {
+              label: _("Last Played");
+              xalign: 0;
+
               styles [
                 "caption",
-                "numeric",
                 "dim-label",
               ]
             }
-          }
 
-          Button continue_button {
-            halign: start;
-            margin-top: 8;
+            Label continue_title {
+              xalign: 0;
+              ellipsize: end;
+
+              styles [
+                "title-2",
+              ]
+            }
+
+            Label continue_subtitle {
+              xalign: 0;
+              ellipsize: end;
+
+              styles [
+                "dim-label",
+              ]
+            }
+
+            // Where in the song it stopped: a progress bar and the time.
+            Box {
+              spacing: 10;
+              margin-top: 4;
+
+              ProgressBar continue_progress {
+                hexpand: true;
+                valign: center;
+              }
+
+              Label continue_time {
+                styles [
+                  "caption",
+                  "numeric",
+                  "dim-label",
+                ]
+              }
+            }
+
+            Button continue_button {
+              halign: start;
+              margin-top: 8;
+
+              styles [
+                "pill",
+              ]
+
+              child: Adw.ButtonContent {
+                icon-name: "media-playback-start-symbolic";
+                label: _("Continue");
+              };
+            }
+          }
+        }
+
+        // Hidden until there is something to show.
+        Box recent_shelf {
+          orientation: vertical;
+          spacing: 12;
+          visible: false;
+
+          Label {
+            label: _("Recently Added");
+            xalign: 0;
 
             styles [
-              "pill",
+              "title-4",
             ]
+          }
 
-            child: Adw.ButtonContent {
-              icon-name: "media-playback-start-symbolic";
-              label: _("Continue");
+          // One row of albums; it scrolls sideways when the window is narrow.
+          ScrolledWindow {
+            vscrollbar-policy: never;
+
+            child: Box recent_row {
+              spacing: 12;
             };
           }
         }
-      }
-
-      // Hidden until there is something to show.
-      Box recent_shelf {
-        orientation: vertical;
-        spacing: 12;
-        visible: false;
-
-        Label {
-          label: _("Recently Added");
-          xalign: 0;
-
-          styles [
-            "title-4",
-          ]
-        }
-
-        // One row of albums; it scrolls sideways when the window is narrow.
-        ScrolledWindow {
-          vscrollbar-policy: never;
-
-          child: Box recent_row {
-            spacing: 12;
-          };
-        }
-      }
+      };
     };
+
+    // Narrow: the card takes the width there is instead of its usual 560 px,
+    // which would not fit (plus the page margins).
+    Adw.Breakpoint {
+      condition ("max-width: 620sp")
+
+      setters {
+        continue_card.width-request: -1;
+        continue_card.halign: fill;
+        continue_cover_frame.width-request: 80;
+        continue_cover_frame.height-request: 80;
+      }
+    }
   };
 }

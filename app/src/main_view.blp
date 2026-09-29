@@ -56,6 +56,10 @@ template $MusePlayerMainView: Adw.NavigationPage {
             child: Adw.ToolbarView {
               [top]
               Adw.HeaderBar {
+                title-widget: Adw.WindowTitle {
+                  title: _("Start");
+                };
+
                 [start]
                 ToggleButton {
                   icon-name: "sidebar-show-symbolic";

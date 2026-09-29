@@ -218,3 +218,9 @@ button.shelf-card {
   border-radius: 8px;
   background-color: alpha(currentColor, 0.08);
 }
+
+/* The theme gives progress bars a minimum width of about 150 px; in the
+   Continue card that would keep it from fitting narrow windows. */
+.continue-card progressbar > trough {
+  min-width: 40px;
+}
