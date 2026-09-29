@@ -17,6 +17,7 @@ mod preferences;
 mod results_view;
 mod resume;
 mod search_page;
+mod song_menu;
 mod start_page;
 mod secrets;
 mod tint;

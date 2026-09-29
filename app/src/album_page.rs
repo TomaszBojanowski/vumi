@@ -369,7 +369,7 @@ fn track_row(
     // A click on a row plays the album from this track.
     row.set_activatable(true);
     let client_for_play = client.clone();
-    let queue = queue.clone();
+    let play_queue = queue.clone();
     let song_id = song.id.clone();
     row.connect_activated(move |_| {
         let player = player::get();
@@ -377,7 +377,7 @@ fn track_row(
         if player.is_active() && player.current().is_some_and(|s| s.id == song_id) {
             player.toggle_pause();
         } else {
-            player.play(client_for_play.clone(), queue.clone(), index);
+            player.play(client_for_play.clone(), play_queue.clone(), index);
         }
     });
 
@@ -416,6 +416,9 @@ fn track_row(
         Some(client.clone()),
         Favorite::Song(song.id.clone()),
     ));
+
+    // The ⋮ menu, last in the row: after the time and the star.
+    crate::song_menu::attach(&row, queue, index, Some(client.clone()));
 
     TrackRow {
         song_id: song.id.clone(),

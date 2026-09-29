@@ -1,0 +1,209 @@
+//! The menu of a song row (album pages, search results, favourites): a ⋮
+//! button at the end of the row, and the same menu on a right click.
+
+use adw::prelude::*;
+use gettextrs::gettext;
+use gtk::{gdk, gio, glib};
+use std::rc::Rc;
+
+use crate::main_view::MainView;
+use crate::player;
+
+/// Gives `row` a ⋮ menu (and the same menu on a right click) for the song at
+/// `index` in `songs`. The list is shared, not copied; the song is taken from
+/// it when the menu is used.
+pub(crate) fn attach(
+    row: &adw::ActionRow,
+    songs: &Rc<[subsonic::Song]>,
+    index: usize,
+    client: Option<subsonic::Client>,
+) {
+    let actions = gio::SimpleActionGroup::new();
+    let add = |name: &str, run: Box<dyn Fn(&adw::ActionRow, subsonic::Song, subsonic::Client)>| {
+        let action = gio::SimpleAction::new(name, None);
+        let songs = songs.clone();
+        let client = client.clone();
+        let row_weak = row.downgrade();
+        action.connect_activate(move |_, _| {
+            let (Some(row), Some(client), Some(song)) =
+                (row_weak.upgrade(), client.clone(), songs.get(index).cloned())
+            else {
+                return;
+            };
+            run(&row, song, client);
+        });
+        actions.add_action(&action);
+    };
+
+    add(
+        "play-next",
+        Box::new(|row, song, client| {
+            player::get().play_next(client, song);
+            toast(row, &gettext("Will play next"));
+        }),
+    );
+    add(
+        "add-to-queue",
+        Box::new(|row, song, client| {
+            player::get().enqueue(client, song);
+            toast(row, &gettext("Added to the queue"));
+        }),
+    );
+    add("play-similar", Box::new(|row, song, client| play_similar(row, song, client)));
+    add(
+        "go-to-album",
+        Box::new(|row, song, _| {
+            let Some(album_id) = song.album_id.clone() else {
+                return;
+            };
+            let fallback = subsonic::Album {
+                id: album_id.clone(),
+                name: song.album.clone().unwrap_or_default(),
+                artist: song.artist.clone(),
+                year: None,
+                song_count: None,
+                created: None,
+                cover_art: song.cover_art.clone(),
+                artist_id: None,
+                starred: None,
+            };
+            if let Some(main) = row
+                .ancestor(MainView::static_type())
+                .and_downcast::<MainView>()
+            {
+                main.open_album_from(row, &album_id, fallback);
+            }
+        }),
+    );
+    add("info", Box::new(|row, song, _| show_info(row, &song)));
+    row.insert_action_group("song", Some(&actions));
+
+    // Grouped as in the picture: queue, radio, navigation, information.
+    let menu = gio::Menu::new();
+    let queue = gio::Menu::new();
+    queue.append(Some(&gettext("Play Next")), Some("song.play-next"));
+    queue.append(Some(&gettext("Add to Queue")), Some("song.add-to-queue"));
+    menu.append_section(None, &queue);
+    let radio = gio::Menu::new();
+    radio.append(Some(&gettext("Play Similar")), Some("song.play-similar"));
+    menu.append_section(None, &radio);
+    let navigation = gio::Menu::new();
+    navigation.append(Some(&gettext("Go to Album")), Some("song.go-to-album"));
+    menu.append_section(None, &navigation);
+    let info = gio::Menu::new();
+    info.append(Some(&gettext("Song Information")), Some("song.info"));
+    menu.append_section(None, &info);
+
+    // The ⋮ button at the end of the row.
+    row.add_suffix(
+        &gtk::MenuButton::builder()
+            .icon_name("view-more-symbolic")
+            .menu_model(&menu)
+            .tooltip_text(gettext("More"))
+            .valign(gtk::Align::Center)
+            .css_classes(["flat", "circular"])
+            .build(),
+    );
+
+    // The same menu on a right click, where it was clicked.
+    let popover = gtk::PopoverMenu::from_model(Some(&menu));
+    popover.set_parent(row);
+    popover.set_has_arrow(false);
+    let click = gtk::GestureClick::builder()
+        .button(gdk::BUTTON_SECONDARY)
+        .build();
+    {
+        let popover = popover.clone();
+        click.connect_pressed(move |_, _, x, y| {
+            popover.set_pointing_to(Some(&gdk::Rectangle::new(x as i32, y as i32, 1, 1)));
+            popover.popup();
+        });
+    }
+    row.add_controller(click);
+    // The menu hangs on the row: it must go when the row goes.
+    row.connect_destroy(move |_| popover.unparent());
+}
+
+/// Play Similar: this song, then songs that sound like it (AudioMuse-AI).
+fn play_similar(row: &adw::ActionRow, song: subsonic::Song, client: subsonic::Client) {
+    let row = row.downgrade();
+    glib::spawn_future_local(async move {
+        let request = client.clone();
+        let id = song.id.clone();
+        let result = crate::runtime()
+            .spawn(async move { request.similar_songs(&id, 50).await })
+            .await;
+        let similar = match result {
+            Ok(Ok(songs)) => songs,
+            _ => Vec::new(),
+        };
+        if similar.is_empty() {
+            if let Some(row) = row.upgrade() {
+                toast(&row, &gettext("No similar songs found"));
+            }
+            return;
+        }
+        let seed_id = song.id.clone();
+        let mut songs = vec![song];
+        songs.extend(similar.into_iter().filter(|s| s.id != seed_id));
+        player::get().play(client, songs.into(), 0);
+    });
+}
+
+/// Song Information: what the server knows about the file.
+fn show_info(parent: &adw::ActionRow, song: &subsonic::Song) {
+    let group = adw::PreferencesGroup::new();
+    let add = |title: String, value: Option<String>| {
+        if let Some(value) = value.filter(|v| !v.is_empty()) {
+            let row = adw::ActionRow::builder()
+                .title(title)
+                .use_markup(false)
+                .subtitle_selectable(true)
+                .css_classes(["property"])
+                .build();
+            // After use_markup is off: "&" in names is plain text.
+            row.set_subtitle(&value);
+            group.add(&row);
+        }
+    };
+    add(gettext("Title"), Some(song.title.clone()));
+    add(gettext("Artist"), song.artist.clone());
+    add(gettext("Album"), song.album.clone());
+    add(gettext("Track"), song.track.map(|n| n.to_string()));
+    add(gettext("Disc"), song.disc_number.map(|n| n.to_string()));
+    add(
+        gettext("Duration"),
+        song.duration.map(|d| format!("{}:{:02}", d / 60, d % 60)),
+    );
+    add(gettext("Format"), song.suffix.as_ref().map(|s| s.to_uppercase()));
+    add(gettext("Bit Depth"), song.bit_depth.map(|b| format!("{b} bit")));
+    add(
+        gettext("Sample Rate"),
+        song.sampling_rate
+            .map(|r| format!("{} kHz", (r as f64 / 1000.0).to_string().replace('.', ","))),
+    );
+    add(gettext("Bit Rate"), song.bit_rate.map(|r| format!("{r} kbps")));
+
+    let page = adw::PreferencesPage::new();
+    page.add(&group);
+    let toolbar = adw::ToolbarView::new();
+    toolbar.add_top_bar(&adw::HeaderBar::new());
+    toolbar.set_content(Some(&page));
+    let dialog = adw::Dialog::builder()
+        .title(gettext("Song Information"))
+        .content_width(420)
+        .content_height(560)
+        .child(&toolbar)
+        .build();
+    dialog.present(Some(parent));
+}
+
+/// A short note at the bottom of the window.
+fn toast(widget: &impl IsA<gtk::Widget>, text: &str) {
+    if let Some(toasts) = widget
+        .ancestor(adw::ToastOverlay::static_type())
+        .and_downcast::<adw::ToastOverlay>()
+    {
+        toasts.add_toast(adw::Toast::new(text));
+    }
+}

@@ -145,6 +145,7 @@ impl ResultsView {
                         .build(),
                 );
             }
+            crate::song_menu::attach(&row, &queue, index, client.clone());
             let queue = queue.clone();
             let client = client.clone();
             row.connect_activated(move |_| {

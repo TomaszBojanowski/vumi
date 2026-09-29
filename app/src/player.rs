@@ -488,3 +488,33 @@ impl Player {
         self.notify();
     }
 }
+
+impl Player {
+    /// Puts `song` right after the playing track (Play Next). With nothing in
+    /// progress, it simply plays.
+    pub(crate) fn play_next(&self, client: subsonic::Client, song: subsonic::Song) {
+        if !self.is_active() {
+            self.play(client, vec![song].into(), 0);
+            return;
+        }
+        let mut songs = self.queue.borrow().to_vec();
+        songs.insert(self.position.get() + 1, song);
+        self.queue.replace(songs.into());
+        self.prepare_next();
+        self.notify();
+    }
+
+    /// Adds `song` at the end of the queue (Add to Queue). With nothing in
+    /// progress, it simply plays.
+    pub(crate) fn enqueue(&self, client: subsonic::Client, song: subsonic::Song) {
+        if !self.is_active() {
+            self.play(client, vec![song].into(), 0);
+            return;
+        }
+        let mut songs = self.queue.borrow().to_vec();
+        songs.push(song);
+        self.queue.replace(songs.into());
+        self.prepare_next();
+        self.notify();
+    }
+}
