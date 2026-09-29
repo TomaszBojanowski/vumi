@@ -108,6 +108,16 @@ fn migrate(conn: &mut Connection) -> rusqlite::Result<()> {
         )?;
         tx.commit()?;
     }
+    if version < 5 {
+        // Version 5: the artist id of every song, for "Go to Artist". Filled
+        // in by the next sync, which writes all songs anew.
+        let tx = conn.transaction()?;
+        tx.execute_batch(
+            "ALTER TABLE songs ADD COLUMN artist_id TEXT;
+             PRAGMA user_version = 5;",
+        )?;
+        tx.commit()?;
+    }
     Ok(())
 }
 
@@ -218,8 +228,8 @@ pub(crate) fn save_songs(server: &str, songs: &[subsonic::Song]) -> rusqlite::Re
             "INSERT INTO songs
                  (server, position, id, album_id, title, artist, album, track,
                   disc_number, duration, suffix, bit_rate, bit_depth, sampling_rate,
-                  cover_art, starred)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16)",
+                  cover_art, starred, artist_id)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17)",
         )?;
         let mut index =
             tx.prepare("INSERT INTO songs_fts (server, id, text) VALUES (?1, ?2, ?3)")?;
@@ -240,7 +250,8 @@ pub(crate) fn save_songs(server: &str, songs: &[subsonic::Song]) -> rusqlite::Re
                 s.bit_depth,
                 s.sampling_rate,
                 s.cover_art,
-                s.starred
+                s.starred,
+                s.artist_id
             ])?;
             let text = fold(&format!(
                 "{} {} {}",
@@ -256,7 +267,7 @@ pub(crate) fn save_songs(server: &str, songs: &[subsonic::Song]) -> rusqlite::Re
 
 /// A song read from a row with these columns, in this order: id, title,
 /// artist, track, disc_number, album, album_id, duration, suffix, bit_rate,
-/// cover_art, bit_depth, sampling_rate, starred.
+/// cover_art, bit_depth, sampling_rate, starred, artist_id.
 fn song_from_row(row: &rusqlite::Row) -> rusqlite::Result<subsonic::Song> {
     Ok(subsonic::Song {
         id: row.get(0)?,
@@ -273,6 +284,7 @@ fn song_from_row(row: &rusqlite::Row) -> rusqlite::Result<subsonic::Song> {
         bit_depth: row.get(11)?,
         sampling_rate: row.get(12)?,
         starred: row.get(13)?,
+        artist_id: row.get(14)?,
     })
 }
 
@@ -284,7 +296,7 @@ pub(crate) fn load_album_songs(
     let conn = open()?;
     let mut stmt = conn.prepare(
         "SELECT id, title, artist, track, disc_number, album, album_id, duration,
-                suffix, bit_rate, cover_art, bit_depth, sampling_rate, starred
+                suffix, bit_rate, cover_art, bit_depth, sampling_rate, starred, artist_id
          FROM songs WHERE server = ?1 AND album_id = ?2
          ORDER BY COALESCE(disc_number, 1), COALESCE(track, 0), position",
     )?;
@@ -324,7 +336,7 @@ pub(crate) fn search(server: &str, query: &str, limit: usize) -> rusqlite::Resul
     let mut stmt = conn.prepare(
         "SELECT s.id, s.title, s.artist, s.track, s.disc_number, s.album, s.album_id,
                 s.duration, s.suffix, s.bit_rate, s.cover_art, s.bit_depth,
-                s.sampling_rate, s.starred
+                s.sampling_rate, s.starred, s.artist_id
          FROM songs_fts f JOIN songs s ON s.server = f.server AND s.id = f.id
          WHERE songs_fts MATCH ?2 AND f.server = ?1
          ORDER BY f.rank LIMIT ?3",
@@ -349,7 +361,7 @@ pub(crate) fn load_starred(server: &str) -> rusqlite::Result<SearchResults> {
 
     let mut stmt = conn.prepare(
         "SELECT id, title, artist, track, disc_number, album, album_id, duration,
-                suffix, bit_rate, cover_art, bit_depth, sampling_rate, starred
+                suffix, bit_rate, cover_art, bit_depth, sampling_rate, starred, artist_id
          FROM songs WHERE server = ?1 AND starred IS NOT NULL
          ORDER BY starred DESC",
     )?;
