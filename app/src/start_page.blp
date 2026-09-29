@@ -153,6 +153,46 @@ template $MusePlayerStartPage: Adw.Bin {
             };
           }
         }
+
+        // "Similar to …": albums with songs that sound like the one that played
+        // last (AudioMuse-AI through Navidrome). Hidden until there is something.
+        Box similar_shelf {
+          orientation: vertical;
+          spacing: 12;
+          visible: false;
+
+          Box {
+            spacing: 8;
+
+            Label similar_title {
+              xalign: 0;
+              ellipsize: end;
+
+              styles [
+                "title-4",
+              ]
+            }
+
+            Button similar_radio {
+              icon-name: "muse-player-radio-symbolic";
+              tooltip-text: _("Play Similar Songs");
+              valign: center;
+
+              styles [
+                "circular",
+                "flat",
+              ]
+            }
+          }
+
+          ScrolledWindow {
+            vscrollbar-policy: never;
+
+            child: Box similar_row {
+              spacing: 12;
+            };
+          }
+        }
       };
     };
 
