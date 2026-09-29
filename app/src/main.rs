@@ -2,6 +2,7 @@ mod album_card;
 mod about;
 mod album_page;
 mod artist_page;
+mod background;
 mod covers;
 mod favorites;
 mod library;
@@ -232,6 +233,35 @@ fn build_ui(app: &adw::Application) {
         }
     });
     app.add_action(&sync);
+
+    // Closing the window while music is loaded (Preferences: "Play After the
+    // Window Is Closed") only hides it: the music goes on, controlled from
+    // GNOME Shell (MPRIS). Opening the app again, or Raise from Shell, shows it.
+    {
+        let settings = gtk::gio::Settings::new(APP_ID);
+        window.connect_close_request(move |window| {
+            if settings.boolean("background-playback") && crate::player::get().is_active() {
+                window.set_visible(false);
+                crate::background::request();
+                return gtk::glib::Propagation::Stop;
+            }
+            gtk::glib::Propagation::Proceed
+        });
+    }
+    // Hidden, and the music has stopped (end of the queue, Stop from Shell):
+    // nothing is left to do, so the app quits. Pausing does not count.
+    {
+        let window_weak = window.downgrade();
+        let app_weak = app.downgrade();
+        crate::player::get().connect_changed(move || {
+            let (Some(window), Some(app)) = (window_weak.upgrade(), app_weak.upgrade()) else {
+                return;
+            };
+            if !window.is_visible() && !crate::player::get().is_active() {
+                app.quit();
+            }
+        });
+    }
 
     window.present();
 }

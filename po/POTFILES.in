@@ -20,3 +20,4 @@ app/src/start_page.blp
 app/src/search_page.blp
 app/src/preferences.blp
 app/src/preferences.rs
+app/src/background.rs
