@@ -27,6 +27,8 @@ mod imp {
         pub songs_section: gtk::TemplateChild<gtk::Box>,
         #[template_child]
         pub songs_list: gtk::TemplateChild<gtk::ListBox>,
+        /// Song rows with their bars, to mark the one that is playing.
+        pub rows: std::cell::RefCell<Vec<(String, adw::ActionRow, gtk::Box)>>,
     }
 
     #[glib::object_subclass]
@@ -58,7 +60,16 @@ glib::wrapper! {
 
 impl SearchPage {
     pub(crate) fn new() -> Self {
-        glib::Object::new()
+        let page: Self = glib::Object::new();
+        // The playing song is marked, as on album pages. The results page lives as
+        // long as the app, so it keeps listening.
+        let page_weak = page.downgrade();
+        player::get().connect_changed(move || {
+            if let Some(page) = page_weak.upgrade() {
+                page.mark_playing();
+            }
+        });
+        page
     }
 
     /// Shows what a search found. A click on an album opens it on top of the
@@ -93,6 +104,7 @@ impl SearchPage {
         imp.albums_section.set_visible(!albums.is_empty());
 
         imp.songs_list.remove_all();
+        imp.rows.borrow_mut().clear();
         let queue: Rc<[subsonic::Song]> = songs.into();
         for (index, song) in queue.iter().enumerate() {
             let subtitle = [song.artist.as_deref(), song.album.as_deref()]
@@ -102,10 +114,20 @@ impl SearchPage {
                 .join(" · ");
             let row = adw::ActionRow::builder()
                 .title(song.title.as_str())
-                .subtitle(subtitle)
                 .use_markup(false)
                 .activatable(true)
                 .build();
+            // Set after use_markup is off: names like "Simon & Garfunkel" are plain
+            // text, not markup.
+            row.set_subtitle(&subtitle);
+            // Bars before the title, see-through unless the song plays, so the
+            // titles stay aligned either way.
+            let bars = crate::album_page::eq_bars();
+            bars.set_opacity(0.0);
+            row.add_prefix(&bars);
+            imp.rows
+                .borrow_mut()
+                .push((song.id.clone(), row.clone(), bars));
             if let Some(d) = song.duration {
                 row.add_suffix(
                     &gtk::Label::builder()
@@ -124,9 +146,36 @@ impl SearchPage {
             imp.songs_list.append(&row);
         }
         imp.songs_section.set_visible(!queue.is_empty());
+        self.mark_playing();
 
         let nothing = albums.is_empty() && queue.is_empty();
         imp.stack
             .set_visible_child_name(if nothing { "empty" } else { "results" });
+    }
+}
+
+impl SearchPage {
+    /// Bars and the highlight on the song that is playing (resting bars while
+    /// paused), as on album pages.
+    fn mark_playing(&self) {
+        let player = player::get();
+        let current = player
+            .current()
+            .filter(|_| player.is_active())
+            .map(|song| song.id);
+        for (id, row, bars) in self.imp().rows.borrow().iter() {
+            let playing = current.as_deref() == Some(id.as_str());
+            bars.set_opacity(if playing { 1.0 } else { 0.0 });
+            if player.is_playing() {
+                bars.remove_css_class("paused");
+            } else {
+                bars.add_css_class("paused");
+            }
+            if playing {
+                row.add_css_class("playing");
+            } else {
+                row.remove_css_class("playing");
+            }
+        }
     }
 }

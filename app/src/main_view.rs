@@ -551,3 +551,14 @@ impl MainView {
         });
     }
 }
+
+impl MainView {
+    /// Ctrl+F: to the search field, sliding the sidebar in on narrow windows.
+    pub(crate) fn focus_search(&self) {
+        let imp = self.imp();
+        if imp.split.is_collapsed() {
+            imp.split.set_show_sidebar(true);
+        }
+        imp.search_entry.grab_focus();
+    }
+}

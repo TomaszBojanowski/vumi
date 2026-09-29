@@ -165,6 +165,17 @@ fn build_ui(app: &adw::Application) {
         glib::Propagation::Proceed
     });
 
+    // Ctrl+F: to the search field.
+    let search = gtk::gio::SimpleAction::new("search", None);
+    let main_weak = main.downgrade();
+    search.connect_activate(move |_, _| {
+        if let Some(main) = main_weak.upgrade() {
+            main.focus_search();
+        }
+    });
+    window.add_action(&search);
+    app.set_accels_for_action("win.search", &["<Control>f"]);
+
     window.present();
 }
 

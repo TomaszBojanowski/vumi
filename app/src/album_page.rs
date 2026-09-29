@@ -396,15 +396,7 @@ fn track_row(
         .css_classes(["dim-label", "numeric"])
         .build();
     // Three bars that bounce while the track plays and rest while it is paused.
-    let bars = gtk::Box::builder()
-        .spacing(2)
-        .halign(gtk::Align::End)
-        .valign(gtk::Align::Center)
-        .css_classes(["eq"])
-        .build();
-    for _ in 0..3 {
-        bars.append(&gtk::Box::builder().css_classes(["eq-bar"]).build());
-    }
+    let bars = eq_bars();
     let slot = gtk::Stack::new();
     slot.add_named(&number, Some("number"));
     slot.add_named(&bars, Some("icon"));
@@ -942,4 +934,19 @@ impl AlbumPage {
             player::get().play(client, songs.into(), 0);
         });
     }
+}
+
+/// Three bars that bounce while a track plays (style.css: .eq); the class
+/// "paused" makes them rest. Used by album pages and search results.
+pub(crate) fn eq_bars() -> gtk::Box {
+    let bars = gtk::Box::builder()
+        .spacing(2)
+        .halign(gtk::Align::End)
+        .valign(gtk::Align::Center)
+        .css_classes(["eq"])
+        .build();
+    for _ in 0..3 {
+        bars.append(&gtk::Box::builder().css_classes(["eq-bar"]).build());
+    }
+    bars
 }
