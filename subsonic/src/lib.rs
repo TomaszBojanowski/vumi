@@ -62,6 +62,7 @@ pub struct Response {
     pub error: Option<ApiError>,
     pub album_list2: Option<AlbumList>,
     pub search_result3: Option<SearchResult3>,
+    pub similar_songs: Option<SimilarSongs>,
     pub album: Option<AlbumWithSongs>,
     pub album_info: Option<AlbumInfo>,
     pub artist: Option<ArtistWithAlbums>,
@@ -265,6 +266,19 @@ impl Client {
         Ok(response.search_result3.map(|r| r.song).unwrap_or_default())
     }
 
+    /// Songs that sound like the song (or album, or artist) `id`. With the
+    /// AudioMuse-AI plugin in Navidrome, the similarity comes from analysing the
+    /// audio itself; without it, from whatever the server uses (e.g. Last.fm).
+    pub async fn similar_songs(&self, id: &str, count: u32) -> Result<Vec<Song>> {
+        let response = self
+            .call(
+                "getSimilarSongs",
+                &[("id", id.to_string()), ("count", count.to_string())],
+            )
+            .await?;
+        Ok(response.similar_songs.map(|s| s.song).unwrap_or_default())
+    }
+
     /// Every song on the server, fetched in pages of 500.
     pub async fn all_songs(&self) -> Result<Vec<Song>> {
         const PAGE: u32 = 500;
@@ -388,6 +402,13 @@ impl Client {
 /// Songs found by search3; with an empty query, a page of the whole library.
 #[derive(Deserialize)]
 pub struct SearchResult3 {
+    #[serde(default)]
+    pub song: Vec<Song>,
+}
+
+/// Songs that sound like a given song, album or artist (getSimilarSongs).
+#[derive(Deserialize)]
+pub struct SimilarSongs {
     #[serde(default)]
     pub song: Vec<Song>,
 }
