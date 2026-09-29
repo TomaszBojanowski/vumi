@@ -311,6 +311,17 @@ template $MusePlayerMainView: Adw.NavigationPage {
       };
     };
 
+    // Medium windows: the queue no longer fits beside the content and the
+    // sidebar, so it slides in over the content. (With several breakpoints the
+    // last one that matches wins: the narrow one below comes after this.)
+    Adw.Breakpoint {
+      condition ("max-width: 1000sp")
+
+      setters {
+        queue_split.collapsed: true;
+      }
+    }
+
     // Narrow windows: the sidebar hides and slides in over the content.
     Adw.Breakpoint {
       condition ("max-width: 700sp")

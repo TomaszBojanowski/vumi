@@ -437,3 +437,54 @@ impl Player {
         }
     }
 }
+
+impl Player {
+    /// Removes the track at `index` from the queue (the queue panel). Removing
+    /// the playing track plays the next one, or ends the queue.
+    pub(crate) fn remove(&self, index: usize) {
+        let queue = self.queue.borrow().clone();
+        if index >= queue.len() {
+            return;
+        }
+        let mut songs = queue.to_vec();
+        songs.remove(index);
+        let position = self.position.get();
+        self.queue.replace(songs.into());
+        if index == position {
+            // The next track now sits at this index; past the end, the queue ends.
+            self.play_at(position);
+        } else {
+            if index < position {
+                self.position.set(position - 1);
+            }
+            self.prepare_next();
+            self.notify();
+        }
+    }
+
+    /// Moves the track at `from` to `to` (drag and drop in the queue panel).
+    /// The playing track keeps playing, wherever it ends up.
+    pub(crate) fn move_track(&self, from: usize, to: usize) {
+        let queue = self.queue.borrow().clone();
+        if from >= queue.len() || to >= queue.len() || from == to {
+            return;
+        }
+        let mut songs = queue.to_vec();
+        let song = songs.remove(from);
+        songs.insert(to, song);
+        let position = self.position.get();
+        let moved = if position == from {
+            to
+        } else if from < position && to >= position {
+            position - 1
+        } else if from > position && to <= position {
+            position + 1
+        } else {
+            position
+        };
+        self.queue.replace(songs.into());
+        self.position.set(moved);
+        self.prepare_next();
+        self.notify();
+    }
+}

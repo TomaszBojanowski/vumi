@@ -4,7 +4,9 @@
 
 use adw::prelude::*;
 use adw::subclass::prelude::*;
-use gettextrs::ngettext;
+use gettextrs::{gettext, ngettext};
+use gtk::gdk;
+use gtk::gio;
 use gtk::glib;
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -97,11 +99,14 @@ impl QueuePage {
                 .title_lines(1)
                 .subtitle_lines(1)
                 .tooltip_text(song.title.as_str())
+                .css_classes(["queue-row"])
                 .build();
             row.set_subtitle(song.artist.as_deref().unwrap_or(""));
             let bars = crate::album_page::eq_bars();
             bars.set_opacity(0.0);
             row.add_prefix(&bars);
+            row.connect_activated(move |_| player::get().play_index(index));
+
             if let Some(d) = song.duration {
                 row.add_suffix(
                     &gtk::Label::builder()
@@ -110,7 +115,82 @@ impl QueuePage {
                         .build(),
                 );
             }
-            row.connect_activated(move |_| player::get().play_index(index));
+
+            // Right click: a small menu with "Remove from Queue", where it was clicked.
+            let actions = gio::SimpleActionGroup::new();
+            let remove = gio::SimpleAction::new("remove", None);
+            remove.connect_activate(move |_, _| player::get().remove(index));
+            actions.add_action(&remove);
+            row.insert_action_group("queue", Some(&actions));
+            let menu = gio::Menu::new();
+            menu.append(Some(&gettext("Remove from Queue")), Some("queue.remove"));
+            let popover = gtk::PopoverMenu::from_model(Some(&menu));
+            popover.set_parent(&row);
+            popover.set_has_arrow(false);
+            let click = gtk::GestureClick::builder()
+                .button(gdk::BUTTON_SECONDARY)
+                .build();
+            {
+                let popover = popover.clone();
+                click.connect_pressed(move |_, _, x, y| {
+                    popover.set_pointing_to(Some(&gdk::Rectangle::new(x as i32, y as i32, 1, 1)));
+                    popover.popup();
+                });
+            }
+            row.add_controller(click);
+            // The menu hangs on the row: it must go when the row goes.
+            row.connect_destroy(move |_| popover.unparent());
+
+            // Drag and drop: a row carries its index; dropping it on another row
+            // moves the track there. The whole row can be grabbed.
+            let source = gtk::DragSource::builder()
+                .actions(gdk::DragAction::MOVE)
+                .build();
+            // While dragging: a small label with the title under the pointer,
+            // not a copy of the whole row.
+            let title = song.title.clone();
+            // The icon must be set here, in prepare: by drag-begin GTK has already
+            // chosen its default one (a copy of the row).
+            source.connect_prepare(move |source, _, _| {
+                let row = source.widget()?;
+                let layout = row.create_pango_layout(Some(&title));
+                layout.set_width(240 * gtk::pango::SCALE);
+                layout.set_ellipsize(gtk::pango::EllipsizeMode::End);
+                let (text_w, text_h) = layout.pixel_size();
+                let (pad_x, pad_y) = (12.0, 6.0);
+                let width = text_w as f32 + 2.0 * pad_x;
+                let height = text_h as f32 + 2.0 * pad_y;
+
+                let snapshot = gtk::Snapshot::new();
+                let dark = adw::StyleManager::default().is_dark();
+                let background = if dark {
+                    gdk::RGBA::new(0.2, 0.2, 0.2, 0.97)
+                } else {
+                    gdk::RGBA::new(1.0, 1.0, 1.0, 0.97)
+                };
+                let rect = gtk::graphene::Rect::new(0.0, 0.0, width, height);
+                snapshot.push_rounded_clip(&gtk::gsk::RoundedRect::from_rect(rect, 8.0));
+                snapshot.append_color(&background, &rect);
+                snapshot.pop();
+                snapshot.translate(&gtk::graphene::Point::new(pad_x, pad_y));
+                snapshot.append_layout(&layout, &row.color());
+                if let Some(icon) =
+                    snapshot.to_paintable(Some(&gtk::graphene::Size::new(width, height)))
+                {
+                    source.set_icon(Some(&icon), pad_x as i32, (height / 2.0) as i32);
+                }
+                Some(gdk::ContentProvider::for_value(&(index as i32).to_value()))
+            });
+            row.add_controller(source);
+            let target = gtk::DropTarget::new(i32::static_type(), gdk::DragAction::MOVE);
+            target.connect_drop(move |_, value, _, _| match value.get::<i32>() {
+                Ok(from) => {
+                    player::get().move_track(from as usize, index);
+                    true
+                }
+                Err(_) => false,
+            });
+            row.add_controller(target);
             imp.list.append(&row);
             imp.rows.borrow_mut().push((row, bars));
         }
