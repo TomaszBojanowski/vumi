@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: muse-player\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-30 00:43+0200\n"
+"POT-Creation-Date: 2026-09-30 01:16+0200\n"
 "PO-Revision-Date: 2026-09-27 20:40+0200\n"
 "Last-Translator: Tomasz Bojanowski <tomasz@bojanowski.me>\n"
 "Language-Team: Polish\n"
@@ -57,25 +57,25 @@ msgstr "Serwer odpowiedział, ale nie wygląda na serwer zgodny z Subsonic."
 msgid "Server error: {message}"
 msgstr "Błąd serwera: {message}"
 
-#: app/src/main_view.rs:112
+#: app/src/main_view.rs:113
 msgid "No Favorites"
 msgstr "Brak ulubionych"
 
-#: app/src/main_view.rs:113
+#: app/src/main_view.rs:114
 msgid "Star albums and songs to see them here"
 msgstr "Albumy i utwory oznaczone gwiazdką pojawią się tutaj"
 
-#: app/src/main_view.rs:207
+#: app/src/main_view.rs:208
 msgid "Connecting…"
 msgstr "Łączenie…"
 
 #. Translators: {server} is the server software (e.g. navidrome), {version} its version.
-#: app/src/main_view.rs:215
+#: app/src/main_view.rs:216
 #, rust-format
 msgid "Connected to {server} {version}"
 msgstr "Połączono z serwerem {server} {version}"
 
-#: app/src/main_view.rs:226
+#: app/src/main_view.rs:227
 msgid "Offline"
 msgstr "Brak połączenia"
 
@@ -156,7 +156,7 @@ msgstr "Odkrywanie"
 msgid "Name"
 msgstr "Nazwa"
 
-#: app/src/main_view.blp:347 app/src/song_menu.rs:175
+#: app/src/main_view.blp:347 app/src/song_menu.rs:177
 msgid "Artist"
 msgstr "Wykonawca"
 
@@ -267,7 +267,7 @@ msgstr[2] "{n} płyt"
 
 #. Translators: {n} is a number of tracks.
 #. Translators: {n} is a number of tracks in the queue.
-#: app/src/album_page.rs:314 app/src/queue_page.rs:200
+#: app/src/album_page.rs:314 app/src/queue_page.rs:193
 #, rust-format
 msgid "{n} track"
 msgid_plural "{n} tracks"
@@ -342,7 +342,7 @@ msgstr "Radio"
 msgid "Shuffle"
 msgstr "Losowo"
 
-#: app/src/album_page.rs:934 app/src/song_menu.rs:147
+#: app/src/album_page.rs:934 app/src/song_menu.rs:149
 msgid "No similar songs found"
 msgstr "Nie znaleziono podobnych utworów"
 
@@ -370,7 +370,7 @@ msgstr "Dodaj do ulubionych"
 msgid "Show less"
 msgstr "Wyświetl mniej"
 
-#: app/src/artist_page.rs:118
+#: app/src/artist_page.rs:126
 #, rust-format
 msgid "{n} album"
 msgid_plural "{n} albums"
@@ -474,7 +474,7 @@ msgstr "Synchronizowanie biblioteki…"
 msgid "Could not clear the cover cache"
 msgstr "Nie można wyczyścić pamięci podręcznej okładek"
 
-#: app/src/background.rs:56
+#: app/src/background.rs:63
 msgid "Music keeps playing after the window is closed"
 msgstr "Muzyka gra dalej po zamknięciu okna"
 
@@ -494,71 +494,75 @@ msgstr "Proszę odtworzyć album, utwór lub radio"
 msgid "Remove from Queue"
 msgstr "Usuń z kolejki"
 
-#: app/src/song_menu.rs:42
-msgid "Will play next"
-msgstr "Zostanie odtworzony jako następny"
-
-#: app/src/song_menu.rs:49
-msgid "Added to the queue"
-msgstr "Dodano na koniec kolejki"
-
-#: app/src/song_menu.rs:84
-msgid "Play Next"
-msgstr "Dodaj jako następny"
-
-#: app/src/song_menu.rs:85
-msgid "Add to Queue"
-msgstr "Dodaj na koniec kolejki"
-
-#: app/src/song_menu.rs:88
-msgid "Play Similar"
-msgstr "Odtwórz podobne"
-
-#: app/src/song_menu.rs:91
-msgid "Go to Album"
-msgstr "Przejdź do albumu"
-
-#: app/src/song_menu.rs:94 app/src/song_menu.rs:198
-msgid "Song Information"
-msgstr "Informacje o utworze"
-
-#: app/src/song_menu.rs:102
+#: app/src/queue_page.rs:131 app/src/song_menu.rs:122
 msgid "More"
 msgstr "Więcej"
 
-#: app/src/song_menu.rs:174
+#: app/src/song_menu.rs:43
+msgid "Will play next"
+msgstr "Zostanie odtworzony jako następny"
+
+#: app/src/song_menu.rs:50
+msgid "Added to the queue"
+msgstr "Dodano na koniec kolejki"
+
+#: app/src/song_menu.rs:100
+msgid "Play Next"
+msgstr "Dodaj jako następny"
+
+#: app/src/song_menu.rs:101
+msgid "Add to Queue"
+msgstr "Dodaj na koniec kolejki"
+
+#: app/src/song_menu.rs:104
+msgid "Play Similar"
+msgstr "Odtwórz podobne"
+
+#: app/src/song_menu.rs:109
+msgid "Go to Album"
+msgstr "Przejdź do albumu"
+
+#: app/src/song_menu.rs:111
+msgid "Go to Artist"
+msgstr "Przejdź do artysty"
+
+#: app/src/song_menu.rs:114 app/src/song_menu.rs:200
+msgid "Song Information"
+msgstr "Informacje o utworze"
+
+#: app/src/song_menu.rs:176
 msgid "Title"
 msgstr "Tytuł"
 
-#: app/src/song_menu.rs:176
+#: app/src/song_menu.rs:178
 msgid "Album"
 msgstr "Album"
 
-#: app/src/song_menu.rs:177
+#: app/src/song_menu.rs:179
 msgid "Track"
 msgstr "Utwór"
 
-#: app/src/song_menu.rs:178
+#: app/src/song_menu.rs:180
 msgid "Disc"
 msgstr "Płyta"
 
-#: app/src/song_menu.rs:180
+#: app/src/song_menu.rs:182
 msgid "Duration"
 msgstr "Czas trwania"
 
-#: app/src/song_menu.rs:183
+#: app/src/song_menu.rs:185
 msgid "Format"
 msgstr "Format"
 
-#: app/src/song_menu.rs:184
+#: app/src/song_menu.rs:186
 msgid "Bit Depth"
 msgstr "Rozdzielczość"
 
-#: app/src/song_menu.rs:186
+#: app/src/song_menu.rs:188
 msgid "Sample Rate"
 msgstr "Częstotliwość próbkowania"
 
-#: app/src/song_menu.rs:190
+#: app/src/song_menu.rs:192
 msgid "Bit Rate"
 msgstr "Przepływność"
 
