@@ -92,9 +92,8 @@ msgid "Sync Library"
 msgstr "Synchronizuj bibliotekę"
 
 #: app/src/main_view.blp:51
-#, fuzzy
 msgid "Search Library"
-msgstr "Biblioteka"
+msgstr "Wyszukiwanie w bibliotece"
 
 #: app/src/main_view.blp:87 app/src/main_view.blp:93 app/src/main_view.blp:99
 msgid "Start"
@@ -413,7 +412,7 @@ msgstr "Odtwórz podobne utwory"
 
 #: app/src/search_page.blp:8
 msgid "Search"
-msgstr ""
+msgstr "Wyszukiwanie"
 
 #: app/src/preferences.blp:9
 msgid "General"
@@ -481,7 +480,7 @@ msgstr "Muzyka gra dalej po zamknięciu okna"
 
 #: app/src/results_view.blp:53
 msgid "Songs"
-msgstr ""
+msgstr "Utwory"
 
 #: app/src/queue_page.blp:42
 msgid "Nothing Queued"
