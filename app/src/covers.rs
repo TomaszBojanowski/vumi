@@ -139,3 +139,29 @@ pub(crate) fn cached_path(id: &str) -> Option<PathBuf> {
     let path = cache_path(&server, id);
     path.exists().then_some(path)
 }
+
+/// Size of the cover cache on disk, in bytes (Preferences). Blocks: call it
+/// on a worker thread.
+pub(crate) fn cache_size() -> u64 {
+    std::fs::read_dir(cache_dir())
+        .map(|entries| {
+            entries
+                .flatten()
+                .filter_map(|entry| entry.metadata().ok())
+                .filter(|meta| meta.is_file())
+                .map(|meta| meta.len())
+                .sum()
+        })
+        .unwrap_or(0)
+}
+
+/// Removes every cached cover (Preferences); covers are fetched again when
+/// needed. Blocks: call it on a worker thread.
+pub(crate) fn clear_cache() -> std::io::Result<()> {
+    for entry in std::fs::read_dir(cache_dir())?.flatten() {
+        if entry.path().is_file() {
+            std::fs::remove_file(entry.path())?;
+        }
+    }
+    Ok(())
+}

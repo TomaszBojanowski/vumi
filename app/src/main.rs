@@ -223,6 +223,16 @@ fn build_ui(app: &adw::Application) {
     }
     app.add_action(&logout);
 
+    // Sync the library now (Preferences).
+    let sync = gtk::gio::SimpleAction::new("sync", None);
+    let main_for_sync = main.downgrade();
+    sync.connect_activate(move |_, _| {
+        if let Some(main) = main_for_sync.upgrade() {
+            main.sync_now();
+        }
+    });
+    app.add_action(&sync);
+
     window.present();
 }
 

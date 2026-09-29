@@ -2,6 +2,7 @@
 //! so the rest of the app reads the same values and nothing needs saving here.
 
 use adw::subclass::prelude::*;
+use gettextrs::gettext;
 use gtk::gio;
 use gtk::glib;
 use adw::prelude::*;
@@ -22,6 +23,12 @@ mod imp {
         pub endless_radio: gtk::TemplateChild<adw::SwitchRow>,
         #[template_child]
         pub background_playback: gtk::TemplateChild<adw::SwitchRow>,
+        #[template_child]
+        pub sync_row: gtk::TemplateChild<adw::ButtonRow>,
+        #[template_child]
+        pub covers_row: gtk::TemplateChild<adw::ActionRow>,
+        #[template_child]
+        pub clear_covers: gtk::TemplateChild<gtk::Button>,
     }
 
     #[glib::object_subclass]
@@ -48,6 +55,8 @@ mod imp {
             self.server_row
                 .set_subtitle(&settings.string("server-url"));
             self.user_row.set_subtitle(&settings.string("username"));
+            self.obj().setup_library();
+
             // Logging out leaves the account behind: the dialog goes with it.
             let dialog = self.obj().downgrade();
             self.logout_row.connect_activated(move |_| {
@@ -78,5 +87,59 @@ glib::wrapper! {
 impl Preferences {
     pub(crate) fn new() -> Self {
         glib::Object::new()
+    }
+}
+
+impl Preferences {
+    /// The Library group: a note when a sync starts, the size of the cover
+    /// cache (worked out in the background) and the button that clears it.
+    fn setup_library(&self) {
+        let imp = self.imp();
+
+        let dialog = self.downgrade();
+        imp.sync_row.connect_activated(move |_| {
+            if let Some(dialog) = dialog.upgrade() {
+                dialog.add_toast(adw::Toast::new(&gettext("Syncing the library…")));
+            }
+        });
+
+        let dialog = self.downgrade();
+        imp.clear_covers.connect_clicked(move |button| {
+            button.set_sensitive(false);
+            let dialog = dialog.clone();
+            let button = button.downgrade();
+            glib::spawn_future_local(async move {
+                let result = crate::runtime()
+                    .spawn_blocking(crate::covers::clear_cache)
+                    .await;
+                if let Some(dialog) = dialog.upgrade() {
+                    dialog.update_cache_size();
+                    if !matches!(result, Ok(Ok(()))) {
+                        dialog.add_toast(adw::Toast::new(&gettext(
+                            "Could not clear the cover cache",
+                        )));
+                    }
+                }
+                if let Some(button) = button.upgrade() {
+                    button.set_sensitive(true);
+                }
+            });
+        });
+
+        self.update_cache_size();
+    }
+
+    /// Shows the size of the cover cache, e.g. "48.2 MB".
+    fn update_cache_size(&self) {
+        let dialog = self.downgrade();
+        glib::spawn_future_local(async move {
+            let size = crate::runtime()
+                .spawn_blocking(crate::covers::cache_size)
+                .await
+                .unwrap_or(0);
+            if let Some(dialog) = dialog.upgrade() {
+                dialog.imp().covers_row.set_subtitle(&glib::format_size(size));
+            }
+        });
     }
 }

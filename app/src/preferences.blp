@@ -54,5 +54,26 @@ template $MusePlayerPreferences: Adw.PreferencesDialog {
         subtitle: _("The music goes on; the controls stay in the system menu");
       }
     }
+
+    Adw.PreferencesGroup {
+      title: _("Library");
+
+      // Runs app.sync (main.rs): albums, then songs, as after connecting.
+      Adw.ButtonRow sync_row {
+        title: _("Sync Now");
+        start-icon-name: "view-refresh-symbolic";
+        action-name: "app.sync";
+      }
+
+      Adw.ActionRow covers_row {
+        title: _("Cover Cache");
+
+        [suffix]
+        Button clear_covers {
+          label: _("Clear");
+          valign: center;
+        }
+      }
+    }
   }
 }

@@ -562,3 +562,15 @@ impl MainView {
         imp.search_entry.grab_focus();
     }
 }
+
+impl MainView {
+    /// Syncs albums and then songs now (Preferences), as after connecting.
+    pub(crate) fn sync_now(&self) {
+        // Taken out first: in `if let`, the borrow would last for the whole block,
+        // while sync_albums stores the client (borrow_mut).
+        let client = self.imp().client.borrow().clone();
+        if let Some(client) = client {
+            self.sync_albums(client);
+        }
+    }
+}
