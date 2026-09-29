@@ -10,6 +10,38 @@ template $MusePlayerPreferences: Adw.PreferencesDialog {
     icon-name: "preferences-system-symbolic";
 
     Adw.PreferencesGroup {
+      title: _("Account");
+
+      Adw.ActionRow server_row {
+        title: _("Server");
+        subtitle-selectable: true;
+
+        styles [
+          "property",
+        ]
+      }
+
+      Adw.ActionRow user_row {
+        title: _("User");
+        subtitle-selectable: true;
+
+        styles [
+          "property",
+        ]
+      }
+
+      // Runs app.logout (main.rs) and closes the dialog.
+      Adw.ButtonRow logout_row {
+        title: _("Log Out");
+        action-name: "app.logout";
+
+        styles [
+          "destructive-action",
+        ]
+      }
+    }
+
+    Adw.PreferencesGroup {
       title: _("Playback");
 
       Adw.SwitchRow endless_radio {

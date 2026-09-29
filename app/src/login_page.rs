@@ -157,3 +157,10 @@ impl LoginPage {
         });
     }
 }
+
+impl LoginPage {
+    /// Empties the password field (after logging out).
+    pub(crate) fn clear_password(&self) {
+        self.imp().password_row.set_text("");
+    }
+}

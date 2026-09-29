@@ -30,3 +30,9 @@ pub async fn load_password(server: &str, user: &str) -> oo7::Result<Option<Strin
     let secret = item.secret().await?;
     Ok(Some(String::from_utf8_lossy(secret.as_bytes()).into_owned()))
 }
+
+/// Removes the saved password (logging out).
+pub async fn delete_password(server: &str, user: &str) -> oo7::Result<()> {
+    let keyring = oo7::Keyring::new().await?;
+    keyring.delete(&attributes(server, user)).await
+}

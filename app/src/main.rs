@@ -195,6 +195,34 @@ fn build_ui(app: &adw::Application) {
     app.add_action(&preferences);
     app.set_accels_for_action("app.preferences", &["<Control>comma"]);
 
+    // Log out (Preferences): stop, forget the password, back to the login page.
+    // The server address and the user stay filled in; the local library stays
+    // too (it is kept per server and user).
+    let logout = gtk::gio::SimpleAction::new("logout", None);
+    {
+        let nav = nav.clone();
+        let settings = gtk::gio::Settings::new(APP_ID);
+        let login_page = login_page.clone();
+        logout.connect_activate(move |_, _| {
+            crate::player::get().stop();
+            let url = settings.string("server-url").to_string();
+            let user = settings.string("username").to_string();
+            gtk::glib::spawn_future_local(async move {
+                let result = crate::runtime()
+                    .spawn(async move { crate::secrets::delete_password(&url, &user).await })
+                    .await;
+                if !matches!(result, Ok(Ok(()))) {
+                    eprintln!("Could not remove the saved password");
+                }
+            });
+            if let Some(page) = login_page.downcast_ref::<LoginPage>() {
+                page.clear_password();
+            }
+            nav.replace(&[login_page.clone()]);
+        });
+    }
+    app.add_action(&logout);
+
     window.present();
 }
 

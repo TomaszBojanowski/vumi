@@ -4,7 +4,7 @@
 use adw::subclass::prelude::*;
 use gtk::gio;
 use gtk::glib;
-use gtk::prelude::*;
+use adw::prelude::*;
 
 mod imp {
     use super::*;
@@ -12,6 +12,12 @@ mod imp {
     #[derive(Default, gtk::CompositeTemplate)]
     #[template(file = "src/preferences.blp")]
     pub struct Preferences {
+        #[template_child]
+        pub server_row: gtk::TemplateChild<adw::ActionRow>,
+        #[template_child]
+        pub user_row: gtk::TemplateChild<adw::ActionRow>,
+        #[template_child]
+        pub logout_row: gtk::TemplateChild<adw::ButtonRow>,
         #[template_child]
         pub endless_radio: gtk::TemplateChild<adw::SwitchRow>,
         #[template_child]
@@ -39,6 +45,16 @@ mod imp {
             self.parent_constructed();
             // The bindings keep the settings object alive for as long as needed.
             let settings = gio::Settings::new(crate::APP_ID);
+            self.server_row
+                .set_subtitle(&settings.string("server-url"));
+            self.user_row.set_subtitle(&settings.string("username"));
+            // Logging out leaves the account behind: the dialog goes with it.
+            let dialog = self.obj().downgrade();
+            self.logout_row.connect_activated(move |_| {
+                if let Some(dialog) = dialog.upgrade() {
+                    dialog.close();
+                }
+            });
             settings
                 .bind("endless-radio", &*self.endless_radio, "active")
                 .build();
