@@ -419,3 +419,21 @@ impl Player {
         self.prepare_next();
     }
 }
+
+impl Player {
+    /// The play queue (shared, not copied) and where in it playback is.
+    pub(crate) fn queue(&self) -> Rc<[subsonic::Song]> {
+        self.queue.borrow().clone()
+    }
+
+    pub(crate) fn position(&self) -> usize {
+        self.position.get()
+    }
+
+    /// Jumps to another track of the current queue (the queue panel).
+    pub(crate) fn play_index(&self, index: usize) {
+        if index < self.queue.borrow().len() {
+            self.play_at(index);
+        }
+    }
+}

@@ -34,6 +34,8 @@ mod imp {
         #[template_child]
         pub split: gtk::TemplateChild<adw::OverlaySplitView>,
         #[template_child]
+        pub queue_split: gtk::TemplateChild<adw::OverlaySplitView>,
+        #[template_child]
         pub views: gtk::TemplateChild<adw::ViewStack>,
         #[template_child]
         pub library_nav: gtk::TemplateChild<adw::NavigationView>,
@@ -78,6 +80,7 @@ mod imp {
             // The Start page is used in this template, so its type must exist first.
             crate::start_page::StartPage::static_type();
             crate::results_view::ResultsView::static_type();
+            crate::queue_page::QueuePage::static_type();
             klass.bind_template();
         }
 
@@ -658,5 +661,13 @@ impl MainView {
         }
         // Stays sensitive: an insensitive button would dim the spinner; a second
         // click is ignored by sync_albums anyway.
+    }
+}
+
+impl MainView {
+    /// Shows or hides the queue panel on the right.
+    pub(crate) fn toggle_queue(&self) {
+        let split = &self.imp().queue_split;
+        split.set_show_sidebar(!split.shows_sidebar());
     }
 }

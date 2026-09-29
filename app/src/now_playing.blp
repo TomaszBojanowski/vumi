@@ -123,6 +123,17 @@ template $MusePlayerNowPlaying: Adw.Bin {
         margin-end: 8;
         margin-bottom: 10;
 
+        Button queue_button {
+          icon-name: "view-list-symbolic";
+          tooltip-text: _("Queue");
+          valign: center;
+
+          styles [
+            "flat",
+            "circular",
+          ]
+        }
+
         Label time {
           hexpand: true;
           xalign: 0;

@@ -40,6 +40,8 @@ mod imp {
         #[template_child]
         pub time: gtk::TemplateChild<gtk::Label>,
         #[template_child]
+        pub queue_button: gtk::TemplateChild<gtk::Button>,
+        #[template_child]
         pub previous: gtk::TemplateChild<gtk::Button>,
         #[template_child]
         pub play_pause: gtk::TemplateChild<gtk::Button>,
@@ -92,6 +94,14 @@ impl NowPlaying {
         imp.play_pause.connect_clicked(|_| player::get().toggle_pause());
         imp.previous.connect_clicked(|_| player::get().previous());
         imp.next.connect_clicked(|_| player::get().next());
+        imp.queue_button.connect_clicked(|button| {
+            if let Some(main) = button
+                .ancestor(MainView::static_type())
+                .and_downcast::<MainView>()
+            {
+                main.toggle_queue();
+            }
+        });
 
         // A click on the cover opens the album that is playing.
         let click = gtk::GestureClick::new();

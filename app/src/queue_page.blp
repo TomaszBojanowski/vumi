@@ -1,0 +1,48 @@
+using Gtk 4.0;
+using Adw 1;
+
+translation-domain "muse-player";
+
+// The play queue, in a panel on the right.
+template $MusePlayerQueuePage: Adw.Bin {
+  child: Adw.ToolbarView {
+    [top]
+    Adw.HeaderBar {
+      title-widget: Adw.WindowTitle title {
+        title: _("Queue");
+      };
+    }
+
+    content: Stack stack {
+      StackPage {
+        name: "queue";
+
+        child: ScrolledWindow {
+          hscrollbar-policy: never;
+
+          child: ListBox list {
+            selection-mode: none;
+            margin-top: 12;
+            margin-bottom: 12;
+            margin-start: 12;
+            margin-end: 12;
+
+            styles [
+              "boxed-list",
+            ]
+          };
+        };
+      }
+
+      StackPage {
+        name: "empty";
+
+        child: Adw.StatusPage {
+          icon-name: "view-list-symbolic";
+          title: _("Nothing Queued");
+          description: _("Play an album, a song or the radio");
+        };
+      }
+    };
+  };
+}

@@ -65,7 +65,17 @@ template $MusePlayerMainView: Adw.NavigationPage {
         };
       };
 
-      content: Box {
+      // The queue on the right: side by side on wide windows, over the content
+      // on narrow ones (the breakpoint below). Hidden until asked for.
+      content: Adw.OverlaySplitView queue_split {
+        sidebar-position: end;
+        show-sidebar: false;
+        min-sidebar-width: 280;
+        max-sidebar-width: 380;
+
+        sidebar: $MusePlayerQueuePage queue_page {};
+
+        content: Box {
         orientation: vertical;
 
         Adw.ViewStack views {
@@ -298,6 +308,7 @@ template $MusePlayerMainView: Adw.NavigationPage {
           child: Adw.Bin mini_slot {};
         }
       };
+      };
     };
 
     // Narrow windows: the sidebar hides and slides in over the content.
@@ -306,6 +317,7 @@ template $MusePlayerMainView: Adw.NavigationPage {
 
       setters {
         split.collapsed: true;
+        queue_split.collapsed: true;
       }
     }
   };
