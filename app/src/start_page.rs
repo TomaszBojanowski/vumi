@@ -426,10 +426,14 @@ fn connect_arrows(scroll: &gtk::ScrolledWindow, prev: &gtk::Button, next: &gtk::
             };
             let end = adj.upper() - adj.page_size();
             let overflow = end - adj.lower() > 1.0;
-            prev.set_visible(overflow);
-            next.set_visible(overflow);
-            prev.set_sensitive(adj.value() > adj.lower() + 1.0);
-            next.set_sensitive(adj.value() < end - 1.0);
+            // Opacity rather than visibility: this runs while the row is being
+            // laid out, and showing or hiding widgets then upsets GTK. The
+            // buttons keep their room, so the header does not change height.
+            let opacity = if overflow { 1.0 } else { 0.0 };
+            prev.set_opacity(opacity);
+            next.set_opacity(opacity);
+            prev.set_sensitive(overflow && adj.value() > adj.lower() + 1.0);
+            next.set_sensitive(overflow && adj.value() < end - 1.0);
         }
     };
     adj.connect_value_changed(update.clone());
