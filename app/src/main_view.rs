@@ -11,6 +11,7 @@ use std::time::Instant;
 
 use crate::album_card::AlbumCard;
 use crate::album_page::AlbumPage;
+use crate::artist_page::ArtistPage;
 use crate::{covers, error_message, library, runtime, since_start, APP_ID, APP_NAME};
 
 mod imp {
@@ -344,6 +345,38 @@ impl MainView {
             .and_downcast::<adw::NavigationView>()
             .unwrap_or_else(|| self.imp().library_nav.get());
         self.open_album_on(&nav, id, fallback);
+    }
+
+    /// Opens an artist page in the section `from` belongs to, as
+    /// open_album_from does for albums.
+    pub(crate) fn open_artist_from(
+        &self,
+        from: &impl IsA<gtk::Widget>,
+        id: &str,
+        name: &str,
+        client: subsonic::Client,
+    ) {
+        let imp = self.imp();
+        let nav = from
+            .ancestor(adw::NavigationView::static_type())
+            .and_downcast::<adw::NavigationView>()
+            .unwrap_or_else(|| imp.library_nav.get());
+        if imp.split.is_collapsed() {
+            imp.split.set_show_sidebar(false);
+        }
+
+        // Already open in this section: go back to it instead of stacking
+        // another copy on top.
+        let stack = nav.navigation_stack();
+        for i in (0..stack.n_items()).rev() {
+            if let Some(page) = stack.item(i).and_downcast::<ArtistPage>() {
+                if page.artist_id() == id {
+                    nav.pop_to_page(&page);
+                    return;
+                }
+            }
+        }
+        nav.push(&ArtistPage::new(id, name, client));
     }
 
     /// Uses the full album from the library if it is there, else `fallback`.

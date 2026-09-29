@@ -76,6 +76,21 @@ pub(crate) fn attach(
             }
         }),
     );
+    add(
+        "go-to-artist",
+        Box::new(|row, song, client| {
+            let Some(artist_id) = song.artist_id.clone() else {
+                return;
+            };
+            let name = song.artist.clone().unwrap_or_default();
+            if let Some(main) = row
+                .ancestor(MainView::static_type())
+                .and_downcast::<MainView>()
+            {
+                main.open_artist_from(row, &artist_id, &name, client);
+            }
+        }),
+    );
     add("info", Box::new(|row, song, _| show_info(row, &song)));
     row.insert_action_group("song", Some(&actions));
 
@@ -88,12 +103,13 @@ pub(crate) fn attach(
     let radio = gio::Menu::new();
     radio.append(Some(&gettext("Play Similar")), Some("song.play-similar"));
     menu.append_section(None, &radio);
+    let navigation = gio::Menu::new();
     // On the album's own page, going to the album would lead nowhere.
     if go_to_album {
-        let navigation = gio::Menu::new();
         navigation.append(Some(&gettext("Go to Album")), Some("song.go-to-album"));
-        menu.append_section(None, &navigation);
     }
+    navigation.append(Some(&gettext("Go to Artist")), Some("song.go-to-artist"));
+    menu.append_section(None, &navigation);
     let info = gio::Menu::new();
     info.append(Some(&gettext("Song Information")), Some("song.info"));
     menu.append_section(None, &info);

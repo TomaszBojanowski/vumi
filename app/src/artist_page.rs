@@ -33,6 +33,8 @@ mod imp {
         /// The albums in the same order as the cards, to know which one was clicked.
         pub album_list: RefCell<Vec<subsonic::Album>>,
         pub client: RefCell<Option<subsonic::Client>>,
+        /// Which artist this page shows, so an open page can be found again.
+        pub artist_id: RefCell<String>,
     }
 
     #[glib::object_subclass]
@@ -63,6 +65,11 @@ glib::wrapper! {
 }
 
 impl ArtistPage {
+    /// The id of the artist this page shows.
+    pub(crate) fn artist_id(&self) -> String {
+        self.imp().artist_id.borrow().clone()
+    }
+
     pub(crate) fn new(id: &str, name: &str, client: subsonic::Client) -> Self {
         let page: Self = glib::Object::new();
         let imp = page.imp();
@@ -71,6 +78,7 @@ impl ArtistPage {
         imp.name.set_label(name);
         imp.avatar.set_text(Some(name));
         imp.client.replace(Some(client.clone()));
+        imp.artist_id.replace(id.to_string());
 
         // A click on an album card opens that album on top of this page.
         let page_weak = page.downgrade();
