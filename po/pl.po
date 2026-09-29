@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: muse-player\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-29 04:06+0200\n"
+"POT-Creation-Date: 2026-09-29 04:27+0200\n"
 "PO-Revision-Date: 2026-09-27 20:40+0200\n"
 "Last-Translator: Tomasz Bojanowski <tomasz@bojanowski.me>\n"
 "Language-Team: Polish\n"
@@ -29,30 +29,30 @@ msgstr "Szybki odtwarzacz muzyki z serwerów Navidrome i Subsonic"
 msgid "music;player;navidrome;subsonic;"
 msgstr "muzyka;odtwarzacz;navidrome;subsonic;music;player;"
 
-#: app/src/main.rs:205 app/src/login_page.rs:153 app/src/album_page.rs:210
+#: app/src/main.rs:208 app/src/login_page.rs:153 app/src/album_page.rs:210
 msgid "Something went wrong. Please try again."
 msgstr "Wystąpił nieoczekiwany błąd. Spróbuj ponownie."
 
-#: app/src/main.rs:214
+#: app/src/main.rs:217
 msgid "Wrong username or password."
 msgstr "Nieprawidłowa nazwa użytkownika lub hasło."
 
-#: app/src/main.rs:215
+#: app/src/main.rs:218
 msgid "Cannot reach the server. Check the address and your connection."
 msgstr ""
 "Nie uzyskano połączenia z serwerem. Sprawdź adres i połączenie sieciowe."
 
-#: app/src/main.rs:216
+#: app/src/main.rs:219
 msgid "Invalid server address. It should start with http:// or https://"
 msgstr ""
 "Nieprawidłowy adres serwera. Adres musi zaczynać się od http:// lub https://"
 
-#: app/src/main.rs:217
+#: app/src/main.rs:220
 msgid "The server answered, but it does not look like a Subsonic server."
 msgstr "Serwer odpowiedział, ale nie wygląda na serwer zgodny z Subsonic."
 
 #. Translators: {message} is the error text sent by the server.
-#: app/src/main.rs:219
+#: app/src/main.rs:222
 #, rust-format
 msgid "Server error: {message}"
 msgstr "Błąd serwera: {message}"
@@ -75,81 +75,89 @@ msgstr "Brak połączenia"
 msgid "Hide sidebar"
 msgstr "Ukryj panel boczny"
 
-#: app/src/main_view.blp:53 app/src/main_view.blp:60
+#: app/src/main_view.blp:34
+msgid "Main Menu"
+msgstr "Menu główne"
+
+#: app/src/main_view.blp:61 app/src/main_view.blp:68
 msgid "Start"
 msgstr "Start"
 
-#: app/src/main_view.blp:66 app/src/main_view.blp:96 app/src/main_view.blp:160
-#: app/src/main_view.blp:189 app/src/main_view.blp:214
-#: app/src/main_view.blp:243
+#: app/src/main_view.blp:74 app/src/main_view.blp:104 app/src/main_view.blp:168
+#: app/src/main_view.blp:197 app/src/main_view.blp:222
+#: app/src/main_view.blp:251
 msgid "Show sidebar"
 msgstr "Wyświetl panel boczny"
 
-#: app/src/main_view.blp:80 app/src/main_view.blp:88 app/src/main_view.blp:121
+#: app/src/main_view.blp:88 app/src/main_view.blp:96 app/src/main_view.blp:129
 #: app/src/artist_page.blp:86
 msgid "Albums"
 msgstr "Albumy"
 
-#: app/src/main_view.blp:83
+#: app/src/main_view.blp:91
 msgid "Library"
 msgstr "Biblioteka"
 
-#: app/src/main_view.blp:104
+#: app/src/main_view.blp:112
 msgid "Sort"
 msgstr "Sortowanie"
 
-#: app/src/main_view.blp:112
+#: app/src/main_view.blp:120
 msgid "Retry"
 msgstr "Spróbuj ponownie"
 
-#: app/src/main_view.blp:151 app/src/main_view.blp:168
+#: app/src/main_view.blp:159 app/src/main_view.blp:176
 msgid "Artists"
 msgstr "Wykonawcy"
 
-#: app/src/main_view.blp:169 app/src/main_view.blp:198
-#: app/src/main_view.blp:223 app/src/main_view.blp:252
+#: app/src/main_view.blp:177 app/src/main_view.blp:206
+#: app/src/main_view.blp:231 app/src/main_view.blp:260
 msgid "Coming soon"
 msgstr "Wkrótce"
 
-#: app/src/main_view.blp:178 app/src/main_view.blp:197
+#: app/src/main_view.blp:186 app/src/main_view.blp:205
 msgid "Favorites"
 msgstr "Ulubione"
 
-#: app/src/main_view.blp:181
+#: app/src/main_view.blp:189
 msgid "Collections"
 msgstr "Kolekcje"
 
-#: app/src/main_view.blp:205 app/src/main_view.blp:222
+#: app/src/main_view.blp:213 app/src/main_view.blp:230
 msgid "Playlists"
 msgstr "Listy odtwarzania"
 
-#: app/src/main_view.blp:232 app/src/main_view.blp:251
+#: app/src/main_view.blp:240 app/src/main_view.blp:259
 msgid "Similar and Radio"
 msgstr "Podobne i radio"
 
-#: app/src/main_view.blp:235
+#: app/src/main_view.blp:243
 msgid "Discover"
 msgstr "Odkrywanie"
 
-#: app/src/main_view.blp:283
+#: app/src/main_view.blp:291
 msgid "Name"
 msgstr "Nazwa"
 
-#: app/src/main_view.blp:289
+#: app/src/main_view.blp:297
 msgid "Artist"
 msgstr "Wykonawca"
 
-#: app/src/main_view.blp:295
+#: app/src/main_view.blp:303
 msgid "Year (Newest)"
 msgstr "Rok (od najnowszych)"
 
-#: app/src/main_view.blp:301
+#: app/src/main_view.blp:309
 msgid "Year (Oldest)"
 msgstr "Rok (od najstarszych)"
 
-#: app/src/main_view.blp:307 app/src/start_page.blp:139
+#: app/src/main_view.blp:315 app/src/start_page.blp:139
 msgid "Recently Added"
 msgstr "Ostatnio dodane"
+
+#: app/src/main_view.blp:326
+msgid "Endless Radio"
+msgstr "Radio bez końca"
 
 #: app/src/login_page.rs:130 app/src/login_page.blp:7 app/src/login_page.blp:55
 msgid "Connect"
@@ -297,7 +305,7 @@ msgstr "Wstrzymaj"
 msgid "Resume"
 msgstr "Wznów"
 
-#: app/src/album_page.rs:574 app/src/album_page.rs:733
+#: app/src/album_page.rs:574 app/src/album_page.rs:749
 #: app/src/now_playing.rs:182 app/src/mini_player.rs:101
 msgid "Play"
 msgstr "Odtwórz"
@@ -308,9 +316,17 @@ msgstr "Odtwórz"
 msgid "Disc {n}"
 msgstr "Płyta {n}"
 
-#: app/src/album_page.rs:740
+#: app/src/album_page.rs:734
+msgid "Radio"
+msgstr "Radio"
+
+#: app/src/album_page.rs:756
 msgid "Shuffle"
 msgstr "Losowo"
+
+#: app/src/album_page.rs:934
+msgid "No similar songs found"
+msgstr "Nie znaleziono podobnych utworów"
 
 #: app/src/album_page.blp:128 app/src/artist_page.blp:59
 msgid "About"
@@ -352,11 +368,11 @@ msgstr "Przejdź do albumu"
 msgid "Previous"
 msgstr "Poprzedni"
 
-#: app/src/player.rs:165 app/src/player.rs:259
+#: app/src/player.rs:175 app/src/player.rs:269
 msgid "Could not play the track"
 msgstr "Nie można odtworzyć utworu"
 
-#: app/src/player.rs:173 app/src/player.rs:209
+#: app/src/player.rs:183 app/src/player.rs:219
 msgid "Could not start playback"
 msgstr "Nie można rozpocząć odtwarzania"
 
@@ -367,3 +383,10 @@ msgstr "Ostatnio słuchane"
 #: app/src/start_page.blp:126
 msgid "Continue"
 msgstr "Kontynuuj"
+
+#: app/src/start_page.blp:178
+msgid "Play Similar Songs"
+msgstr "Odtwórz podobne utwory"
+
+#~ msgid "Similar to “{title}”"
+#~ msgstr "Podobne do „{title}”"
