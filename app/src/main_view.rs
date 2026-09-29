@@ -40,6 +40,12 @@ mod imp {
         #[template_child]
         pub albums_page: gtk::TemplateChild<adw::ViewStackPage>,
         #[template_child]
+        pub search_entry: gtk::TemplateChild<gtk::SearchEntry>,
+        /// The search results, made on first use and reused.
+        pub search_page: std::cell::OnceCell<crate::search_page::SearchPage>,
+        /// Bumped by every search; results of an older one are dropped.
+        pub search_generation: std::cell::Cell<u32>,
+        #[template_child]
         pub start_page: gtk::TemplateChild<crate::start_page::StartPage>,
         /// How the grid is sorted (see sort_albums).
         pub sort: RefCell<String>,
@@ -90,6 +96,7 @@ impl MainView {
         view.set_title(APP_NAME);
         view.setup_grid();
         view.setup_sorting();
+        view.setup_search();
         view
     }
 
@@ -457,5 +464,90 @@ impl MainView {
         let imp = self.imp();
         imp.start_page
             .update(&imp.current.borrow(), imp.client.borrow().clone());
+    }
+}
+
+impl MainView {
+    /// The search field in the sidebar: results update while typing; going
+    /// back from the results page (or emptying the field) closes them.
+    fn setup_search(&self) {
+        let imp = self.imp();
+        let view = self.downgrade();
+        imp.search_entry.connect_search_changed(move |entry| {
+            if let Some(view) = view.upgrade() {
+                view.run_search(&entry.text());
+            }
+        });
+
+        let entry = imp.search_entry.downgrade();
+        imp.library_nav.connect_popped(move |_, page| {
+            if page.is::<crate::search_page::SearchPage>() {
+                if let Some(entry) = entry.upgrade() {
+                    entry.set_text("");
+                }
+            }
+        });
+    }
+
+    fn run_search(&self, text: &str) {
+        let imp = self.imp();
+        let page = imp
+            .search_page
+            .get_or_init(crate::search_page::SearchPage::new)
+            .clone();
+        let nav = imp.library_nav.get();
+        let page_widget = page.upcast_ref::<adw::NavigationPage>();
+
+        // An empty field closes the results (if they are on top).
+        if text.trim().is_empty() {
+            if nav.visible_page().as_ref() == Some(page_widget) {
+                nav.pop();
+            }
+            return;
+        }
+
+        // The results go on top of the library, once; typing more updates them.
+        imp.views.set_visible_child_name("library");
+        let stack = nav.navigation_stack();
+        let on_stack = (0..stack.n_items())
+            .any(|i| stack.item(i).and_downcast::<crate::search_page::SearchPage>().is_some());
+        if !on_stack {
+            nav.push(&page);
+        } else if nav.visible_page().as_ref() != Some(page_widget) {
+            nav.pop_to_page(&page);
+        }
+
+        let Some(client) = imp.client.borrow().clone() else {
+            return;
+        };
+        let generation = imp.search_generation.get() + 1;
+        imp.search_generation.set(generation);
+        let server = client.server_key();
+        let query = text.to_owned();
+        let view = self.downgrade();
+        glib::spawn_future_local(async move {
+            let result = runtime()
+                .spawn_blocking(move || library::search(&server, &query, 30))
+                .await;
+            let Some(view) = view.upgrade() else {
+                return;
+            };
+            // A newer search has started meanwhile: its results will come.
+            if view.imp().search_generation.get() != generation {
+                return;
+            }
+            let Ok(Ok(results)) = result else {
+                return;
+            };
+            let albums: Vec<Arc<subsonic::Album>> = {
+                let current = view.imp().current.borrow();
+                results
+                    .album_ids
+                    .iter()
+                    .filter_map(|id| current.iter().find(|a| a.id == *id).cloned())
+                    .collect()
+            };
+            page.show(&albums, results.songs, Some(client));
+        });
     }
 }

@@ -1,0 +1,91 @@
+using Gtk 4.0;
+using Adw 1;
+
+translation-domain "muse-player";
+
+// Search results: albums and songs from the local database.
+template $MusePlayerSearchPage: Adw.NavigationPage {
+  title: _("Search");
+
+  child: Adw.ToolbarView {
+    [top]
+    Adw.HeaderBar {}
+
+    content: Stack stack {
+      StackPage {
+        name: "results";
+
+        child: ScrolledWindow {
+          hscrollbar-policy: never;
+
+          child: Adw.Clamp {
+            maximum-size: 1000;
+
+            child: Box {
+              orientation: vertical;
+              spacing: 24;
+              margin-top: 24;
+              margin-bottom: 24;
+              margin-start: 24;
+              margin-end: 24;
+
+              Box albums_section {
+                orientation: vertical;
+                spacing: 12;
+
+                Label {
+                  label: _("Albums");
+                  xalign: 0;
+
+                  styles [
+                    "title-4",
+                  ]
+                }
+
+                FlowBox albums_box {
+                  selection-mode: none;
+                  homogeneous: true;
+                  max-children-per-line: 6;
+                  column-spacing: 12;
+                  row-spacing: 12;
+                }
+              }
+
+              Box songs_section {
+                orientation: vertical;
+                spacing: 12;
+
+                Label {
+                  label: _("Songs");
+                  xalign: 0;
+
+                  styles [
+                    "title-4",
+                  ]
+                }
+
+                ListBox songs_list {
+                  selection-mode: none;
+
+                  styles [
+                    "boxed-list",
+                  ]
+                }
+              }
+            };
+          };
+        };
+      }
+
+      StackPage {
+        name: "empty";
+
+        child: Adw.StatusPage {
+          icon-name: "system-search-symbolic";
+          title: _("No Results");
+          description: _("Try other words");
+        };
+      }
+    };
+  };
+}

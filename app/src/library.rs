@@ -295,7 +295,6 @@ pub(crate) fn load_album_songs(
 
 /// What a search found: album ids (the albums themselves are in memory) and
 /// songs, best matches first.
-#[allow(dead_code)] // Used by the search page, the next step.
 pub(crate) struct SearchResults {
     pub(crate) album_ids: Vec<String>,
     pub(crate) songs: Vec<subsonic::Song>,
@@ -303,7 +302,6 @@ pub(crate) struct SearchResults {
 
 /// Searches albums and songs of one server; every word of `query` must match
 /// the start of a word, ignoring case and accents ("zolw" finds "Żółw").
-#[allow(dead_code)] // Used by the search page, the next step.
 pub(crate) fn search(server: &str, query: &str, limit: usize) -> rusqlite::Result<SearchResults> {
     let Some(fts) = fts_query(query) else {
         return Ok(SearchResults {

@@ -11,6 +11,7 @@ mod mini_player;
 mod now_playing;
 mod player;
 mod resume;
+mod search_page;
 mod start_page;
 mod secrets;
 mod tint;

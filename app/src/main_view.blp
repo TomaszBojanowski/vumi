@@ -39,6 +39,14 @@ template $MusePlayerMainView: Adw.NavigationPage {
         content: Box {
           orientation: vertical;
 
+          SearchEntry search_entry {
+            placeholder-text: _("Search Library");
+            margin-top: 6;
+            margin-bottom: 6;
+            margin-start: 12;
+            margin-end: 12;
+          }
+
           Adw.ViewSwitcherSidebar {
             stack: views;
             vexpand: true;
