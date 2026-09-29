@@ -127,12 +127,17 @@ pub(crate) fn attach(
 /// Play Similar: this song, then songs that sound like it (AudioMuse-AI).
 fn play_similar(row: &adw::ActionRow, song: subsonic::Song, client: subsonic::Client) {
     let row = row.downgrade();
+    let command = player::get().command_id();
     glib::spawn_future_local(async move {
         let request = client.clone();
         let id = song.id.clone();
         let result = crate::runtime()
             .spawn(async move { request.similar_songs(&id, 50).await })
             .await;
+        // Something else was started meanwhile: this answer is stale.
+        if !player::get().is_current(command) {
+            return;
+        }
         let similar = match result {
             Ok(Ok(songs)) => songs,
             _ => Vec::new(),

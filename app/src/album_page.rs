@@ -901,6 +901,7 @@ impl AlbumPage {
             return;
         }
         let seed = queue[fastrand::usize(..queue.len())].clone();
+        let command = player::get().command_id();
 
         // One request at a time: the button waits for the answer.
         button.set_sensitive(false);
@@ -916,6 +917,10 @@ impl AlbumPage {
                 button.set_sensitive(true);
             }
 
+            // Something else was started meanwhile: this answer is stale.
+            if !player::get().is_current(command) {
+                return;
+            }
             let similar = match result {
                 Ok(Ok(songs)) => songs,
                 _ => Vec::new(),

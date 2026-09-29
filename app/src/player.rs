@@ -36,6 +36,9 @@ pub(crate) struct Player {
     next_listener: Cell<u64>,
     /// Shows playback errors to the user (a toast in the window).
     error_handler: RefCell<Option<Box<dyn Fn(&str)>>>,
+    /// Counts the user's commands (play, stop, changes to the queue). Requests
+    /// to the server remember it; an answer for an older command is dropped.
+    command: Cell<u64>,
     /// Where to jump once the new track is ready (resuming playback).
     pending_seek: Cell<Option<f64>>,
     /// Gapless: the next track's address, read by GStreamer's about-to-finish
@@ -104,6 +107,7 @@ impl Player {
                 listeners: RefCell::new(Vec::new()),
                 next_listener: Cell::new(0),
                 error_handler: RefCell::new(None),
+                command: Cell::new(0),
                 pending_seek: Cell::new(None),
                 next_uri,
                 switched,
@@ -132,6 +136,8 @@ impl Player {
     }
 
     fn notify(&self) {
+        // Every change the listeners hear about counts as a command.
+        self.command.set(self.command.get() + 1);
         for (_, listener) in self.listeners.borrow().iter() {
             listener();
         }
@@ -337,6 +343,7 @@ impl Player {
     /// waiting, the answer is dropped.
     fn extend_with_similar(&self) {
         let queue = self.queue.borrow().clone();
+        let command = self.command.get();
         let (Some(last), Some(client)) = (queue.last().cloned(), self.client.borrow().clone())
         else {
             return;
@@ -349,8 +356,9 @@ impl Player {
                 .await;
 
             let player = get();
-            // Something else was played meanwhile: that queue wins.
-            if !Rc::ptr_eq(&*player.queue.borrow(), &queue) {
+            // Something else happened meanwhile (another queue, Stop): this
+            // answer is stale.
+            if !player.is_current(command) || !Rc::ptr_eq(&*player.queue.borrow(), &queue) {
                 return;
             }
 
@@ -534,5 +542,18 @@ impl Player {
         self.position.set(0);
         self.client.replace(None);
         self.set_state(State::Idle);
+    }
+}
+
+impl Player {
+    /// The current command number; see `command`. A request to the server keeps
+    /// it and checks it against `is_current` when the answer arrives.
+    pub(crate) fn command_id(&self) -> u64 {
+        self.command.get()
+    }
+
+    /// True if nothing has happened since command `id`.
+    pub(crate) fn is_current(&self, id: u64) -> bool {
+        self.command.get() == id
     }
 }
