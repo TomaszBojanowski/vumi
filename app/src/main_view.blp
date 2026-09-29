@@ -26,6 +26,14 @@ template $MusePlayerMainView: Adw.NavigationPage {
           title-widget: Adw.WindowTitle {
             title: "muse-player";
           };
+
+          [end]
+          MenuButton {
+            icon-name: "open-menu-symbolic";
+            primary: true;
+            tooltip-text: _("Main Menu");
+            menu-model: main_menu;
+          }
         }
 
         content: Box {
@@ -307,6 +315,16 @@ menu sort_menu {
       label: _("Recently Added");
       action: "library.sort";
       target: "added";
+    }
+  }
+}
+
+// The main menu (the ☰ button above the sidebar).
+menu main_menu {
+  section {
+    item {
+      label: _("Endless Radio");
+      action: "app.endless-radio";
     }
   }
 }

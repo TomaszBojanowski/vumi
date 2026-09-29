@@ -153,6 +153,16 @@ impl Player {
         let song = self.queue.borrow().get(index).cloned();
         let client = self.client.borrow().clone();
         let (Some(song), Some(client)) = (song, client) else {
+            // Endless radio: at the end of the queue, songs similar to the last
+            // one are added instead of stopping.
+            if index > 0
+                && index == self.queue.borrow().len()
+                && self.client.borrow().is_some()
+                && endless_radio()
+            {
+                self.extend_with_similar();
+                return;
+            }
             // Past the end of the queue: stop. The last track stays current,
             // so it can still be shown and remembered.
             let _ = self.playbin.set_state(gst::State::Null);
@@ -271,4 +281,58 @@ pub(crate) fn shutdown() {
             let _ = player.playbin.set_state(gst::State::Null);
         }
     });
+}
+
+/// "Endless Radio" from the main menu.
+fn endless_radio() -> bool {
+    use gtk::gio::prelude::*;
+    gtk::gio::Settings::new(crate::APP_ID).boolean("endless-radio")
+}
+
+impl Player {
+    /// Endless radio: asks the server for songs that sound like the last one
+    /// (AudioMuse-AI through Navidrome), adds those not in the queue yet and
+    /// plays on. Stops if there are none. If something else was started while
+    /// waiting, the answer is dropped.
+    fn extend_with_similar(&self) {
+        let queue = self.queue.borrow().clone();
+        let (Some(last), Some(client)) = (queue.last().cloned(), self.client.borrow().clone())
+        else {
+            return;
+        };
+        gst::glib::spawn_future_local(async move {
+            let request = client.clone();
+            let last_id = last.id.clone();
+            let result = crate::runtime()
+                .spawn(async move { request.similar_songs(&last_id, 50).await })
+                .await;
+
+            let player = get();
+            // Something else was played meanwhile: that queue wins.
+            if !Rc::ptr_eq(&*player.queue.borrow(), &queue) {
+                return;
+            }
+
+            let known: std::collections::HashSet<&str> =
+                queue.iter().map(|s| s.id.as_str()).collect();
+            let new: Vec<subsonic::Song> = match result {
+                Ok(Ok(songs)) => songs
+                    .into_iter()
+                    .filter(|s| !known.contains(s.id.as_str()))
+                    .collect(),
+                _ => Vec::new(),
+            };
+            if new.is_empty() {
+                let _ = player.playbin.set_state(gst::State::Null);
+                player.set_state(State::Ended);
+                return;
+            }
+
+            let start = queue.len();
+            let mut songs = queue.to_vec();
+            songs.extend(new);
+            player.queue.replace(songs.into());
+            player.play_at(start);
+        });
+    }
 }

@@ -129,6 +129,9 @@ fn build_ui(app: &adw::Application) {
     // Remember what plays, for "Continue listening" on the next start.
     resume::watch();
 
+    // "Endless Radio" in the main menu, kept in GSettings.
+    app.add_action(&gtk::gio::Settings::new(APP_ID).create_action("endless-radio"));
+
     // Playback errors appear in the window, not only in the terminal.
     let toasts_weak = toasts.downgrade();
     player::get().set_error_handler(move |message| {
