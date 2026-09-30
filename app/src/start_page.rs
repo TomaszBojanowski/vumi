@@ -564,9 +564,8 @@ fn connect_arrows(scroll: &gtk::ScrolledWindow, prev: &gtk::Button, next: &gtk::
     }
 }
 
-/// The mouse wheel over a shelf moves it sideways. At the end of the row the
-/// wheel scrolls the page again, and a touchpad keeps its own two-finger
-/// scrolling.
+/// Shift + the mouse wheel over a shelf moves it sideways; the plain wheel
+/// scrolls the page, and a touchpad keeps its own two-finger scrolling.
 fn connect_wheel(scroll: &gtk::ScrolledWindow) {
     let adj = scroll.hadjustment();
     let wheel = gtk::EventControllerScroll::new(gtk::EventControllerScrollFlags::VERTICAL);

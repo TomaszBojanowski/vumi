@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: muse-player\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-30 22:30+0200\n"
+"POT-Creation-Date: 2026-09-30 22:47+0200\n"
 "PO-Revision-Date: 2026-09-27 20:40+0200\n"
 "Last-Translator: Tomasz Bojanowski <tomasz@bojanowski.me>\n"
 "Language-Team: Polish\n"
@@ -79,7 +79,7 @@ msgstr "Połączono z serwerem {server} {version}"
 msgid "Offline"
 msgstr "Brak połączenia"
 
-#: app/src/main_view.rs:754 app/src/artist_page.rs:126
+#: app/src/main_view.rs:755 app/src/artist_page.rs:126
 #, rust-format
 msgid "{n} album"
 msgid_plural "{n} albums"
@@ -90,7 +90,7 @@ msgstr[2] "{n} albumów"
 #. Translators: {n} is a number of tracks.
 #. Translators: {n} is a number of tracks in the queue.
 #. Translators: {n} is a number of tracks.
-#: app/src/main_view.rs:849 app/src/album_page.rs:354 app/src/queue_page.rs:193
+#: app/src/main_view.rs:878 app/src/album_page.rs:354 app/src/queue_page.rs:193
 #: app/src/song_menu.rs:245 app/src/playlist_page.rs:125
 #, rust-format
 msgid "{n} track"
@@ -99,7 +99,7 @@ msgstr[0] "{n} utwór"
 msgstr[1] "{n} utwory"
 msgstr[2] "{n} utworów"
 
-#: app/src/main_view.rs:914 app/src/album_page.rs:628 app/src/album_page.rs:810
+#: app/src/main_view.rs:943 app/src/album_page.rs:628 app/src/album_page.rs:810
 #: app/src/now_playing.rs:191 app/src/mini_player.rs:101
 #: app/src/start_page.blp:205 app/src/playlist_page.blp:80
 msgid "Play"
@@ -344,11 +344,11 @@ msgid "{whole}.{fraction} kHz"
 msgstr "{whole},{fraction} kHz"
 
 #: app/src/album_page.rs:624 app/src/now_playing.rs:187
-#: app/src/mini_player.rs:98 app/src/start_page.rs:388
+#: app/src/mini_player.rs:98 app/src/start_page.rs:430
 msgid "Pause"
 msgstr "Wstrzymaj"
 
-#: app/src/album_page.rs:626 app/src/start_page.rs:390
+#: app/src/album_page.rs:626 app/src/start_page.rs:432
 msgid "Resume"
 msgstr "Wznów"
 
@@ -418,7 +418,7 @@ msgstr "Nie można rozpocząć odtwarzania"
 msgid "Last Played"
 msgstr "Ostatnio słuchane"
 
-#: app/src/start_page.blp:113 app/src/start_page.rs:392
+#: app/src/start_page.blp:113 app/src/start_page.rs:434
 msgid "Continue"
 msgstr "Kontynuuj"
 
@@ -430,15 +430,21 @@ msgstr "Losowy album"
 msgid "Another Random Album"
 msgstr "Inny losowy album"
 
-#: app/src/start_page.blp:249 app/src/start_page.blp:321
+#: app/src/start_page.blp:249 app/src/start_page.blp:309
+#: app/src/start_page.blp:381
 msgid "Previous Albums"
 msgstr "Poprzednie albumy"
 
-#: app/src/start_page.blp:260 app/src/start_page.blp:332
+#: app/src/start_page.blp:260 app/src/start_page.blp:320
+#: app/src/start_page.blp:392
 msgid "Next Albums"
 msgstr "Następne albumy"
 
-#: app/src/start_page.blp:304
+#: app/src/start_page.blp:293
+msgid "Most Played"
+msgstr "Najczęściej grane"
+
+#: app/src/start_page.blp:364
 msgid "Play Similar Songs"
 msgstr "Odtwórz podobne utwory"
 
@@ -632,7 +638,7 @@ msgstr "Brak wyników"
 msgid "Try other words"
 msgstr "Można spróbować innych słów"
 
-#: app/src/start_page.rs:473
+#: app/src/start_page.rs:515
 #, rust-format
 msgid "Similar to “{title}”"
 msgstr "Podobne do „{title}”"
