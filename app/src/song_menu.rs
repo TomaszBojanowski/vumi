@@ -175,6 +175,7 @@ fn show_info(parent: &adw::ActionRow, song: &subsonic::Song) {
     };
     add(gettext("Title"), Some(song.title.clone()));
     add(gettext("Artist"), song.artist.clone());
+    add(gettext("Composer"), song.composer.clone());
     add(gettext("Album"), song.album.clone());
     add(gettext("Track"), song.track.map(|n| n.to_string()));
     add(gettext("Disc"), song.disc_number.map(|n| n.to_string()));

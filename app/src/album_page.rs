@@ -29,6 +29,8 @@ mod imp {
         #[template_child]
         pub artist_button: gtk::TemplateChild<gtk::Button>,
         #[template_child]
+        pub composer: gtk::TemplateChild<gtk::Label>,
+        #[template_child]
         pub details: gtk::TemplateChild<gtk::Label>,
         #[template_child]
         pub quality: gtk::TemplateChild<gtk::Label>,
@@ -259,6 +261,32 @@ impl AlbumPage {
         let discs: BTreeSet<u32> = songs.iter().filter_map(|s| s.disc_number).collect();
         let multi_disc = discs.len() > 1;
 
+        // The composer: once in the header when the whole album has one (and
+        // it is not the album artist), else on each track where it differs.
+        let composers: BTreeSet<&str> = songs
+            .iter()
+            .filter_map(|s| s.composer.as_deref())
+            .filter(|c| !c.is_empty())
+            .collect();
+        let one_composer = (composers.len() == 1)
+            .then(|| composers.iter().next().copied())
+            .flatten()
+            .filter(|c| Some(*c) != album_artist);
+        match one_composer {
+            // Translators: {name} is the composer of every track of the album.
+            Some(name) => {
+                let name = format!("<i>{}</i>", glib::markup_escape_text(name));
+                imp.composer.set_use_markup(true);
+                imp.composer.set_label(
+                    &glib::markup_escape_text(&gettext("Composer: {name}"))
+                        .replace("{name}", &name),
+                );
+                imp.composer.set_visible(true);
+            }
+            None => imp.composer.set_visible(false),
+        }
+        let composer_per_track = composers.len() > 1;
+
         // The rows start over (a refresh); batches of an older call stop by themselves.
         while let Some(child) = imp.tracks.first_child() {
             imp.tracks.remove(&child);
@@ -276,6 +304,7 @@ impl AlbumPage {
                 .map(|t| (t.disc, t.title.clone()))
                 .collect(),
             multi_disc,
+            composer_per_track,
             generation,
             next: std::cell::Cell::new(0),
             group: std::cell::RefCell::new(None),
@@ -353,17 +382,20 @@ pub(crate) struct TrackRow {
 }
 
 /// One track: number (or a playing icon), title, duration, favourite star;
-/// the artist only if it differs from the album's.
+/// the artist only if it differs from the album's, the composer only when
+/// the album's tracks have different ones.
 fn track_row(
     song: &subsonic::Song,
     album_artist: Option<&str>,
+    show_composer: bool,
     client: &subsonic::Client,
     index: usize,
     queue: &Rc<[subsonic::Song]>,
 ) -> TrackRow {
+    // Markup for the composer in italics: the title and the artist are escaped.
     let row = adw::ActionRow::builder()
-        .title(song.title.as_str())
-        .use_markup(false)
+        .title(glib::markup_escape_text(&song.title))
+        .use_markup(true)
         .build();
 
     // A click on a row plays the album from this track.
@@ -381,10 +413,22 @@ fn track_row(
         }
     });
 
-    if let Some(artist) = song.artist.as_deref() {
-        if Some(artist) != album_artist {
-            row.set_subtitle(artist);
+    let mut subtitle: Vec<String> = Vec::new();
+    if let Some(artist) = song.artist.as_deref().filter(|a| Some(*a) != album_artist) {
+        subtitle.push(glib::markup_escape_text(artist).to_string());
+    }
+    if show_composer {
+        if let Some(composer) = song
+            .composer
+            .as_deref()
+            .filter(|c| !c.is_empty() && Some(*c) != song.artist.as_deref())
+        {
+            // In italics, so the composer is told from the performer.
+            subtitle.push(format!("<i>{}</i>", glib::markup_escape_text(composer)));
         }
+    }
+    if !subtitle.is_empty() {
+        row.set_subtitle(&subtitle.join(" · "));
     }
 
     // The track number, swapped for an icon while this track plays. The stack
@@ -598,6 +642,8 @@ struct RowBuilder {
     /// Disc number and title, for albums whose discs have names.
     disc_titles: Vec<(u32, String)>,
     multi_disc: bool,
+    /// The tracks have different composers: each row names its own.
+    composer_per_track: bool,
     /// Which call of show_tracks this belongs to; batches of an older one stop.
     generation: u32,
     /// The next track to build a row for.
@@ -638,6 +684,7 @@ impl AlbumPage {
                 let track = track_row(
                     song,
                     builder.album_artist.as_deref(),
+                    builder.composer_per_track,
                     &builder.client,
                     index,
                     &builder.queue,
