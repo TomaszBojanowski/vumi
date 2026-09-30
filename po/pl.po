@@ -650,3 +650,7 @@ msgstr "Brak utworów"
 #: app/src/playlist_page.rs:87
 msgid "This playlist is empty"
 msgstr "Ta lista odtwarzania jest pusta"
+
+#: app/src/main.rs
+msgid "Playback Stopped"
+msgstr "Odtwarzanie przerwane"

@@ -256,8 +256,10 @@ fn build_ui(app: &adw::Application) {
             gtk::glib::Propagation::Proceed
         });
     }
-    // Hidden, and the music has stopped (end of the queue, Stop from Shell):
-    // nothing is left to do, so the app quits. Pausing does not count.
+    // Hidden, and the music has stopped (end of the queue, Stop from Shell,
+    // an error): nothing is left to do, so the app quits. Pausing does not
+    // count. An error is shown as a notification first: the window's toast
+    // would never be seen.
     {
         let window_weak = window.downgrade();
         let app_weak = app.downgrade();
@@ -266,6 +268,11 @@ fn build_ui(app: &adw::Application) {
                 return;
             };
             if !window.is_visible() && !crate::player::get().is_active() {
+                if let Some(message) = crate::player::get().failure() {
+                    let notification = gtk::gio::Notification::new(&gettext("Playback Stopped"));
+                    notification.set_body(Some(&message));
+                    app.send_notification(Some("playback-error"), &notification);
+                }
                 app.quit();
             }
         });

@@ -250,6 +250,14 @@ impl Player {
         self.is_playing() || self.is_paused()
     }
 
+    /// The error text when playback has failed, `None` otherwise.
+    pub(crate) fn failure(&self) -> Option<String> {
+        match &*self.state.borrow() {
+            State::Failed(message) => Some(message.clone()),
+            _ => None,
+        }
+    }
+
     pub(crate) fn client(&self) -> Option<subsonic::Client> {
         self.client.borrow().clone()
     }
