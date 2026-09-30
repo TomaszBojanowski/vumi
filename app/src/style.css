@@ -261,7 +261,7 @@ button.syncing > image {
   border-radius: 12px;
 }
 
-.playlist-card .playlist-cover {
+.playlist-cover {
   border-radius: 8px;
   box-shadow: 0 2px 8px alpha(black, 0.3);
 }

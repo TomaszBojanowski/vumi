@@ -1,0 +1,110 @@
+using Gtk 4.0;
+using Adw 1;
+
+translation-domain "muse-player";
+
+// Playlist page: a compact header (cover, name, numbers, description) with
+// Play and Shuffle, and the tracks below in the shared results view.
+template $MusePlayerPlaylistPage: Adw.NavigationPage {
+  child: Adw.ToolbarView {
+    [top]
+    Adw.HeaderBar {}
+
+    content: Box {
+      orientation: vertical;
+
+      // The same width as the results view below, so the two line up.
+      Adw.Clamp {
+        maximum-size: 1000;
+
+        child: Box header {
+        spacing: 18;
+        margin-top: 18;
+        margin-bottom: 12;
+        margin-start: 24;
+        margin-end: 24;
+
+        Adw.Bin {
+          valign: start;
+          overflow: hidden;
+
+          styles [
+            "playlist-cover",
+          ]
+
+          child: Image cover {
+            pixel-size: 120;
+            icon-name: "view-list-symbolic";
+          };
+        }
+
+        Box {
+          orientation: vertical;
+          spacing: 6;
+          valign: center;
+          hexpand: true;
+
+          Label name {
+            xalign: 0;
+            wrap: true;
+
+            styles [
+              "title-2",
+            ]
+          }
+
+          Label details {
+            xalign: 0;
+
+            styles [
+              "dim-label",
+            ]
+          }
+
+          Label comment {
+            xalign: 0;
+            wrap: true;
+            visible: false;
+
+            styles [
+              "dim-label",
+            ]
+          }
+
+          Box {
+            spacing: 6;
+            margin-top: 6;
+
+            Button play_button {
+              icon-name: "media-playback-start-symbolic";
+              tooltip-text: _("Play");
+              valign: center;
+
+              styles [
+                "circular",
+                "album-play",
+              ]
+            }
+
+            Button shuffle_button {
+              icon-name: "media-playlist-shuffle-symbolic";
+              tooltip-text: _("Shuffle");
+              valign: center;
+
+              styles [
+                "circular",
+                "flat",
+                "album-action",
+              ]
+            }
+          }
+        }
+        };
+      }
+
+      $MusePlayerResultsView results {
+        vexpand: true;
+      }
+    };
+  };
+}

@@ -12,6 +12,7 @@ mod mini_player;
 mod now_playing;
 mod mpris;
 mod player;
+mod playlist_page;
 mod queue_page;
 mod preferences;
 mod results_view;

@@ -976,11 +976,30 @@ impl MainView {
         });
     }
 
-    /// Opens a playlist page in the section `from` belongs to. The page itself
-    /// comes next; for now this only says which playlist was chosen.
+    /// Opens a playlist page in the section `from` belongs to, as
+    /// open_artist_from does for artists.
     fn open_playlist_from(&self, from: &impl IsA<gtk::Widget>, id: &str, name: &str) {
-        let _ = from;
-        eprintln!("Playlist chosen: {name} ({id})");
+        let imp = self.imp();
+        let Some(client) = imp.client.borrow().clone() else {
+            return;
+        };
+        let nav = from
+            .ancestor(adw::NavigationView::static_type())
+            .and_downcast::<adw::NavigationView>()
+            .unwrap_or_else(|| imp.library_nav.get());
+
+        // Already open in this section: go back to it instead of stacking
+        // another copy on top.
+        let stack = nav.navigation_stack();
+        for i in (0..stack.n_items()).rev() {
+            if let Some(page) = stack.item(i).and_downcast::<crate::playlist_page::PlaylistPage>() {
+                if page.playlist_id() == id {
+                    nav.pop_to_page(&page);
+                    return;
+                }
+            }
+        }
+        nav.push(&crate::playlist_page::PlaylistPage::new(id, name, client));
     }
 }
 
