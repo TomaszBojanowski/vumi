@@ -82,6 +82,11 @@ pub(crate) fn start(app: &adw::Application) {
 }
 
 fn register(connection: &gio::DBusConnection, app: glib::WeakRef<adw::Application>) {
+    // Every jump of the position is announced once, from Player::seek.
+    {
+        let connection = connection.clone();
+        player::get().set_seek_handler(move |seconds| emit_seeked(&connection, seconds));
+    }
     let node = match gio::DBusNodeInfo::for_xml(XML) {
         Ok(node) => node,
         Err(e) => {
@@ -96,10 +101,10 @@ fn register(connection: &gio::DBusConnection, app: glib::WeakRef<adw::Applicatio
         let app = app.clone();
         let result = connection
             .register_object(PATH, &interface)
-            .method_call(move |connection, _, _, interface, method, params, invocation| {
+            .method_call(move |_, _, _, interface, method, params, invocation| {
                 // D-Bus allows calls without an interface name; the player's methods
                 // are matched by their name alone.
-                handle_method(&connection, &app, interface.unwrap_or_default(), method, &params);
+                handle_method(&app, interface.unwrap_or_default(), method, &params);
                 invocation.return_value(None);
             })
             .property(|_, _, _, interface, property| get_property(interface, property))
@@ -117,7 +122,6 @@ fn register(connection: &gio::DBusConnection, app: glib::WeakRef<adw::Applicatio
 }
 
 fn handle_method(
-    connection: &gio::DBusConnection,
     app: &glib::WeakRef<adw::Application>,
     interface: &str,
     method: &str,
@@ -154,7 +158,6 @@ fn handle_method(
             if let Some(offset) = params.child_value(0).get::<i64>() {
                 let target = player.position_secs().unwrap_or(0.0) + offset as f64 / 1e6;
                 player.seek(target);
-                emit_seeked(connection, target);
             }
         }
         (_, "SetPosition") => {
@@ -169,7 +172,6 @@ fn handle_method(
             if let Some(position) = params.child_value(1).get::<i64>() {
                 let target = position as f64 / 1e6;
                 player.seek(target);
-                emit_seeked(connection, target);
             }
         }
         _ => {}
@@ -279,7 +281,7 @@ fn emit_changed() {
     });
 }
 
-/// Seeked: the position jumped (a client moved it).
+/// Seeked: the position jumped (the slider, Previous, resuming, a client).
 fn emit_seeked(connection: &gio::DBusConnection, seconds: f64) {
     let _ = connection.emit_signal(
         None,

@@ -35,6 +35,8 @@ pub(crate) struct Player {
     next_listener: Cell<u64>,
     /// Shows playback errors to the user (a toast in the window).
     error_handler: RefCell<Option<Box<dyn Fn(&str)>>>,
+    /// Told about every jump of the position (MPRIS sends Seeked).
+    seek_handler: RefCell<Option<Box<dyn Fn(f64)>>>,
     /// Counts the user's commands (play, stop, changes to the queue). Requests
     /// to the server remember it; an answer for an older command is dropped.
     command: Cell<u64>,
@@ -108,6 +110,7 @@ impl Player {
                 listeners: RefCell::new(Vec::new()),
                 next_listener: Cell::new(0),
                 error_handler: RefCell::new(None),
+                seek_handler: RefCell::new(None),
                 command: Cell::new(0),
                 pending_seek: Cell::new(None),
                 next_uri,
@@ -134,6 +137,10 @@ impl Player {
     /// Sets how playback errors reach the user; the app shows them as toasts.
     pub(crate) fn set_error_handler(&self, f: impl Fn(&str) + 'static) {
         self.error_handler.replace(Some(Box::new(f)));
+    }
+
+    pub(crate) fn set_seek_handler(&self, f: impl Fn(f64) + 'static) {
+        self.seek_handler.replace(Some(Box::new(f)));
     }
 
     fn notify(&self) {
@@ -302,9 +309,14 @@ impl Player {
 
     pub(crate) fn seek(&self, seconds: f64) {
         let target = gst::ClockTime::from_mseconds((seconds.max(0.0) * 1000.0) as u64);
-        let _ = self
+        let sought = self
             .playbin
             .seek_simple(gst::SeekFlags::FLUSH | gst::SeekFlags::KEY_UNIT, target);
+        if sought.is_ok() {
+            if let Some(handler) = self.seek_handler.borrow().as_ref() {
+                handler(seconds.max(0.0));
+            }
+        }
     }
 
     pub(crate) fn position_secs(&self) -> Option<f64> {
