@@ -4,7 +4,7 @@
 use std::sync::Arc;
 use adw::prelude::*;
 use adw::subclass::prelude::*;
-use gettextrs::gettext;
+use gettextrs::{gettext, ngettext};
 use gtk::{gio, glib};
 use std::cell::{Cell, OnceCell, RefCell};
 use std::time::Instant;
@@ -42,6 +42,18 @@ mod imp {
         pub library_nav: gtk::TemplateChild<adw::NavigationView>,
         #[template_child]
         pub albums_page: gtk::TemplateChild<adw::ViewStackPage>,
+        #[template_child]
+        pub artists_page: gtk::TemplateChild<adw::ViewStackPage>,
+        #[template_child]
+        pub artists_stack: gtk::TemplateChild<gtk::Stack>,
+        #[template_child]
+        pub artists_box: gtk::TemplateChild<gtk::Box>,
+        /// The artists as the server lists them (with their pictures); empty
+        /// until the sync, when the albums in memory stand in.
+        pub artists: RefCell<Vec<subsonic::Artist>>,
+        /// What the grid shows now (id, album count, picture), so an unchanged
+        /// grid is not rebuilt.
+        pub artists_shown: RefCell<Vec<(String, u32, Option<String>)>>,
         #[template_child]
         pub search_entry: gtk::TemplateChild<gtk::SearchEntry>,
         #[template_child]
@@ -297,6 +309,7 @@ impl MainView {
                     view.show_albums(albums);
                     // Songs next, in the background: album pages open already filled.
                     view.sync_songs();
+                    view.sync_artists();
                 }
                 Ok(Err(e)) if !stale => {
                     view.show_offline(&error_message(&e));
@@ -319,6 +332,7 @@ impl MainView {
         imp.albums_page.set_badge_number(albums.len() as u32);
         imp.current.replace(albums);
         self.refresh_grid();
+        self.refresh_artists();
         self.refresh_start();
         self.refresh_favorites();
         imp.stack.set_visible_child_name("library");
@@ -595,6 +609,174 @@ fn pop_all_to_root(widget: &gtk::Widget) {
 }
 
 impl MainView {
+    /// Fetches the artists with their pictures; the grid is rebuilt from them.
+    /// Until then (and offline) the albums in memory stand in.
+    fn sync_artists(&self) {
+        let Some(client) = self.imp().client.borrow().clone() else {
+            return;
+        };
+        let generation = self.imp().sync_generation.get();
+        let view = self.downgrade();
+        glib::spawn_future_local(async move {
+            let result = runtime().spawn(async move { client.artists().await }).await;
+            let Some(view) = view
+                .upgrade()
+                .filter(|v| v.imp().sync_generation.get() == generation)
+            else {
+                return;
+            };
+            match result {
+                Ok(Ok(artists)) => {
+                    view.imp().artists.replace(artists);
+                    view.refresh_artists();
+                }
+                Ok(Err(e)) => eprintln!("Could not fetch the artists: {e}"),
+                Err(_) => {}
+            }
+        });
+    }
+
+    /// The Artists section: a card per artist (picture or initials, name,
+    /// number of albums), grouped under the first letter of the name. From the
+    /// server's list when it is there, else from the albums in memory.
+    fn refresh_artists(&self) {
+        let imp = self.imp();
+
+        // (id, name, album count, picture)
+        let mut artists: Vec<(String, String, u32, Option<String>)> = {
+            let listed = imp.artists.borrow();
+            if listed.is_empty() {
+                // Grouped by artist id; albums without one are left out.
+                let current = imp.current.borrow();
+                let mut by_id: std::collections::HashMap<&str, (&str, u32)> =
+                    std::collections::HashMap::new();
+                for album in current.iter() {
+                    let (Some(id), Some(name)) =
+                        (album.artist_id.as_deref(), album.artist.as_deref())
+                    else {
+                        continue;
+                    };
+                    by_id.entry(id).or_insert((name, 0)).1 += 1;
+                }
+                by_id
+                    .into_iter()
+                    .map(|(id, (name, count))| (id.to_owned(), name.to_owned(), count, None))
+                    .collect()
+            } else {
+                listed
+                    .iter()
+                    .map(|a| {
+                        (a.id.clone(), a.name.clone(), a.album_count.unwrap_or(0), a.cover_art.clone())
+                    })
+                    .collect()
+            }
+        };
+        artists.sort_by_cached_key(|(_, name, _, _)| name.to_lowercase());
+
+        // The same artists as now: nothing to rebuild.
+        let shown: Vec<(String, u32, Option<String>)> = artists
+            .iter()
+            .map(|(id, _, count, picture)| (id.clone(), *count, picture.clone()))
+            .collect();
+        if *imp.artists_shown.borrow() == shown {
+            return;
+        }
+        imp.artists_shown.replace(shown);
+
+        while let Some(child) = imp.artists_box.first_child() {
+            imp.artists_box.remove(&child);
+        }
+        let client = imp.client.borrow().clone();
+        let mut letter: Option<String> = None;
+        let mut flow: Option<gtk::FlowBox> = None;
+        for (id, name, count, picture) in &artists {
+            // A new heading when the first letter changes; digits and the like
+            // go under "#".
+            let first = name
+                .chars()
+                .next()
+                .filter(|c| c.is_alphabetic())
+                .map(|c| c.to_uppercase().to_string())
+                .unwrap_or_else(|| "#".to_string());
+            if letter.as_deref() != Some(first.as_str()) {
+                let heading = gtk::Label::builder()
+                    .label(&first)
+                    .xalign(0.0)
+                    .margin_top(12)
+                    .css_classes(["title-2"])
+                    .build();
+                imp.artists_box.append(&heading);
+                let box_ = gtk::FlowBox::builder()
+                    .selection_mode(gtk::SelectionMode::None)
+                    .homogeneous(true)
+                    .column_spacing(12)
+                    .row_spacing(12)
+                    .max_children_per_line(12)
+                    .build();
+                imp.artists_box.append(&box_);
+                flow = Some(box_);
+                letter = Some(first);
+            }
+            let Some(flow) = flow.as_ref() else {
+                continue;
+            };
+
+            let avatar = adw::Avatar::new(120, Some(name), true);
+            if let (Some(picture), Some(client)) = (picture.clone(), client.clone()) {
+                covers::load_for(&avatar, Some(client), picture, |avatar, texture| {
+                    if let Some(texture) = texture {
+                        avatar.set_custom_image(Some(&texture));
+                    }
+                });
+            }
+            let title = gtk::Label::builder()
+                .label(name.as_str())
+                .justify(gtk::Justification::Center)
+                .wrap(true)
+                .wrap_mode(gtk::pango::WrapMode::WordChar)
+                .lines(2)
+                .ellipsize(gtk::pango::EllipsizeMode::End)
+                .max_width_chars(16)
+                .css_classes(["heading"])
+                .build();
+            // Translators: {n} is a number of albums.
+            let subtitle = gtk::Label::builder()
+                .label(ngettext("{n} album", "{n} albums", *count).replace("{n}", &count.to_string()))
+                .css_classes(["caption", "dim-label"])
+                .build();
+            let card = gtk::Box::builder()
+                .orientation(gtk::Orientation::Vertical)
+                .spacing(6)
+                .build();
+            card.append(&avatar);
+            card.append(&title);
+            card.append(&subtitle);
+            let button = gtk::Button::builder()
+                .child(&card)
+                .css_classes(["flat", "shelf-card"])
+                .build();
+
+            let id = id.clone();
+            let name = name.clone();
+            let view = self.downgrade();
+            button.connect_clicked(move |button| {
+                let Some(view) = view.upgrade() else {
+                    return;
+                };
+                let Some(client) = view.imp().client.borrow().clone() else {
+                    return;
+                };
+                view.open_artist_from(button, &id, &name, client);
+            });
+            flow.append(&button);
+        }
+        imp.artists_page.set_badge_number(artists.len() as u32);
+        imp.artists_stack
+            .set_visible_child_name(if artists.is_empty() { "empty" } else { "list" });
+    }
+}
+
+impl MainView {
     /// Refreshes the Start page from the albums in memory.
     fn refresh_start(&self) {
         let imp = self.imp();
@@ -715,12 +897,14 @@ impl MainView {
         imp.client.replace(None);
         imp.server.replace(String::new());
         imp.synced.set(false);
+        imp.artists.replace(Vec::new());
         self.set_syncing(false);
         // The old account's library leaves the screen; the next login shows
         // its own (load_cached, then the sync). The database keeps both.
         imp.current.replace(Vec::new());
         imp.albums_page.set_badge_number(0);
         self.refresh_grid();
+        self.refresh_artists();
         self.refresh_start();
         imp.favorites.show(&[], Vec::new(), None);
         // Every section (Start, Albums, Favorites...) has a navigation view of

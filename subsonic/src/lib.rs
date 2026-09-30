@@ -67,6 +67,7 @@ pub struct Response {
     pub album_info: Option<AlbumInfo>,
     pub artist: Option<ArtistWithAlbums>,
     pub artist_info2: Option<ArtistInfo>,
+    pub artists: Option<ArtistIndexes>,
 }
 
 #[derive(Deserialize)]
@@ -364,6 +365,43 @@ impl Client {
     pub async fn album_info(&self, id: &str) -> Result<AlbumInfo> {
         let response = self.call("getAlbumInfo2", &[("id", id.to_string())]).await?;
         Ok(response.album_info.unwrap_or_default())
+    }
+}
+
+/// One artist as getArtists lists them: name, how many albums, and the id of
+/// their picture (fetched like a cover).
+#[derive(Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct Artist {
+    pub id: String,
+    pub name: String,
+    pub album_count: Option<u32>,
+    pub cover_art: Option<String>,
+}
+
+/// getArtists groups artists under index letters ("A", "B", ...).
+#[derive(Deserialize)]
+pub struct ArtistIndexes {
+    #[serde(default)]
+    pub index: Vec<ArtistIndex>,
+}
+
+#[derive(Deserialize)]
+pub struct ArtistIndex {
+    pub name: String,
+    #[serde(default)]
+    pub artist: Vec<Artist>,
+}
+
+impl Client {
+    /// Every artist on the server, in the server's order (by index letter,
+    /// then name).
+    pub async fn artists(&self) -> Result<Vec<Artist>> {
+        let response = self.call("getArtists", &[]).await?;
+        Ok(response
+            .artists
+            .map(|indexes| indexes.index.into_iter().flat_map(|i| i.artist).collect())
+            .unwrap_or_default())
     }
 }
 

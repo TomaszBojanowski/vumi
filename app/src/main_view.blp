@@ -194,28 +194,63 @@ template $MusePlayerMainView: Adw.NavigationPage {
             };
           }
 
-          Adw.ViewStackPage {
+          Adw.ViewStackPage artists_page {
             name: "artists";
             title: _("Artists");
             icon-name: "system-users-symbolic";
 
-            child: Adw.ToolbarView {
-              [top]
-              Adw.HeaderBar {
-                [start]
-                ToggleButton {
-                  icon-name: "sidebar-show-symbolic";
-                  tooltip-text: _("Show sidebar");
-                  visible: bind split.collapsed;
-                  active: bind split.show-sidebar bidirectional;
-                }
-              }
-
-              content: Adw.StatusPage {
-                icon-name: "system-users-symbolic";
+            // Artist pages open here, on top of the list.
+            child: Adw.NavigationView {
+              Adw.NavigationPage {
                 title: _("Artists");
-                description: _("Coming soon");
-              };
+
+                child: Adw.ToolbarView {
+                  [top]
+                  Adw.HeaderBar {
+                    [start]
+                    ToggleButton {
+                      icon-name: "sidebar-show-symbolic";
+                      tooltip-text: _("Show sidebar");
+                      visible: bind split.collapsed;
+                      active: bind split.show-sidebar bidirectional;
+                    }
+                  }
+
+                  content: Stack artists_stack {
+                    StackPage {
+                      name: "empty";
+
+                      child: Adw.StatusPage {
+                        icon-name: "system-users-symbolic";
+                        title: _("Artists");
+                      };
+                    }
+
+                    StackPage {
+                      name: "list";
+
+                      child: ScrolledWindow {
+                        hscrollbar-policy: never;
+
+                        child: Adw.Clamp {
+                          maximum-size: 1200;
+
+                          // One heading and one flow box of cards per letter.
+                          child: Box artists_box {
+                            orientation: vertical;
+                            spacing: 12;
+                            margin-top: 24;
+                            margin-bottom: 24;
+                            margin-start: 24;
+                            margin-end: 24;
+                            valign: start;
+                          };
+                        };
+                      };
+                    }
+                  };
+                };
+              }
             };
           }
 
