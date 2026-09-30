@@ -48,6 +48,9 @@ mod imp {
         pub sync_button: gtk::TemplateChild<gtk::Button>,
         /// True while albums and then songs are being synced.
         pub syncing: std::cell::Cell<bool>,
+        /// Bumped by every sync; a sync that is no longer the newest (another
+        /// account was connected meanwhile) drops its results.
+        pub sync_generation: std::cell::Cell<u64>,
         /// The search results, made on first use and reused.
         pub search_page: std::cell::OnceCell<crate::search_page::SearchPage>,
         /// Bumped by every search; results of an older one are dropped.
@@ -235,10 +238,10 @@ impl MainView {
 
     /// Fetches the album list from the server, shows it and stores it locally.
     fn sync_albums(&self, client: subsonic::Client) {
-        // One sync at a time: the button waits for the current one to finish.
-        if self.imp().syncing.get() {
-            return;
-        }
+        // A new sync supersedes a running one (another account, say): the
+        // client changes right away, and the older sync drops its results.
+        let generation = self.imp().sync_generation.get() + 1;
+        self.imp().sync_generation.set(generation);
         self.set_syncing(true);
         self.imp().client.replace(Some(client.clone()));
         // Covers on the Start page can now come from the server too.
@@ -260,6 +263,9 @@ impl MainView {
             let Some(view) = view.upgrade() else {
                 return;
             };
+            // Superseded meanwhile: the albums are still saved for their
+            // server, but the newer sync shows its own.
+            let stale = view.imp().sync_generation.get() != generation;
             match result {
                 Ok(Ok(albums)) => {
                     eprintln!("Synced {} albums in {:.2?}", albums.len(), started.elapsed());
@@ -271,15 +277,19 @@ impl MainView {
                             eprintln!("Could not save the library database: {e}");
                         }
                     });
+                    if stale {
+                        return;
+                    }
                     view.show_albums(albums);
                     // Songs next, in the background: album pages open already filled.
                     view.sync_songs();
                 }
-                Ok(Err(e)) => {
+                Ok(Err(e)) if !stale => {
                     view.show_offline(&error_message(&e));
                     view.set_syncing(false);
                 }
-                Err(_) => view.set_syncing(false),
+                Err(_) if !stale => view.set_syncing(false),
+                _ => {}
             }
         });
     }
@@ -494,6 +504,7 @@ impl MainView {
             return;
         };
         let server = client.server_key();
+        let generation = self.imp().sync_generation.get();
         let view = self.downgrade();
         glib::spawn_future_local(async move {
             // Whatever happens inside, the sync is over when this block ends.
@@ -518,7 +529,11 @@ impl MainView {
                 Ok(Ok(())) => {
                     eprintln!("Synced {count} songs in {:.2?}", started.elapsed());
                     // The "Continue" card may need songs that have only just arrived.
-                    if let Some(view) = view.upgrade() {
+                    // Unless another account was connected meanwhile.
+                    if let Some(view) = view
+                        .upgrade()
+                        .filter(|v| v.imp().sync_generation.get() == generation)
+                    {
                         view.refresh_start();
                         view.refresh_favorites();
                     }
@@ -528,7 +543,11 @@ impl MainView {
             }
             }
             .await;
-            if let Some(view) = view.upgrade() {
+            // A newer sync ends on its own; this one must not end it early.
+            if let Some(view) = view
+                .upgrade()
+                .filter(|v| v.imp().sync_generation.get() == generation)
+            {
                 view.set_syncing(false);
             }
         });
