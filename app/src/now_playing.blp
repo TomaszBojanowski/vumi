@@ -29,10 +29,13 @@ template $MusePlayerNowPlaying: Adw.Bin {
         margin-start: 12;
         margin-end: 12;
 
-        // A square cover as wide as the sidebar.
+        // A square cover as wide as the sidebar. The sidebar is 300 wide and
+        // the card has 12 + 12 of margins on each side, so the height is fixed
+        // too: the card keeps its size before the cover arrives.
         AspectFrame cover_frame {
           ratio: 1;
           obey-child: false;
+          height-request: 252;
 
           child: Overlay {
             overflow: hidden;
