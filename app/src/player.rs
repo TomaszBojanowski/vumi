@@ -447,22 +447,17 @@ impl Player {
         self.pending_seek.set(None);
         let queue = self.queue.borrow().clone();
         let from = self.position.get();
-        // From the song after the current one: the same song twice in a row
-        // (A, A, B) must move on to the second A, not stay on the first.
-        let found = queue
-            .iter()
-            .skip(from + 1)
-            .position(|song| song.id == id)
-            .map(|offset| offset + from + 1)
-            .or_else(|| queue.iter().position(|song| song.id == id));
-        match found {
-            Some(index) => {
-                self.position.set(index);
+        // Only the song right after the current one counts (so A, A, B moves on
+        // to the second A). Queue edits keep the handed-over track there, except
+        // moving or removing it after about-to-finish: then the queue wins and
+        // the song that is next now starts, with a short gap.
+        match queue.get(from + 1) {
+            Some(song) if song.id == id => {
+                self.position.set(from + 1);
                 self.set_state(State::Playing);
                 self.prepare_next();
             }
-            // Removed from the queue meanwhile: play what is next now instead.
-            None => self.play_at(from + 1),
+            _ => self.play_at(from + 1),
         }
     }
 
