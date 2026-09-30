@@ -222,6 +222,18 @@ impl Client {
         Ok(response.album_list2.map(|l| l.album).unwrap_or_default())
     }
 
+    /// A list of albums the server ranks: `kind` is a getAlbumList2 type,
+    /// e.g. "frequent" (most played) or "recent" (played last).
+    pub async fn album_list_of(&self, kind: &str, size: u32) -> Result<Vec<Album>> {
+        let response = self
+            .call(
+                "getAlbumList2",
+                &[("type", kind.to_string()), ("size", size.to_string())],
+            )
+            .await?;
+        Ok(response.album_list2.map(|l| l.album).unwrap_or_default())
+    }
+
     /// One album with its track list.
     pub async fn album(&self, id: &str) -> Result<AlbumWithSongs> {
         let response = self.call("getAlbum", &[("id", id.to_string())]).await?;

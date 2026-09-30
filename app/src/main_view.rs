@@ -320,6 +320,7 @@ impl MainView {
                     view.sync_songs();
                     view.sync_artists();
                     view.sync_playlists();
+                    view.sync_frequent();
                 }
                 Ok(Err(e)) if !stale => {
                     view.show_offline(&error_message(&e));
@@ -787,6 +788,34 @@ impl MainView {
 }
 
 impl MainView {
+    /// Asks the server which albums are played most (the Start page shelf).
+    fn sync_frequent(&self) {
+        let Some(client) = self.imp().client.borrow().clone() else {
+            return;
+        };
+        let generation = self.imp().sync_generation.get();
+        let view = self.downgrade();
+        glib::spawn_future_local(async move {
+            let result = runtime()
+                .spawn(async move { client.album_list_of("frequent", 24).await })
+                .await;
+            let Some(view) = view
+                .upgrade()
+                .filter(|v| v.imp().sync_generation.get() == generation)
+            else {
+                return;
+            };
+            match result {
+                Ok(Ok(albums)) => {
+                    let ids = albums.into_iter().map(|a| a.id).collect();
+                    view.imp().start_page.set_frequent(ids);
+                }
+                Ok(Err(e)) => eprintln!("Could not fetch the most played albums: {e}"),
+                Err(_) => {}
+            }
+        });
+    }
+
     /// The playlists as last fetched (for "Add to Playlist").
     pub(crate) fn playlists(&self) -> Vec<subsonic::Playlist> {
         self.imp().playlists.borrow().clone()

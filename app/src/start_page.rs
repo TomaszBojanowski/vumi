@@ -34,7 +34,20 @@ mod imp {
         pub recent_next: gtk::TemplateChild<gtk::Button>,
         /// The albums on each shelf now, so an unchanged shelf is not rebuilt.
         pub recent_ids: RefCell<Vec<String>>,
+        pub frequent_ids: RefCell<Vec<String>>,
         pub similar_ids: RefCell<Vec<String>>,
+        #[template_child]
+        pub frequent_shelf: gtk::TemplateChild<gtk::Box>,
+        #[template_child]
+        pub frequent_row: gtk::TemplateChild<gtk::Box>,
+        #[template_child]
+        pub frequent_scroll: gtk::TemplateChild<gtk::ScrolledWindow>,
+        #[template_child]
+        pub frequent_prev: gtk::TemplateChild<gtk::Button>,
+        #[template_child]
+        pub frequent_next: gtk::TemplateChild<gtk::Button>,
+        /// The ids of the most played albums, as the server ranks them.
+        pub frequent: RefCell<Vec<String>>,
         #[template_child]
         pub continue_card: gtk::TemplateChild<gtk::Box>,
         #[template_child]
@@ -136,6 +149,7 @@ impl StartPage {
         fill_shelf(&imp.recent_row, &imp.recent_ids, &recent, client.clone());
         imp.albums.replace(albums.to_vec());
         imp.client.replace(client);
+        self.show_frequent();
         // No library (logged out): the pick goes too, or the card would stay
         // hidden after logging in again with the same album still remembered.
         if albums.is_empty() {
@@ -152,6 +166,29 @@ impl StartPage {
         }
         self.update_continue();
         imp.recent_shelf.set_visible(!recent.is_empty());
+    }
+}
+
+impl StartPage {
+    /// "Most Played": the server's ranking, kept as ids; the shelf shows the
+    /// matching albums from the library, in that order.
+    pub(crate) fn set_frequent(&self, ids: Vec<String>) {
+        self.imp().frequent.replace(ids);
+        self.show_frequent();
+    }
+
+    fn show_frequent(&self) {
+        let imp = self.imp();
+        let albums = imp.albums.borrow();
+        let shelf: Vec<&Arc<subsonic::Album>> = imp
+            .frequent
+            .borrow()
+            .iter()
+            .filter_map(|id| albums.iter().find(|a| a.id == *id))
+            .take(SHELF_SIZE)
+            .collect();
+        fill_shelf(&imp.frequent_row, &imp.frequent_ids, &shelf, imp.client.borrow().clone());
+        imp.frequent_shelf.set_visible(!shelf.is_empty());
     }
 }
 
@@ -221,9 +258,14 @@ impl StartPage {
         {
             let imp = self.imp();
             connect_arrows(&imp.recent_scroll, &imp.recent_prev, &imp.recent_next);
+            connect_arrows(&imp.frequent_scroll, &imp.frequent_prev, &imp.frequent_next);
             connect_arrows(&imp.similar_scroll, &imp.similar_prev, &imp.similar_next);
             connect_wheel(&imp.recent_scroll);
+            connect_wheel(&imp.frequent_scroll);
             connect_wheel(&imp.similar_scroll);
+            connect_drag(&imp.recent_scroll);
+            connect_drag(&imp.frequent_scroll);
+            connect_drag(&imp.similar_scroll);
             // The hero card takes the colour of its cover (tint_hero).
             let tint = imp.hero_tint.get_or_init(crate::tint::Dynamic::new);
             imp.continue_card.add_css_class(tint.class());
@@ -534,7 +576,12 @@ fn connect_wheel(scroll: &gtk::ScrolledWindow) {
         let touchpad = controller
             .current_event_device()
             .is_some_and(|device| device.source() == gtk::gdk::InputSource::Touchpad);
-        if touchpad {
+        // The plain wheel scrolls the page, as anywhere else; only with Shift
+        // held does it move the row sideways (the ‹ › buttons do that too).
+        let shift = controller
+            .current_event_state()
+            .contains(gtk::gdk::ModifierType::SHIFT_MASK);
+        if touchpad || !shift {
             return gtk::glib::Propagation::Proceed;
         }
         let end = adj.upper() - adj.page_size();
@@ -547,6 +594,31 @@ fn connect_wheel(scroll: &gtk::ScrolledWindow) {
         gtk::glib::Propagation::Stop
     });
     scroll.add_controller(wheel);
+}
+
+/// Dragging a shelf with the mouse moves it sideways, as a finger would on a
+/// touch screen. The drag claims the pointer only after a few pixels, so a
+/// plain click on a cover still opens the album.
+fn connect_drag(scroll: &gtk::ScrolledWindow) {
+    let adj = scroll.hadjustment();
+    let drag = gtk::GestureDrag::new();
+    drag.set_button(1);
+    drag.set_propagation_phase(gtk::PropagationPhase::Capture);
+    let start = std::rc::Rc::new(std::cell::Cell::new(0.0));
+    {
+        let start = start.clone();
+        let adj = adj.clone();
+        drag.connect_drag_begin(move |_, _, _| start.set(adj.value()));
+    }
+    drag.connect_drag_update(move |gesture, offset_x, _| {
+        if offset_x.abs() < 8.0 {
+            return;
+        }
+        gesture.set_state(gtk::EventSequenceState::Claimed);
+        let end = adj.upper() - adj.page_size();
+        adj.set_value((start.get() - offset_x).clamp(adj.lower(), end));
+    });
+    scroll.add_controller(drag);
 }
 
 impl StartPage {

@@ -280,6 +280,66 @@ template $MusePlayerStartPage: Adw.Bin {
           }
         }
 
+        // "Most Played": the albums the server ranks by plays.
+        Box frequent_shelf {
+          orientation: vertical;
+          spacing: 12;
+          visible: false;
+
+          Box {
+            spacing: 8;
+
+            Label {
+              label: _("Most Played");
+              xalign: 0;
+
+              styles [
+                "title-4",
+              ]
+            }
+
+            // ‹ ›: move the row by what is visible (see connect_arrows).
+            Box {
+              hexpand: true;
+              halign: end;
+              spacing: 6;
+
+              Button frequent_prev {
+                icon-name: "go-previous-symbolic";
+                tooltip-text: _("Previous Albums");
+                valign: center;
+
+                styles [
+                  "circular",
+                  "flat",
+                ]
+              }
+
+              Button frequent_next {
+                icon-name: "go-next-symbolic";
+                tooltip-text: _("Next Albums");
+                valign: center;
+
+                styles [
+                  "circular",
+                  "flat",
+                ]
+              }
+            }
+          }
+
+          // One row of albums; it scrolls sideways when the window is narrow.
+          ScrolledWindow frequent_scroll {
+            vscrollbar-policy: never;
+            // The ‹ › buttons move the row; no scrollbar over the album names.
+            hscrollbar-policy: external;
+
+            child: Box frequent_row {
+              spacing: 12;
+            };
+          }
+        }
+
         // "Similar to …": albums with songs that sound like the one that played
         // last (AudioMuse-AI through Navidrome). Hidden until there is something.
         Box similar_shelf {
