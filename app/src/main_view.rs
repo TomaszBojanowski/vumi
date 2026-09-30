@@ -700,6 +700,13 @@ impl MainView {
         imp.sync_generation.set(imp.sync_generation.get() + 1);
         imp.client.replace(None);
         self.set_syncing(false);
+        // The old account's library leaves the screen; the next login shows
+        // its own (load_cached, then the sync). The database keeps both.
+        imp.current.replace(Vec::new());
+        imp.albums_page.set_badge_number(0);
+        self.refresh_grid();
+        self.refresh_start();
+        imp.favorites.show(&[], Vec::new(), None);
         // Every section (Start, Albums, Favorites...) has a navigation view of
         // its own, so all of them go back to their first page.
         pop_all_to_root(self.upcast_ref());

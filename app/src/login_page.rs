@@ -141,6 +141,8 @@ impl LoginPage {
                             eprintln!("Could not save the password: {e}");
                         }
                     });
+                    // As at startup: the local copy first, the server after it.
+                    main.load_cached(client.server_key());
                     main.show_connected(&response, client);
                     nav.replace(&[main.clone().upcast()]);
                 }
