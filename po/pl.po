@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: muse-player\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-30 16:12+0200\n"
+"POT-Creation-Date: 2026-09-30 17:30+0200\n"
 "PO-Revision-Date: 2026-09-27 20:40+0200\n"
 "Last-Translator: Tomasz Bojanowski <tomasz@bojanowski.me>\n"
 "Language-Team: Polish\n"
@@ -168,7 +168,7 @@ msgstr "Rok (od najnowszych)"
 msgid "Year (Oldest)"
 msgstr "Rok (od najstarszych)"
 
-#: app/src/main_view.blp:372 app/src/start_page.blp:229
+#: app/src/main_view.blp:372 app/src/start_page.blp:233
 msgid "Recently Added"
 msgstr "Ostatnio dodane"
 
@@ -325,7 +325,7 @@ msgstr "Wznów"
 
 #: app/src/album_page.rs:569 app/src/album_page.rs:744
 #: app/src/now_playing.rs:192 app/src/mini_player.rs:101
-#: app/src/start_page.blp:201
+#: app/src/start_page.blp:205
 msgid "Play"
 msgstr "Odtwórz"
 
@@ -355,15 +355,15 @@ msgstr "Informacje"
 msgid "Show more"
 msgstr "Wyświetl więcej"
 
-#: app/src/favorites.rs:79
+#: app/src/favorites.rs:87
 msgid "Could not change favorites. Please try again."
 msgstr "Nie udało się zmienić ulubionych. Spróbuj ponownie."
 
-#: app/src/favorites.rs:101
+#: app/src/favorites.rs:106
 msgid "Remove from favorites"
 msgstr "Usuń z ulubionych"
 
-#: app/src/favorites.rs:104
+#: app/src/favorites.rs:109
 msgid "Add to favorites"
 msgstr "Dodaj do ulubionych"
 
@@ -411,19 +411,19 @@ msgstr "Kontynuuj"
 msgid "Random Album"
 msgstr "Losowy album"
 
-#: app/src/start_page.blp:207
+#: app/src/start_page.blp:211
 msgid "Another Random Album"
 msgstr "Inny losowy album"
 
-#: app/src/start_page.blp:245 app/src/start_page.blp:317
+#: app/src/start_page.blp:249 app/src/start_page.blp:321
 msgid "Previous Albums"
 msgstr "Poprzednie albumy"
 
-#: app/src/start_page.blp:256 app/src/start_page.blp:328
+#: app/src/start_page.blp:260 app/src/start_page.blp:332
 msgid "Next Albums"
 msgstr "Następne albumy"
 
-#: app/src/start_page.blp:300
+#: app/src/start_page.blp:304
 msgid "Play Similar Songs"
 msgstr "Odtwórz podobne utwory"
 
