@@ -71,6 +71,11 @@ mod imp {
         pub cards: RefCell<Vec<glib::WeakRef<AlbumCard>>>,
         /// Whether the startup time was already reported.
         pub reported: Cell<bool>,
+        /// The account ("user@url") whose library is on screen, or empty.
+        pub server: RefCell<String>,
+        /// True once the server's own album list was shown (even an empty one):
+        /// the local copy read at the same time must not replace it.
+        pub synced: Cell<bool>,
     }
 
     #[glib::object_subclass]
@@ -187,6 +192,8 @@ impl MainView {
     /// Fills the grid from the local database, without touching the network.
     pub(crate) fn load_cached(&self, server: String) {
         covers::set_server(server.clone());
+        self.imp().server.replace(server.clone());
+        let account = server.clone();
         let view = self.downgrade();
         glib::spawn_future_local(async move {
             let result = runtime()
@@ -195,9 +202,9 @@ impl MainView {
             let Some(view) = view.upgrade() else {
                 return;
             };
-            // The server's own list is already on screen (a fast sync got here
-            // first): the older local copy must not replace it.
-            if !view.imp().current.borrow().is_empty() {
+            // Another account meanwhile (logged out, or in again), or the
+            // server's own list is already on screen: this copy is not wanted.
+            if *view.imp().server.borrow() != account || view.imp().synced.get() {
                 return;
             }
             match result {
@@ -259,6 +266,7 @@ impl MainView {
         }
         let server = client.server_key();
         covers::set_server(server.clone());
+        self.imp().server.replace(server.clone());
         let view = self.downgrade();
         glib::spawn_future_local(async move {
             let started = Instant::now();
@@ -279,6 +287,7 @@ impl MainView {
                     if stale {
                         return;
                     }
+                    view.imp().synced.set(true);
                     let to_save = albums.clone();
                     runtime().spawn_blocking(move || {
                         if let Err(e) = library::save_albums(&server, &to_save) {
@@ -704,6 +713,8 @@ impl MainView {
         let imp = self.imp();
         imp.sync_generation.set(imp.sync_generation.get() + 1);
         imp.client.replace(None);
+        imp.server.replace(String::new());
+        imp.synced.set(false);
         self.set_syncing(false);
         // The old account's library leaves the screen; the next login shows
         // its own (load_cached, then the sync). The database keeps both.
