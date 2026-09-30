@@ -195,6 +195,11 @@ impl MainView {
             let Some(view) = view.upgrade() else {
                 return;
             };
+            // The server's own list is already on screen (a fast sync got here
+            // first): the older local copy must not replace it.
+            if !view.imp().current.borrow().is_empty() {
+                return;
+            }
             match result {
                 Ok(Ok(albums)) if !albums.is_empty() => {
                     view.show_albums(albums.into_iter().map(Arc::new).collect())
