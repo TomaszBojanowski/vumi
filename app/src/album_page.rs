@@ -488,7 +488,7 @@ fn track_row(
 }
 
 /// "47 minutes" for most albums, "6 h 9 min" for long ones.
-fn format_duration(seconds: u32) -> String {
+pub(crate) fn format_duration(seconds: u32) -> String {
     let minutes = (seconds + 30) / 60;
     if minutes < 60 {
         // Translators: {n} is a number of minutes.

@@ -254,3 +254,26 @@ button.syncing > image {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }
+
+/* Playlist cards: a cover on the left, the name and the numbers beside it. */
+.playlist-card {
+  padding: 12px;
+  border-radius: 12px;
+}
+
+.playlist-card .playlist-cover {
+  border-radius: 8px;
+  box-shadow: 0 2px 8px alpha(black, 0.3);
+}
+
+/* Play on a playlist card: a quiet circle, brighter under the pointer. */
+.playlist-card .playlist-play {
+  min-width: 40px;
+  min-height: 40px;
+  background-color: alpha(currentColor, 0.1);
+  color: inherit;
+}
+
+.playlist-card .playlist-play:hover {
+  background-color: alpha(currentColor, 0.2);
+}

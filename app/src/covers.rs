@@ -1,6 +1,7 @@
 //! Album covers: fetched from the server at display size, cached on disk,
 //! decoded off the main thread. Only a few downloads run at once.
 
+use gtk::prelude::*;
 use gtk::{gdk, glib};
 use std::path::PathBuf;
 use std::sync::{Mutex, OnceLock};
@@ -130,6 +131,19 @@ pub(crate) fn load_for<W>(
             apply(&owner, texture);
         }
     });
+}
+
+/// A square `size` px version of `texture`, for widgets that must not ask for
+/// the texture's own size (an image in a card, say): its intrinsic size is
+/// exactly `size`, whatever the texture's.
+pub(crate) fn thumbnail(texture: &gdk::Texture, size: f32) -> Option<gdk::Paintable> {
+    let snapshot = gtk::Snapshot::new();
+    snapshot.append_scaled_texture(
+        texture,
+        gtk::gsk::ScalingFilter::Trilinear,
+        &gtk::graphene::Rect::new(0.0, 0.0, size, size),
+    );
+    snapshot.to_paintable(Some(&gtk::graphene::Size::new(size, size)))
 }
 
 /// Where the cover `id` is cached on disk, if it is. MPRIS hands this path to

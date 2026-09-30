@@ -48,6 +48,14 @@ mod imp {
         pub artists_stack: gtk::TemplateChild<gtk::Stack>,
         #[template_child]
         pub artists_box: gtk::TemplateChild<gtk::Box>,
+        #[template_child]
+        pub playlists_page: gtk::TemplateChild<adw::ViewStackPage>,
+        #[template_child]
+        pub playlists_stack: gtk::TemplateChild<gtk::Stack>,
+        #[template_child]
+        pub playlists_grid: gtk::TemplateChild<gtk::Grid>,
+        /// The playlists as the server lists them.
+        pub playlists: RefCell<Vec<subsonic::Playlist>>,
         /// The artists as the server lists them (with their pictures); empty
         /// until the sync, when the albums in memory stand in.
         pub artists: RefCell<Vec<subsonic::Artist>>,
@@ -127,6 +135,7 @@ impl MainView {
         view.set_title(APP_NAME);
         view.setup_grid();
         view.setup_queue();
+        view.setup_playlists();
         view.setup_sorting();
         view.setup_search();
         view.imp().favorites.set_empty(
@@ -310,6 +319,7 @@ impl MainView {
                     // Songs next, in the background: album pages open already filled.
                     view.sync_songs();
                     view.sync_artists();
+                    view.sync_playlists();
                 }
                 Ok(Err(e)) if !stale => {
                     view.show_offline(&error_message(&e));
@@ -777,6 +787,204 @@ impl MainView {
 }
 
 impl MainView {
+    /// Fetches the playlists; the list is rebuilt from them.
+    fn sync_playlists(&self) {
+        let Some(client) = self.imp().client.borrow().clone() else {
+            return;
+        };
+        let generation = self.imp().sync_generation.get();
+        let view = self.downgrade();
+        glib::spawn_future_local(async move {
+            let result = runtime().spawn(async move { client.playlists().await }).await;
+            let Some(view) = view
+                .upgrade()
+                .filter(|v| v.imp().sync_generation.get() == generation)
+            else {
+                return;
+            };
+            match result {
+                Ok(Ok(playlists)) => {
+                    view.imp().playlists.replace(playlists);
+                    view.refresh_playlists();
+                }
+                Ok(Err(e)) => eprintln!("Could not fetch the playlists: {e}"),
+                Err(_) => {}
+            }
+        });
+    }
+
+    /// The playlist cards go into two columns, or one on medium and narrow
+    /// windows (the breakpoint that also collapses the queue panel): the grid
+    /// is laid out again whenever that changes.
+    fn setup_playlists(&self) {
+        let view = self.downgrade();
+        self.imp().queue_split.connect_collapsed_notify(move |_| {
+            if let Some(view) = view.upgrade() {
+                view.refresh_playlists();
+            }
+        });
+    }
+
+    /// The Playlists section: a wide card per playlist (cover, name, how many
+    /// tracks and how long, the description) with a Play button; a click on
+    /// the card opens the playlist page.
+    fn refresh_playlists(&self) {
+        let imp = self.imp();
+        let playlists = imp.playlists.borrow().clone();
+        let client = imp.client.borrow().clone();
+        let columns: usize = if imp.queue_split.is_collapsed() { 1 } else { 2 };
+
+        while let Some(child) = imp.playlists_grid.first_child() {
+            imp.playlists_grid.remove(&child);
+        }
+        for (index, playlist) in playlists.iter().enumerate() {
+            let count = playlist.song_count.unwrap_or(0);
+            let mut parts = vec![
+                // Translators: {n} is a number of tracks.
+                ngettext("{n} track", "{n} tracks", count).replace("{n}", &count.to_string()),
+            ];
+            if let Some(seconds) = playlist.duration.filter(|d| *d > 0) {
+                parts.push(crate::album_page::format_duration(seconds));
+            }
+
+            // The cover as a 96 px thumbnail (covers::thumbnail): an image with
+            // the texture itself would ask for the texture's 320 px, and the
+            // flow box would then fit only one card per row.
+            let cover = gtk::Image::builder()
+                .pixel_size(96)
+                .icon_name("audio-x-generic-symbolic")
+                .build();
+            let cover_frame = adw::Bin::builder()
+                .child(&cover)
+                .valign(gtk::Align::Start)
+                .overflow(gtk::Overflow::Hidden)
+                .css_classes(["playlist-cover"])
+                .build();
+            if let Some(id) = playlist.cover_art.clone() {
+                covers::load_for(&cover, client.clone(), id, |image, texture| {
+                    if let Some(thumb) = texture.as_ref().and_then(|t| covers::thumbnail(t, 96.0)) {
+                        image.set_paintable(Some(&thumb));
+                    }
+                });
+            }
+
+            // A width limit, or the card would ask for the whole name in one
+            // line and the flow box would give every card that width.
+            let name = gtk::Label::builder()
+                .label(playlist.name.as_str())
+                .tooltip_text(playlist.name.as_str())
+                .xalign(0.0)
+                .ellipsize(gtk::pango::EllipsizeMode::End)
+                .width_chars(10)
+                .max_width_chars(28)
+                .css_classes(["title-4"])
+                .build();
+            let numbers = gtk::Label::builder()
+                .label(parts.join(" · "))
+                .xalign(0.0)
+                .ellipsize(gtk::pango::EllipsizeMode::End)
+                .css_classes(["dim-label"])
+                .build();
+            let text = gtk::Box::builder()
+                .orientation(gtk::Orientation::Vertical)
+                .spacing(4)
+                .hexpand(true)
+                .valign(gtk::Align::Center)
+                .build();
+            text.append(&name);
+            text.append(&numbers);
+            if let Some(comment) = playlist.comment.as_deref().filter(|c| !c.trim().is_empty()) {
+                let comment = gtk::Label::builder()
+                    .label(comment)
+                    .xalign(0.0)
+                    .ellipsize(gtk::pango::EllipsizeMode::End)
+                    .css_classes(["caption", "dim-label"])
+                    .build();
+                text.append(&comment);
+            }
+
+            // Play: the whole playlist, without opening it.
+            let play = gtk::Button::builder()
+                .icon_name("media-playback-start-symbolic")
+                .tooltip_text(gettext("Play"))
+                .valign(gtk::Align::Center)
+                .css_classes(["circular", "playlist-play"])
+                .build();
+            {
+                let id = playlist.id.clone();
+                let view = self.downgrade();
+                play.connect_clicked(move |_| {
+                    if let Some(view) = view.upgrade() {
+                        view.play_playlist(&id);
+                    }
+                });
+            }
+
+            let row = gtk::Box::builder().spacing(16).build();
+            row.append(&cover_frame);
+            row.append(&text);
+            row.append(&play);
+            // The text expands inside the card, but the card itself must not:
+            // hexpand-set stops it from inheriting the expansion, or the flow
+            // box measures the cards too wide and fits only one per row.
+            let card = gtk::Button::builder()
+                .child(&row)
+                .hexpand(true)
+                .css_classes(["card", "playlist-card"])
+                .build();
+            {
+                let id = playlist.id.clone();
+                let name = playlist.name.clone();
+                let view = self.downgrade();
+                card.connect_clicked(move |button| {
+                    if let Some(view) = view.upgrade() {
+                        view.open_playlist_from(button, &id, &name);
+                    }
+                });
+            }
+            imp.playlists_grid.attach(
+                &card,
+                (index % columns) as i32,
+                (index / columns) as i32,
+                1,
+                1,
+            );
+        }
+        imp.playlists_page.set_badge_number(playlists.len() as u32);
+        imp.playlists_stack
+            .set_visible_child_name(if playlists.is_empty() { "empty" } else { "list" });
+    }
+
+    /// Plays a playlist from its first song, fetched from the server.
+    fn play_playlist(&self, id: &str) {
+        let Some(client) = self.imp().client.borrow().clone() else {
+            return;
+        };
+        let id = id.to_owned();
+        let command = crate::player::get().command_id();
+        glib::spawn_future_local(async move {
+            let request = client.clone();
+            let fetched = runtime().spawn(async move { request.playlist(&id).await }).await;
+            let Ok(Ok(playlist)) = fetched else {
+                return;
+            };
+            // Something else was started meanwhile: this answer is stale.
+            if !crate::player::get().is_current(command) || playlist.entry.is_empty() {
+                return;
+            }
+            crate::player::get().play(client, playlist.entry.into(), 0);
+        });
+    }
+
+    /// Opens a playlist page in the section `from` belongs to. The page itself
+    /// comes next; for now this only says which playlist was chosen.
+    fn open_playlist_from(&self, from: &impl IsA<gtk::Widget>, id: &str, name: &str) {
+        let _ = from;
+        eprintln!("Playlist chosen: {name} ({id})");
+    }
+}
+
+impl MainView {
     /// Refreshes the Start page from the albums in memory.
     fn refresh_start(&self) {
         let imp = self.imp();
@@ -898,6 +1106,8 @@ impl MainView {
         imp.server.replace(String::new());
         imp.synced.set(false);
         imp.artists.replace(Vec::new());
+        imp.playlists.replace(Vec::new());
+        self.refresh_playlists();
         self.set_syncing(false);
         // The old account's library leaves the screen; the next login shows
         // its own (load_cached, then the sync). The database keeps both.

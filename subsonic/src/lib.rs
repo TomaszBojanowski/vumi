@@ -68,6 +68,8 @@ pub struct Response {
     pub artist: Option<ArtistWithAlbums>,
     pub artist_info2: Option<ArtistInfo>,
     pub artists: Option<ArtistIndexes>,
+    pub playlists: Option<Playlists>,
+    pub playlist: Option<PlaylistWithSongs>,
 }
 
 #[derive(Deserialize)]
@@ -453,4 +455,74 @@ pub struct SearchResult3 {
 pub struct SimilarSongs {
     #[serde(default)]
     pub song: Vec<Song>,
+}
+
+/// One playlist as getPlaylists lists them.
+#[derive(Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct Playlist {
+    pub id: String,
+    pub name: String,
+    pub comment: Option<String>,
+    pub owner: Option<String>,
+    pub public: Option<bool>,
+    pub song_count: Option<u32>,
+    pub duration: Option<u32>,
+    pub created: Option<String>,
+    pub changed: Option<String>,
+    pub cover_art: Option<String>,
+}
+
+#[derive(Deserialize)]
+pub struct Playlists {
+    #[serde(default)]
+    pub playlist: Vec<Playlist>,
+}
+
+/// A playlist with its songs (getPlaylist).
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PlaylistWithSongs {
+    pub id: String,
+    pub name: String,
+    pub comment: Option<String>,
+    pub song_count: Option<u32>,
+    pub duration: Option<u32>,
+    pub cover_art: Option<String>,
+    #[serde(default)]
+    pub entry: Vec<Song>,
+}
+
+impl Client {
+    /// Every playlist the user can see.
+    pub async fn playlists(&self) -> Result<Vec<Playlist>> {
+        let response = self.call("getPlaylists", &[]).await?;
+        Ok(response.playlists.map(|p| p.playlist).unwrap_or_default())
+    }
+
+    /// One playlist with its songs, in playlist order.
+    pub async fn playlist(&self, id: &str) -> Result<PlaylistWithSongs> {
+        let response = self.call("getPlaylist", &[("id", id.to_string())]).await?;
+        response
+            .playlist
+            .ok_or_else(|| Error::BadResponse("missing playlist in response".into()))
+    }
+
+    /// Creates a playlist with the given songs; returns it.
+    pub async fn create_playlist(&self, name: &str, song_ids: &[&str]) -> Result<PlaylistWithSongs> {
+        let mut params = vec![("name", name.to_string())];
+        params.extend(song_ids.iter().map(|id| ("songId", id.to_string())));
+        let response = self.call("createPlaylist", &params).await?;
+        response
+            .playlist
+            .ok_or_else(|| Error::BadResponse("missing playlist in response".into()))
+    }
+
+    /// Appends songs to a playlist.
+    pub async fn add_to_playlist(&self, id: &str, song_ids: &[&str]) -> Result<()> {
+        let mut params = vec![("playlistId", id.to_string())];
+        params.extend(song_ids.iter().map(|id| ("songIdToAdd", id.to_string())));
+        self.call("updatePlaylist", &params).await?;
+        Ok(())
+    }
 }
