@@ -670,6 +670,9 @@ impl AlbumPage {
             let same_disc = builder.group.borrow().as_ref().map(|(d, _)| *d) == Some(disc);
             if !same_disc {
                 let group = adw::PreferencesGroup::new();
+                // Rows without the card frame (style.css): lighter under the
+                // large header.
+                group.add_css_class("flat-tracks");
                 if builder.multi_disc {
                     // Translators: header above the tracks of one disc, e.g. "Disc 2".
                     group.set_title(&gettext("Disc {n}").replace("{n}", &disc.to_string()));

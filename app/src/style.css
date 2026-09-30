@@ -3,6 +3,19 @@
   box-shadow: 0 6px 20px alpha(black, 0.35);
 }
 
+/* Track rows on album pages: no card around the list and no lines between
+   the rows, only the hover highlight and the playing row. */
+.flat-tracks list.boxed-list {
+  background: none;
+  box-shadow: none;
+  border: none;
+}
+
+.flat-tracks list.boxed-list > row {
+  border: none;
+  border-radius: 8px;
+}
+
 /* The album name: the largest text on the page, as in a record sleeve. */
 .album-title {
   font-size: 34px;
