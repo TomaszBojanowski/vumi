@@ -686,7 +686,6 @@ impl MainView {
 }
 
 impl MainView {
-    /// Syncs albums and then songs now (Preferences), as after connecting.
     /// Logging out: the pages opened for this account go, together with the
     /// client they would play and star with, and running syncs drop their
     /// results instead of showing or saving them.
@@ -700,7 +699,13 @@ impl MainView {
         pop_all_to_root(self.upcast_ref());
     }
 
+    /// Syncs albums and then songs now (Preferences), as after connecting.
+    /// While a sync runs, another click does nothing: the same account would
+    /// only be fetched twice, and the first result thrown away.
     pub(crate) fn sync_now(&self) {
+        if self.imp().syncing.get() {
+            return;
+        }
         // Taken out first: in `if let`, the borrow would last for the whole block,
         // while sync_albums stores the client (borrow_mut).
         let client = self.imp().client.borrow().clone();
@@ -753,7 +758,7 @@ impl MainView {
             imp.sync_button.remove_css_class("syncing");
         }
         // Stays sensitive: an insensitive button would dim the spinner; a second
-        // click is ignored by sync_albums anyway.
+        // click is ignored by sync_now anyway.
     }
 }
 
