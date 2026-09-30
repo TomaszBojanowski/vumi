@@ -562,6 +562,24 @@ impl MainView {
     }
 }
 
+/// Pops every navigation view under `widget` back to its first page.
+fn pop_all_to_root(widget: &gtk::Widget) {
+    if let Some(nav) = widget.downcast_ref::<adw::NavigationView>() {
+        if let Some(root) = nav
+            .navigation_stack()
+            .item(0)
+            .and_downcast::<adw::NavigationPage>()
+        {
+            nav.pop_to_page(&root);
+        }
+    }
+    let mut child = widget.first_child();
+    while let Some(widget) = child {
+        pop_all_to_root(&widget);
+        child = widget.next_sibling();
+    }
+}
+
 impl MainView {
     /// Refreshes the Start page from the albums in memory.
     fn refresh_start(&self) {
@@ -669,6 +687,19 @@ impl MainView {
 
 impl MainView {
     /// Syncs albums and then songs now (Preferences), as after connecting.
+    /// Logging out: the pages opened for this account go, together with the
+    /// client they would play and star with, and running syncs drop their
+    /// results instead of showing or saving them.
+    pub(crate) fn log_out(&self) {
+        let imp = self.imp();
+        imp.sync_generation.set(imp.sync_generation.get() + 1);
+        imp.client.replace(None);
+        self.set_syncing(false);
+        // Every section (Start, Albums, Favorites...) has a navigation view of
+        // its own, so all of them go back to their first page.
+        pop_all_to_root(self.upcast_ref());
+    }
+
     pub(crate) fn sync_now(&self) {
         // Taken out first: in `if let`, the borrow would last for the whole block,
         // while sync_albums stores the client (borrow_mut).
