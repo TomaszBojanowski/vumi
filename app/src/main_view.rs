@@ -106,6 +106,7 @@ impl MainView {
         let view: Self = glib::Object::new();
         view.set_title(APP_NAME);
         view.setup_grid();
+        view.setup_queue();
         view.setup_sorting();
         view.setup_search();
         view.imp().favorites.set_empty(
@@ -703,5 +704,20 @@ impl MainView {
     pub(crate) fn toggle_queue(&self) {
         let split = &self.imp().queue_split;
         split.set_show_sidebar(!split.shows_sidebar());
+    }
+
+    /// The queue panel is pinned (main_view.blp), so it stays as it was left.
+    /// On a narrow window it hides, as it would cover the page; widening
+    /// brings it back if it was open before, or was opened meanwhile.
+    fn setup_queue(&self) {
+        let was_open = Cell::new(false);
+        self.imp().queue_split.connect_collapsed_notify(move |split| {
+            if split.is_collapsed() {
+                was_open.set(split.shows_sidebar());
+                split.set_show_sidebar(false);
+            } else {
+                split.set_show_sidebar(was_open.get() || split.shows_sidebar());
+            }
+        });
     }
 }
