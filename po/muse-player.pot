@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: muse-player\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-30 22:26+0200\n"
+"POT-Creation-Date: 2026-09-30 22:30+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -88,15 +88,15 @@ msgstr[1] ""
 #. Translators: {n} is a number of tracks.
 #. Translators: {n} is a number of tracks in the queue.
 #. Translators: {n} is a number of tracks.
-#: app/src/main_view.rs:844 app/src/album_page.rs:354 app/src/queue_page.rs:193
-#: app/src/playlist_page.rs:125
+#: app/src/main_view.rs:849 app/src/album_page.rs:354 app/src/queue_page.rs:193
+#: app/src/song_menu.rs:245 app/src/playlist_page.rs:125
 #, rust-format
 msgid "{n} track"
 msgid_plural "{n} tracks"
 msgstr[0] ""
 msgstr[1] ""
 
-#: app/src/main_view.rs:909 app/src/album_page.rs:628 app/src/album_page.rs:810
+#: app/src/main_view.rs:914 app/src/album_page.rs:628 app/src/album_page.rs:810
 #: app/src/now_playing.rs:191 app/src/mini_player.rs:101
 #: app/src/start_page.blp:205 app/src/playlist_page.blp:80
 msgid "Play"
@@ -159,7 +159,7 @@ msgstr ""
 msgid "Collections"
 msgstr ""
 
-#: app/src/main_view.blp:292 app/src/main_view.blp:298
+#: app/src/main_view.blp:292 app/src/main_view.blp:298 app/src/song_menu.rs:234
 msgid "Playlists"
 msgstr ""
 
@@ -187,7 +187,7 @@ msgstr ""
 msgid "Name"
 msgstr ""
 
-#: app/src/main_view.blp:427 app/src/song_menu.rs:177
+#: app/src/main_view.blp:427 app/src/song_menu.rs:310
 msgid "Artist"
 msgstr ""
 
@@ -355,7 +355,7 @@ msgstr ""
 msgid "Shuffle"
 msgstr ""
 
-#: app/src/album_page.rs:1033 app/src/song_menu.rs:149
+#: app/src/album_page.rs:1033 app/src/song_menu.rs:154
 msgid "No similar songs found"
 msgstr ""
 
@@ -515,7 +515,7 @@ msgstr ""
 msgid "Remove from Queue"
 msgstr ""
 
-#: app/src/queue_page.rs:131 app/src/song_menu.rs:122
+#: app/src/queue_page.rs:131 app/src/song_menu.rs:127
 msgid "More"
 msgstr ""
 
@@ -527,67 +527,89 @@ msgstr ""
 msgid "Added to the queue"
 msgstr ""
 
-#: app/src/song_menu.rs:100
+#: app/src/song_menu.rs:104
 msgid "Play Next"
 msgstr ""
 
-#: app/src/song_menu.rs:101
+#: app/src/song_menu.rs:105
 msgid "Add to Queue"
 msgstr ""
 
-#: app/src/song_menu.rs:104
-msgid "Play Similar"
+#: app/src/song_menu.rs:106
+msgid "Add to Playlist…"
 msgstr ""
 
 #: app/src/song_menu.rs:109
+msgid "Play Similar"
+msgstr ""
+
+#: app/src/song_menu.rs:114
 msgid "Go to Album"
 msgstr ""
 
-#: app/src/song_menu.rs:111
+#: app/src/song_menu.rs:116
 msgid "Go to Artist"
 msgstr ""
 
-#: app/src/song_menu.rs:114 app/src/song_menu.rs:201
+#: app/src/song_menu.rs:119 app/src/song_menu.rs:334
 msgid "Song Information"
 msgstr ""
 
 #: app/src/song_menu.rs:176
+msgid "Add to Playlist"
+msgstr ""
+
+#: app/src/song_menu.rs:192
+msgid "New Playlist"
+msgstr ""
+
+#. Translators: {name} is the name of a playlist.
+#: app/src/song_menu.rs:221 app/src/song_menu.rs:270
+#, rust-format
+msgid "Added to “{name}”"
+msgstr ""
+
+#: app/src/song_menu.rs:224 app/src/song_menu.rs:273
+msgid "Could not add to the playlist"
+msgstr ""
+
+#: app/src/song_menu.rs:309
 msgid "Title"
 msgstr ""
 
-#: app/src/song_menu.rs:178
+#: app/src/song_menu.rs:311
 msgid "Composer"
 msgstr ""
 
-#: app/src/song_menu.rs:179
+#: app/src/song_menu.rs:312
 msgid "Album"
 msgstr ""
 
-#: app/src/song_menu.rs:180
+#: app/src/song_menu.rs:313
 msgid "Track"
 msgstr ""
 
-#: app/src/song_menu.rs:181
+#: app/src/song_menu.rs:314
 msgid "Disc"
 msgstr ""
 
-#: app/src/song_menu.rs:183
+#: app/src/song_menu.rs:316
 msgid "Duration"
 msgstr ""
 
-#: app/src/song_menu.rs:186
+#: app/src/song_menu.rs:319
 msgid "Format"
 msgstr ""
 
-#: app/src/song_menu.rs:187
+#: app/src/song_menu.rs:320
 msgid "Bit Depth"
 msgstr ""
 
-#: app/src/song_menu.rs:189
+#: app/src/song_menu.rs:322
 msgid "Sample Rate"
 msgstr ""
 
-#: app/src/song_menu.rs:193
+#: app/src/song_menu.rs:326
 msgid "Bit Rate"
 msgstr ""
 

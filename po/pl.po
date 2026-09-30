@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: muse-player\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-30 22:26+0200\n"
+"POT-Creation-Date: 2026-09-30 22:30+0200\n"
 "PO-Revision-Date: 2026-09-27 20:40+0200\n"
 "Last-Translator: Tomasz Bojanowski <tomasz@bojanowski.me>\n"
 "Language-Team: Polish\n"
@@ -90,8 +90,8 @@ msgstr[2] "{n} albumów"
 #. Translators: {n} is a number of tracks.
 #. Translators: {n} is a number of tracks in the queue.
 #. Translators: {n} is a number of tracks.
-#: app/src/main_view.rs:844 app/src/album_page.rs:354 app/src/queue_page.rs:193
-#: app/src/playlist_page.rs:125
+#: app/src/main_view.rs:849 app/src/album_page.rs:354 app/src/queue_page.rs:193
+#: app/src/song_menu.rs:245 app/src/playlist_page.rs:125
 #, rust-format
 msgid "{n} track"
 msgid_plural "{n} tracks"
@@ -99,7 +99,7 @@ msgstr[0] "{n} utwór"
 msgstr[1] "{n} utwory"
 msgstr[2] "{n} utworów"
 
-#: app/src/main_view.rs:909 app/src/album_page.rs:628 app/src/album_page.rs:810
+#: app/src/main_view.rs:914 app/src/album_page.rs:628 app/src/album_page.rs:810
 #: app/src/now_playing.rs:191 app/src/mini_player.rs:101
 #: app/src/start_page.blp:205 app/src/playlist_page.blp:80
 msgid "Play"
@@ -162,7 +162,7 @@ msgstr "Ulubione"
 msgid "Collections"
 msgstr "Kolekcje"
 
-#: app/src/main_view.blp:292 app/src/main_view.blp:298
+#: app/src/main_view.blp:292 app/src/main_view.blp:298 app/src/song_menu.rs:234
 msgid "Playlists"
 msgstr "Listy odtwarzania"
 
@@ -190,7 +190,7 @@ msgstr "Wkrótce"
 msgid "Name"
 msgstr "Nazwa"
 
-#: app/src/main_view.blp:427 app/src/song_menu.rs:177
+#: app/src/main_view.blp:427 app/src/song_menu.rs:310
 msgid "Artist"
 msgstr "Wykonawca"
 
@@ -366,7 +366,7 @@ msgstr "Radio"
 msgid "Shuffle"
 msgstr "Losowo"
 
-#: app/src/album_page.rs:1033 app/src/song_menu.rs:149
+#: app/src/album_page.rs:1033 app/src/song_menu.rs:154
 msgid "No similar songs found"
 msgstr "Nie znaleziono podobnych utworów"
 
@@ -526,7 +526,7 @@ msgstr "Utwory pojawią się tu po odtworzeniu albumu, utworu lub radia"
 msgid "Remove from Queue"
 msgstr "Usuń z kolejki"
 
-#: app/src/queue_page.rs:131 app/src/song_menu.rs:122
+#: app/src/queue_page.rs:131 app/src/song_menu.rs:127
 msgid "More"
 msgstr "Więcej"
 
@@ -538,67 +538,89 @@ msgstr "Zostanie odtworzony jako następny"
 msgid "Added to the queue"
 msgstr "Dodano na koniec kolejki"
 
-#: app/src/song_menu.rs:100
+#: app/src/song_menu.rs:104
 msgid "Play Next"
 msgstr "Dodaj jako następny"
 
-#: app/src/song_menu.rs:101
+#: app/src/song_menu.rs:105
 msgid "Add to Queue"
 msgstr "Dodaj na koniec kolejki"
 
-#: app/src/song_menu.rs:104
+#: app/src/song_menu.rs:106
+msgid "Add to Playlist…"
+msgstr "Dodaj do listy odtwarzania…"
+
+#: app/src/song_menu.rs:109
 msgid "Play Similar"
 msgstr "Odtwórz podobne"
 
-#: app/src/song_menu.rs:109
+#: app/src/song_menu.rs:114
 msgid "Go to Album"
 msgstr "Przejdź do albumu"
 
-#: app/src/song_menu.rs:111
+#: app/src/song_menu.rs:116
 msgid "Go to Artist"
 msgstr "Przejdź do artysty"
 
-#: app/src/song_menu.rs:114 app/src/song_menu.rs:201
+#: app/src/song_menu.rs:119 app/src/song_menu.rs:334
 msgid "Song Information"
 msgstr "Informacje o utworze"
 
 #: app/src/song_menu.rs:176
+msgid "Add to Playlist"
+msgstr "Dodawanie do listy odtwarzania"
+
+#: app/src/song_menu.rs:192
+msgid "New Playlist"
+msgstr "Nowa lista odtwarzania"
+
+#. Translators: {name} is the name of a playlist.
+#: app/src/song_menu.rs:221 app/src/song_menu.rs:270
+#, rust-format
+msgid "Added to “{name}”"
+msgstr "Dodano do listy „{name}”"
+
+#: app/src/song_menu.rs:224 app/src/song_menu.rs:273
+msgid "Could not add to the playlist"
+msgstr "Nie można dodać do listy odtwarzania"
+
+#: app/src/song_menu.rs:309
 msgid "Title"
 msgstr "Tytuł"
 
-#: app/src/song_menu.rs:178
+#: app/src/song_menu.rs:311
 msgid "Composer"
 msgstr "Kompozytor"
 
-#: app/src/song_menu.rs:179
+#: app/src/song_menu.rs:312
 msgid "Album"
 msgstr "Album"
 
-#: app/src/song_menu.rs:180
+#: app/src/song_menu.rs:313
 msgid "Track"
 msgstr "Utwór"
 
-#: app/src/song_menu.rs:181
+#: app/src/song_menu.rs:314
 msgid "Disc"
 msgstr "Płyta"
 
-#: app/src/song_menu.rs:183
+#: app/src/song_menu.rs:316
 msgid "Duration"
 msgstr "Czas trwania"
 
-#: app/src/song_menu.rs:186
+#: app/src/song_menu.rs:319
 msgid "Format"
 msgstr "Format"
 
-#: app/src/song_menu.rs:187
+#: app/src/song_menu.rs:320
 msgid "Bit Depth"
 msgstr "Rozdzielczość"
 
-#: app/src/song_menu.rs:189
+#: app/src/song_menu.rs:322
 msgid "Sample Rate"
 msgstr "Częstotliwość próbkowania"
 
-#: app/src/song_menu.rs:193
+#: app/src/song_menu.rs:326
 msgid "Bit Rate"
 msgstr "Przepływność"
 
