@@ -126,39 +126,6 @@ template $MusePlayerAlbumPage: Adw.NavigationPage {
               }
             }
 
-            // "About": hidden until the server has a description.
-            Box about {
-              orientation: vertical;
-              spacing: 6;
-              visible: false;
-
-              Label {
-                label: _("About");
-                xalign: 0;
-
-                styles [
-                  "heading",
-                ]
-              }
-
-              Label about_text {
-                xalign: 0;
-                wrap: true;
-                lines: 4;
-                ellipsize: end;
-              }
-
-              Button about_more {
-                label: _("Show more");
-                halign: start;
-                visible: false;
-
-                styles [
-                  "flat",
-                ]
-              }
-            }
-
             Stack tracks_stack {
               // Nothing at first; the spinner appears only if loading takes a
               // while. The track list fades in from code (fade_in, album_page.rs).
@@ -198,6 +165,40 @@ template $MusePlayerAlbumPage: Adw.NavigationPage {
                 };
               }
             }
+
+            // "About", under the tracks: hidden until the server has a description.
+            Box about {
+              orientation: vertical;
+              spacing: 6;
+              visible: false;
+
+              Label {
+                label: _("About");
+                xalign: 0;
+
+                styles [
+                  "heading",
+                ]
+              }
+
+              Label about_text {
+                xalign: 0;
+                wrap: true;
+                lines: 4;
+                ellipsize: end;
+              }
+
+              Button about_more {
+                label: _("Show more");
+                halign: start;
+                visible: false;
+
+                styles [
+                  "flat",
+                ]
+              }
+            }
+
           };
         };
       };
