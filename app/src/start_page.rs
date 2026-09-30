@@ -63,6 +63,20 @@ mod imp {
         pub similar_prev: gtk::TemplateChild<gtk::Button>,
         #[template_child]
         pub similar_next: gtk::TemplateChild<gtk::Button>,
+        #[template_child]
+        pub random_card: gtk::TemplateChild<gtk::Box>,
+        #[template_child]
+        pub random_cover: gtk::TemplateChild<gtk::Picture>,
+        #[template_child]
+        pub random_title: gtk::TemplateChild<gtk::Label>,
+        #[template_child]
+        pub random_subtitle: gtk::TemplateChild<gtk::Label>,
+        #[template_child]
+        pub random_play: gtk::TemplateChild<gtk::Button>,
+        #[template_child]
+        pub random_next: gtk::TemplateChild<gtk::Button>,
+        /// The album on the "Random Album" card.
+        pub random_album: RefCell<Option<Arc<subsonic::Album>>>,
         /// The similar songs, played by the radio button next to the shelf title.
         pub similar: RefCell<Option<Rc<[subsonic::Song]>>>,
         /// The song they are similar to, so the server is asked once per song.
@@ -122,6 +136,15 @@ impl StartPage {
         fill_shelf(&imp.recent_row, &imp.recent_ids, &recent, client.clone());
         imp.albums.replace(albums.to_vec());
         imp.client.replace(client);
+        // A new pick only when there is none yet, or it left the library.
+        let keep = imp
+            .random_album
+            .borrow()
+            .as_ref()
+            .is_some_and(|a| albums.iter().any(|b| b.id == a.id));
+        if !keep {
+            self.show_random();
+        }
         self.update_continue();
         imp.recent_shelf.set_visible(!recent.is_empty());
     }
@@ -197,6 +220,20 @@ impl StartPage {
             connect_wheel(&imp.recent_scroll);
             connect_wheel(&imp.similar_scroll);
         }
+
+        // The "Random Album" card: play it, or pick another one.
+        let page = self.downgrade();
+        self.imp().random_play.connect_clicked(move |_| {
+            if let Some(page) = page.upgrade() {
+                page.play_random();
+            }
+        });
+        let page = self.downgrade();
+        self.imp().random_next.connect_clicked(move |_| {
+            if let Some(page) = page.upgrade() {
+                page.show_random();
+            }
+        });
         // The radio button next to "Similar to …" plays all the similar songs.
         {
             let page = self.downgrade();
@@ -484,4 +521,66 @@ fn connect_wheel(scroll: &gtk::ScrolledWindow) {
         gtk::glib::Propagation::Stop
     });
     scroll.add_controller(wheel);
+}
+
+impl StartPage {
+    /// Fills the "Random Album" card with an album from the library, other
+    /// than the one it shows now.
+    fn show_random(&self) {
+        let imp = self.imp();
+        let albums = imp.albums.borrow().clone();
+        let current = imp.random_album.borrow().as_ref().map(|a| a.id.clone());
+        let choices: Vec<&Arc<subsonic::Album>> = albums
+            .iter()
+            .filter(|a| Some(&a.id) != current.as_ref())
+            .collect();
+        if choices.is_empty() {
+            imp.random_card.set_visible(!albums.is_empty());
+            return;
+        }
+        let pick = glib::random_int_range(0, choices.len() as i32) as usize;
+        let album = Arc::clone(choices[pick]);
+
+        imp.random_title.set_label(&album.name);
+        imp.random_subtitle
+            .set_label(album.artist.as_deref().unwrap_or_default());
+        imp.random_cover.set_paintable(None::<&gtk::gdk::Paintable>);
+        if let Some(cover) = album.cover_art.clone() {
+            crate::covers::load_for(
+                &imp.random_cover.get(),
+                imp.client.borrow().clone(),
+                cover,
+                |picture, texture| picture.set_paintable(texture.as_ref()),
+            );
+        }
+        imp.random_album.replace(Some(album));
+        imp.random_card.set_visible(true);
+    }
+
+    /// Plays the album on the "Random Album" card from its first song. The
+    /// songs come from the database in the background.
+    fn play_random(&self) {
+        let imp = self.imp();
+        let album = imp.random_album.borrow().clone();
+        let client = imp.client.borrow().clone();
+        let (Some(album), Some(client)) = (album, client) else {
+            return;
+        };
+        let server = client.server_key();
+        let command = crate::player::get().command_id();
+        glib::spawn_future_local(async move {
+            let album_id = album.id.clone();
+            let songs = crate::runtime()
+                .spawn_blocking(move || crate::library::load_album_songs(&server, &album_id))
+                .await
+                .ok()
+                .and_then(Result::ok)
+                .unwrap_or_default();
+            // Something else was started meanwhile: this answer is stale.
+            if songs.is_empty() || !crate::player::get().is_current(command) {
+                return;
+            }
+            crate::player::get().play(client, songs.into(), 0);
+        });
+    }
 }

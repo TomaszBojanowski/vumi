@@ -22,110 +22,215 @@ template $MusePlayerStartPage: Adw.Bin {
         margin-start: 24;
         margin-end: 24;
 
-        // "Continue listening": the album that played last, resumed where it
-        // stopped. Hidden until something has played. 560 px wide, or the
-        // whole width on narrow windows (the breakpoint below).
-        Box continue_card {
+        // The two cards at the top: "Last Played" and a random album, side by
+        // side, or one under the other (the breakpoints below).
+        Box top_row {
           spacing: 18;
-          halign: start;
-          width-request: 560;
-          visible: false;
 
-          styles [
-            "card",
-            "continue-card",
-          ]
-
-          Overlay continue_cover_frame {
-            width-request: 120;
-            height-request: 120;
-            valign: center;
-            overflow: hidden;
+          // "Continue listening": the album that played last, resumed where it
+          // stopped. Hidden until something has played. 560 px wide, or the
+          // whole width on narrow windows (the breakpoint below).
+          Box continue_card {
+            spacing: 18;
+            halign: start;
+            width-request: 560;
+            visible: false;
 
             styles [
-              "continue-cover",
+              "card",
+              "continue-card",
             ]
 
-            child: Image {
-              icon-name: "audio-x-generic-symbolic";
-              pixel-size: 48;
+            Overlay continue_cover_frame {
+              width-request: 120;
+              height-request: 120;
+              valign: center;
+              overflow: hidden;
 
               styles [
-                "dim-label",
+                "continue-cover",
               ]
-            };
 
-            [overlay]
-            Picture continue_cover {
-              content-fit: cover;
-            }
-          }
+              child: Image {
+                icon-name: "audio-x-generic-symbolic";
+                pixel-size: 48;
 
-          Box {
-            orientation: vertical;
-            valign: center;
-            spacing: 4;
-            hexpand: true;
+                styles [
+                  "dim-label",
+                ]
+              };
 
-            Label {
-              label: _("Last Played");
-              xalign: 0;
-
-              styles [
-                "caption",
-                "dim-label",
-              ]
-            }
-
-            Label continue_title {
-              xalign: 0;
-              ellipsize: end;
-
-              styles [
-                "title-2",
-              ]
-            }
-
-            Label continue_subtitle {
-              xalign: 0;
-              ellipsize: end;
-
-              styles [
-                "dim-label",
-              ]
-            }
-
-            // Where in the song it stopped: a progress bar and the time.
-            Box {
-              spacing: 10;
-              margin-top: 4;
-
-              ProgressBar continue_progress {
-                hexpand: true;
-                valign: center;
+              [overlay]
+              Picture continue_cover {
+                content-fit: cover;
               }
+            }
 
-              Label continue_time {
+            Box {
+              orientation: vertical;
+              valign: center;
+              spacing: 4;
+              hexpand: true;
+
+              Label {
+                label: _("Last Played");
+                xalign: 0;
+
                 styles [
                   "caption",
-                  "numeric",
                   "dim-label",
                 ]
               }
-            }
 
-            Button continue_button {
-              halign: start;
-              margin-top: 8;
+              Label continue_title {
+                xalign: 0;
+                ellipsize: end;
+
+                styles [
+                  "title-2",
+                ]
+              }
+
+              Label continue_subtitle {
+                xalign: 0;
+                ellipsize: end;
+
+                styles [
+                  "dim-label",
+                ]
+              }
+
+              // Where in the song it stopped: a progress bar and the time.
+              Box {
+                spacing: 10;
+                margin-top: 4;
+
+                ProgressBar continue_progress {
+                  hexpand: true;
+                  valign: center;
+                }
+
+                Label continue_time {
+                  styles [
+                    "caption",
+                    "numeric",
+                    "dim-label",
+                  ]
+                }
+              }
+
+              Button continue_button {
+                halign: start;
+                margin-top: 8;
+
+                styles [
+                  "pill",
+                ]
+
+                child: Adw.ButtonContent {
+                  icon-name: "media-playback-start-symbolic";
+                  label: _("Continue");
+                };
+              }
+            }
+          }
+
+          // "Random Album": something from the library to listen to next.
+          Box random_card {
+            spacing: 18;
+            halign: start;
+            width-request: 560;
+            visible: false;
+
+            styles [
+              "card",
+              "continue-card",
+            ]
+
+            Overlay random_cover_frame {
+              width-request: 120;
+              height-request: 120;
+              valign: center;
+              overflow: hidden;
 
               styles [
-                "pill",
+                "continue-cover",
               ]
 
-              child: Adw.ButtonContent {
-                icon-name: "media-playback-start-symbolic";
-                label: _("Continue");
+              child: Image {
+                icon-name: "media-optical-symbolic";
+                pixel-size: 48;
+
+                styles [
+                  "dim-label",
+                ]
               };
+
+              [overlay]
+              Picture random_cover {
+                content-fit: cover;
+              }
+            }
+
+            Box {
+              orientation: vertical;
+              valign: center;
+              spacing: 4;
+              hexpand: true;
+
+              Label {
+                label: _("Random Album");
+                xalign: 0;
+
+                styles [
+                  "caption",
+                  "dim-label",
+                ]
+              }
+
+              Label random_title {
+                xalign: 0;
+                ellipsize: end;
+
+                styles [
+                  "title-2",
+                ]
+              }
+
+              Label random_subtitle {
+                xalign: 0;
+                ellipsize: end;
+
+                styles [
+                  "dim-label",
+                ]
+              }
+
+              Box {
+                spacing: 8;
+                margin-top: 8;
+
+                Button random_play {
+                  styles [
+                    "pill",
+                  ]
+
+                  child: Adw.ButtonContent {
+                    icon-name: "media-playback-start-symbolic";
+                    label: _("Play");
+                  };
+                }
+
+                Button random_next {
+                  icon-name: "media-playlist-shuffle-symbolic";
+                  tooltip-text: _("Another Random Album");
+                  valign: center;
+
+                  styles [
+                    "circular",
+                  ]
+                }
+              }
             }
           }
         }
@@ -263,16 +368,32 @@ template $MusePlayerStartPage: Adw.Bin {
       };
     };
 
-    // Narrow: the card takes the width there is instead of its usual 560 px,
+    // Medium: the two top cards (2 × 560 px, the gap and the page margins) do
+    // not fit side by side, so they go one under the other. The conditions do
+    // not overlap, so only one breakpoint applies at a time.
+    Adw.Breakpoint {
+      condition ("max-width: 1200sp and min-width: 621sp")
+
+      setters {
+        top_row.orientation: vertical;
+      }
+    }
+
+    // Narrow: the cards take the width there is instead of their usual 560 px,
     // which would not fit (plus the page margins).
     Adw.Breakpoint {
       condition ("max-width: 620sp")
 
       setters {
+        top_row.orientation: vertical;
         continue_card.width-request: -1;
         continue_card.halign: fill;
         continue_cover_frame.width-request: 80;
         continue_cover_frame.height-request: 80;
+        random_card.width-request: -1;
+        random_card.halign: fill;
+        random_cover_frame.width-request: 80;
+        random_cover_frame.height-request: 80;
       }
     }
   };
