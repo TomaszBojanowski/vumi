@@ -49,6 +49,8 @@ mod imp {
         pub next: gtk::TemplateChild<gtk::Button>,
         /// The cover on screen, so it is only reloaded when the album changes.
         pub cover_id: RefCell<Option<String>>,
+        /// A seek waiting for the drag to pause; the timer leaves the slider alone meanwhile.
+        pub seek_pending: std::cell::RefCell<Option<glib::SourceId>>,
         /// The progress timer; it exists only while music plays.
         pub timer: RefCell<Option<glib::SourceId>>,
         /// The pill's own colour class, rewritten for every new cover.
@@ -139,9 +141,25 @@ impl NowPlaying {
         imp.cover_frame
             .set_tooltip_text(Some(&gettext("Go to album")));
 
-        // Only a drag by the user seeks; updates from the timer do not.
-        imp.progress.connect_change_value(|_, _, value| {
-            player::get().seek(value);
+        // Only a drag by the user seeks; updates from the timer do not. The seek
+        // waits until the drag pauses for a moment: seeking on every step
+        // flushes the stream and asks the server again each time.
+        let bar_weak = bar.downgrade();
+        imp.progress.connect_change_value(move |_, _, value| {
+            let Some(bar) = bar_weak.upgrade() else {
+                return glib::Propagation::Proceed;
+            };
+            if let Some(id) = bar.imp().seek_pending.take() {
+                id.remove();
+            }
+            let bar_weak = bar.downgrade();
+            let id = glib::timeout_add_local_once(Duration::from_millis(150), move || {
+                if let Some(bar) = bar_weak.upgrade() {
+                    bar.imp().seek_pending.take();
+                }
+                player::get().seek(value);
+            });
+            bar.imp().seek_pending.replace(Some(id));
             glib::Propagation::Proceed
         });
 
@@ -273,6 +291,10 @@ impl NowPlaying {
     /// Moves the progress line and the time label to the current position.
     fn tick(&self) {
         let imp = self.imp();
+        // The user is dragging the slider: do not pull it back.
+        if imp.seek_pending.borrow().is_some() {
+            return;
+        }
         let position = player::get().position_secs().unwrap_or(0.0);
         imp.progress.set_value(position);
         let duration = imp.progress.adjustment().upper() as u64;
