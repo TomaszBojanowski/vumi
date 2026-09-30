@@ -163,7 +163,6 @@ impl NowPlaying {
             return;
         };
 
-        imp.revealer.set_reveal_child(true);
         imp.title.set_label(&song.title);
         imp.artist.set_label(song.artist.as_deref().unwrap_or(""));
         imp.album.set_label(song.album.as_deref().unwrap_or(""));
@@ -197,11 +196,17 @@ impl NowPlaying {
         // A new cover, and a new colour, only when the album changes. Tracks of
         // one album have their own cover ids on the server, so the album decides.
         let key = song.album_id.clone().or_else(|| song.cover_art.clone());
+        // A hidden card waits for its cover before it slides in, so the
+        // placeholder never shows first.
+        let mut waiting = false;
         if *imp.cover_id.borrow() != key {
             imp.cover_id.replace(key.clone());
             match (song.cover_art.clone(), key) {
                 // The old cover stays until the new one is ready: no blank flash.
-                (Some(id), Some(key)) => self.load_cover(player.client(), id, key),
+                (Some(id), Some(key)) => {
+                    waiting = !imp.revealer.reveals_child();
+                    self.load_cover(player.client(), id, key);
+                }
                 _ => {
                     imp.cover.set_paintable(None::<&gtk::gdk::Paintable>);
                     if let Some(tint) = imp.tint.get() {
@@ -209,6 +214,19 @@ impl NowPlaying {
                     }
                 }
             }
+        }
+        if waiting {
+            // A slow server must not hold the card back for long, though.
+            let bar = self.downgrade();
+            glib::timeout_add_local_once(Duration::from_millis(500), move || {
+                if let Some(bar) = bar.upgrade() {
+                    if player::get().current().is_some() {
+                        bar.imp().revealer.set_reveal_child(true);
+                    }
+                }
+            });
+        } else {
+            imp.revealer.set_reveal_child(true);
         }
     }
 
@@ -225,6 +243,8 @@ impl NowPlaying {
                     None => tint.clear(),
                 }
             }
+            // The cover is in: a card that waited for it slides in now.
+            imp.revealer.set_reveal_child(true);
         });
     }
 
