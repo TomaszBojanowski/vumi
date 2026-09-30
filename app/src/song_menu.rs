@@ -2,7 +2,7 @@
 //! button at the end of the row.
 
 use adw::prelude::*;
-use gettextrs::gettext;
+use gettextrs::{gettext, ngettext};
 use gtk::{gio, glib};
 use std::rc::Rc;
 
@@ -49,6 +49,10 @@ pub(crate) fn attach(
             player::get().enqueue(client, song);
             toast(row, &gettext("Added to the queue"));
         }),
+    );
+    add(
+        "add-to-playlist",
+        Box::new(|row, song, client| choose_playlist(row, song, client)),
     );
     add("play-similar", Box::new(|row, song, client| play_similar(row, song, client)));
     add(
@@ -99,6 +103,7 @@ pub(crate) fn attach(
     let queue = gio::Menu::new();
     queue.append(Some(&gettext("Play Next")), Some("song.play-next"));
     queue.append(Some(&gettext("Add to Queue")), Some("song.add-to-queue"));
+    queue.append(Some(&gettext("Add to Playlist…")), Some("song.add-to-playlist"));
     menu.append_section(None, &queue);
     let radio = gio::Menu::new();
     radio.append(Some(&gettext("Play Similar")), Some("song.play-similar"));
@@ -155,6 +160,134 @@ fn play_similar(row: &adw::ActionRow, song: subsonic::Song, client: subsonic::Cl
         songs.extend(similar.into_iter().filter(|s| s.id != seed_id));
         player::get().play(client, songs.into(), 0);
     });
+}
+
+/// Add to Playlist: a dialog with a field for a new playlist and the list of
+/// the existing ones; a click on one adds the song to it.
+fn choose_playlist(parent: &adw::ActionRow, song: subsonic::Song, client: subsonic::Client) {
+    let Some(main) = parent
+        .ancestor(MainView::static_type())
+        .and_downcast::<MainView>()
+    else {
+        return;
+    };
+
+    let dialog = adw::Dialog::builder()
+        .title(gettext("Add to Playlist"))
+        .content_width(420)
+        .content_height(520)
+        .build();
+
+    let content = gtk::Box::builder()
+        .orientation(gtk::Orientation::Vertical)
+        .spacing(18)
+        .margin_top(12)
+        .margin_bottom(24)
+        .margin_start(18)
+        .margin_end(18)
+        .build();
+
+    // A new playlist, made with this song, on Enter.
+    let entry = adw::EntryRow::builder()
+        .title(gettext("New Playlist"))
+        .show_apply_button(true)
+        .build();
+    let new_group = adw::PreferencesGroup::new();
+    new_group.add(&entry);
+    content.append(&new_group);
+    {
+        let dialog = dialog.downgrade();
+        let main = main.downgrade();
+        let song = song.clone();
+        let client = client.clone();
+        entry.connect_apply(move |entry| {
+            let name = entry.text().trim().to_string();
+            if name.is_empty() {
+                return;
+            }
+            let (Some(dialog), Some(main)) = (dialog.upgrade(), main.upgrade()) else {
+                return;
+            };
+            dialog.close();
+            let song_id = song.id.clone();
+            let request = client.clone();
+            glib::spawn_future_local(async move {
+                let result = crate::runtime()
+                    .spawn(async move { request.create_playlist(&name, &[song_id.as_str()]).await })
+                    .await;
+                match result {
+                    Ok(Ok(playlist)) => {
+                        // Translators: {name} is the name of a playlist.
+                        toast(&main, &gettext("Added to “{name}”").replace("{name}", &playlist.name));
+                        main.sync_playlists();
+                    }
+                    _ => toast(&main, &gettext("Could not add to the playlist")),
+                }
+            });
+        });
+    }
+
+    // The existing playlists.
+    let playlists = main.playlists();
+    if !playlists.is_empty() {
+        let group = adw::PreferencesGroup::builder()
+            .title(gettext("Playlists"))
+            .build();
+        for playlist in playlists {
+            let row = adw::ActionRow::builder()
+                .title(playlist.name.as_str())
+                .use_markup(false)
+                .activatable(true)
+                .build();
+            let count = playlist.song_count.unwrap_or(0);
+            // Translators: {n} is a number of tracks.
+            row.set_subtitle(
+                &ngettext("{n} track", "{n} tracks", count).replace("{n}", &count.to_string()),
+            );
+            row.add_suffix(&gtk::Image::from_icon_name("list-add-symbolic"));
+
+            let dialog = dialog.downgrade();
+            let main = main.downgrade();
+            let song_id = song.id.clone();
+            let client = client.clone();
+            let id = playlist.id.clone();
+            let name = playlist.name.clone();
+            row.connect_activated(move |_| {
+                let (Some(dialog), Some(main)) = (dialog.upgrade(), main.upgrade()) else {
+                    return;
+                };
+                dialog.close();
+                let request = client.clone();
+                let id = id.clone();
+                let song_id = song_id.clone();
+                let name = name.clone();
+                glib::spawn_future_local(async move {
+                    let result = crate::runtime()
+                        .spawn(async move { request.add_to_playlist(&id, &[song_id.as_str()]).await })
+                        .await;
+                    match result {
+                        Ok(Ok(())) => {
+                            toast(&main, &gettext("Added to “{name}”").replace("{name}", &name));
+                            main.sync_playlists();
+                        }
+                        _ => toast(&main, &gettext("Could not add to the playlist")),
+                    }
+                });
+            });
+            group.add(&row);
+        }
+        content.append(&group);
+    }
+
+    let scroll = gtk::ScrolledWindow::builder()
+        .hscrollbar_policy(gtk::PolicyType::Never)
+        .child(&content)
+        .build();
+    let toolbar = adw::ToolbarView::new();
+    toolbar.add_top_bar(&adw::HeaderBar::new());
+    toolbar.set_content(Some(&scroll));
+    dialog.set_child(Some(&toolbar));
+    dialog.present(Some(parent));
 }
 
 /// Song Information: what the server knows about the file.

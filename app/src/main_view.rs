@@ -787,8 +787,13 @@ impl MainView {
 }
 
 impl MainView {
+    /// The playlists as last fetched (for "Add to Playlist").
+    pub(crate) fn playlists(&self) -> Vec<subsonic::Playlist> {
+        self.imp().playlists.borrow().clone()
+    }
+
     /// Fetches the playlists; the list is rebuilt from them.
-    fn sync_playlists(&self) {
+    pub(crate) fn sync_playlists(&self) {
         let Some(client) = self.imp().client.borrow().clone() else {
             return;
         };
