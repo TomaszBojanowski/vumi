@@ -689,6 +689,12 @@ impl MainView {
     /// Logging out: the pages opened for this account go, together with the
     /// client they would play and star with, and running syncs drop their
     /// results instead of showing or saving them.
+    /// Which session this is: bumped by a sync and by logging out, so a
+    /// connection attempt started earlier can tell that its answer is stale.
+    pub(crate) fn session(&self) -> u64 {
+        self.imp().sync_generation.get()
+    }
+
     pub(crate) fn log_out(&self) {
         let imp = self.imp();
         imp.sync_generation.set(imp.sync_generation.get() + 1);

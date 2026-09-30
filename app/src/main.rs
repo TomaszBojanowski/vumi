@@ -283,6 +283,7 @@ fn auto_connect(
     user: String,
 ) {
     main.show_connecting();
+    let session = main.session();
     let nav = nav.clone();
     let login_page = login_page.clone();
     let main = main.clone();
@@ -305,6 +306,11 @@ fn auto_connect(
             })
             .await;
 
+        // Logged out, or logged in again, while the ping was on its way: this
+        // answer is about an account that is no longer the one in use.
+        if main.session() != session {
+            return;
+        }
         match result {
             Ok(Some((client, Ok(response)))) => main.show_connected(&response, client),
             Ok(Some((_, Err(subsonic::Error::WrongCredentials)))) | Ok(None) => {
