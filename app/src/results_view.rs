@@ -125,6 +125,9 @@ impl ResultsView {
                 .title(song.title.as_str())
                 .use_markup(false)
                 .activatable(true)
+                // One line each: a long list of performers must not make a
+                // row taller than the others.
+                .subtitle_lines(1)
                 .build();
             // Set after use_markup is off: names like "Simon & Garfunkel" are plain
             // text, not markup.

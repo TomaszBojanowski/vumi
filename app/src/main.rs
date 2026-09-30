@@ -155,7 +155,7 @@ fn build_ui(app: &adw::Application) {
     let window = adw::ApplicationWindow::builder()
         .application(app)
         .title(APP_NAME)
-        .width_request(360)
+        .width_request(366)
         .height_request(294)
         .content(&toasts)
         .build();
