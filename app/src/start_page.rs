@@ -163,6 +163,10 @@ impl StartPage {
             .is_some_and(|a| albums.iter().any(|b| b.id == a.id));
         if !keep {
             self.show_random();
+        } else {
+            // The first call comes from the database, before the server answers:
+            // a cover that was not on disk then can be fetched now.
+            self.load_random_cover();
         }
         self.update_continue();
         imp.recent_shelf.set_visible(!recent.is_empty());
@@ -623,6 +627,25 @@ fn connect_drag(scroll: &gtk::ScrolledWindow) {
 impl StartPage {
     /// Fills the "Random Album" card with an album from the library, other
     /// than the one it shows now.
+    /// Loads the cover of the album already on the "Random Album" card.
+    fn load_random_cover(&self) {
+        let imp = self.imp();
+        let Some(cover) = imp
+            .random_album
+            .borrow()
+            .as_ref()
+            .and_then(|album| album.cover_art.clone())
+        else {
+            return;
+        };
+        crate::covers::load_for(
+            &imp.random_cover.get(),
+            imp.client.borrow().clone(),
+            cover,
+            |picture, texture| picture.set_paintable(texture.as_ref()),
+        );
+    }
+
     fn show_random(&self) {
         let imp = self.imp();
         let albums = imp.albums.borrow().clone();
