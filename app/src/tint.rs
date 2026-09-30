@@ -100,9 +100,14 @@ pub(crate) fn apply(widget: &impl IsA<gtk::Widget>, (r, g, b): (u8, u8, u8)) {
         rules.borrow_mut().insert(
             id,
             format!(
+                // Light style: a softer tint, or dark covers drown the title.
                 ".{class} {{ background-image: linear-gradient(to bottom, \
+                 rgba({r}, {g}, {b}, 0.35), rgba({r}, {g}, {b}, 0.15) 240px, \
+                 transparent 440px); }} \
+                 @media (prefers-color-scheme: dark) {{ \
+                 .{class} {{ background-image: linear-gradient(to bottom, \
                  rgba({r}, {g}, {b}, 0.6), rgba({r}, {g}, {b}, 0.3) 240px, \
-                 transparent 440px); }}"
+                 transparent 440px); }} }}"
             ),
         )
     });
