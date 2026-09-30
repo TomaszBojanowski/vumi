@@ -10,6 +10,10 @@ template $MusePlayerMainView: Adw.NavigationPage {
     height-request: 294;
 
     child: Adw.OverlaySplitView split {
+      // A fixed width, wide enough for the now-playing card, so the
+      // sidebar does not grow (and shift the content) when the card appears.
+      min-sidebar-width: 300;
+      max-sidebar-width: 300;
       // Navigation on the left; its items and sections come from the pages of "views".
       sidebar: Adw.ToolbarView {
         [top]
@@ -70,6 +74,9 @@ template $MusePlayerMainView: Adw.NavigationPage {
       content: Adw.OverlaySplitView queue_split {
         sidebar-position: end;
         show-sidebar: false;
+        // Stays as it was left: widening the window does not open it (see
+        // setup_queue for narrow windows).
+        pin-sidebar: true;
         min-sidebar-width: 280;
         max-sidebar-width: 380;
 
