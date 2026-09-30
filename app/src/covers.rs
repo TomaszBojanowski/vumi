@@ -53,6 +53,11 @@ pub(crate) async fn load(client: Option<subsonic::Client>, id: String) -> Option
         .map(|s| s.clone())
         .unwrap_or_default();
 
+    let key = format!("{server}\n{id}");
+    if let Some(texture) = memory_get(&key) {
+        return Some(texture);
+    }
+
     let result = runtime()
         .spawn(async move {
             let path = cache_path(&server, &id);
@@ -99,7 +104,65 @@ pub(crate) async fn load(client: Option<subsonic::Client>, id: String) -> Option
             Some(texture)
         })
         .await;
-    result.ok().flatten()
+    let texture = result.ok().flatten();
+    if let Some(texture) = &texture {
+        memory_put(key, texture.clone());
+    }
+    texture
+}
+
+/// Covers come back often (the Start page, the album grid, the player card,
+/// MPRIS); decoded textures are kept in memory up to this many bytes of pixels,
+/// and the least recently used go first.
+const MEMORY_LIMIT: usize = 128 * 1024 * 1024;
+
+#[derive(Default)]
+struct Memory {
+    textures: std::collections::HashMap<String, gdk::Texture>,
+    order: std::collections::VecDeque<String>,
+    bytes: usize,
+}
+
+thread_local! {
+    static MEMORY: std::cell::RefCell<Memory> = std::cell::RefCell::new(Memory::default());
+}
+
+fn texture_bytes(texture: &gdk::Texture) -> usize {
+    use gtk::gdk::prelude::TextureExt as _;
+    texture.width().max(0) as usize * texture.height().max(0) as usize * 4
+}
+
+fn memory_get(key: &str) -> Option<gdk::Texture> {
+    MEMORY.with(|memory| {
+        let mut memory = memory.borrow_mut();
+        let texture = memory.textures.get(key)?.clone();
+        if let Some(index) = memory.order.iter().position(|k| k == key) {
+            if let Some(k) = memory.order.remove(index) {
+                memory.order.push_back(k);
+            }
+        }
+        Some(texture)
+    })
+}
+
+fn memory_put(key: String, texture: gdk::Texture) {
+    MEMORY.with(|memory| {
+        let mut memory = memory.borrow_mut();
+        if memory.textures.contains_key(&key) {
+            return;
+        }
+        memory.bytes += texture_bytes(&texture);
+        memory.order.push_back(key.clone());
+        memory.textures.insert(key, texture);
+        while memory.bytes > MEMORY_LIMIT {
+            let Some(oldest) = memory.order.pop_front() else {
+                break;
+            };
+            if let Some(old) = memory.textures.remove(&oldest) {
+                memory.bytes -= texture_bytes(&old);
+            }
+        }
+    })
 }
 
 /// Decoding a JPEG takes a few milliseconds, so it runs on a worker thread.
@@ -172,6 +235,7 @@ pub(crate) fn cache_size() -> u64 {
 /// Removes every cached cover (Preferences); covers are fetched again when
 /// needed. Blocks: call it on a worker thread.
 pub(crate) fn clear_cache() -> std::io::Result<()> {
+    MEMORY.with(|memory| *memory.borrow_mut() = Memory::default());
     for entry in std::fs::read_dir(cache_dir())?.flatten() {
         if entry.path().is_file() {
             std::fs::remove_file(entry.path())?;
