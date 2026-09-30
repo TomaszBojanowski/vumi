@@ -32,8 +32,7 @@ template $MusePlayerStartPage: Adw.Bin {
           // whole width on narrow windows (the breakpoint below).
           Box continue_card {
             spacing: 18;
-            halign: start;
-            width-request: 560;
+            hexpand: true;
             visible: false;
 
             styles [
@@ -42,8 +41,8 @@ template $MusePlayerStartPage: Adw.Bin {
             ]
 
             Overlay continue_cover_frame {
-              width-request: 120;
-              height-request: 120;
+              width-request: 160;
+              height-request: 160;
               valign: center;
               overflow: hidden;
 
@@ -53,7 +52,7 @@ template $MusePlayerStartPage: Adw.Bin {
 
               child: Image {
                 icon-name: "audio-x-generic-symbolic";
-                pixel-size: 48;
+                pixel-size: 64;
 
                 styles [
                   "dim-label",
@@ -87,7 +86,7 @@ template $MusePlayerStartPage: Adw.Bin {
                 ellipsize: end;
 
                 styles [
-                  "title-2",
+                  "title-1",
                 ]
               }
 
@@ -106,6 +105,7 @@ template $MusePlayerStartPage: Adw.Bin {
 
                 styles [
                   "pill",
+                  "suggested-action",
                 ]
 
                 child: Adw.ButtonContent {
@@ -120,7 +120,7 @@ template $MusePlayerStartPage: Adw.Bin {
           Box random_card {
             spacing: 18;
             halign: start;
-            width-request: 560;
+            width-request: 380;
             visible: false;
 
             styles [
@@ -129,8 +129,8 @@ template $MusePlayerStartPage: Adw.Bin {
             ]
 
             Overlay random_cover_frame {
-              width-request: 120;
-              height-request: 120;
+              width-request: 100;
+              height-request: 100;
               valign: center;
               overflow: hidden;
 
@@ -140,7 +140,7 @@ template $MusePlayerStartPage: Adw.Bin {
 
               child: Image {
                 icon-name: "media-optical-symbolic";
-                pixel-size: 48;
+                pixel-size: 40;
 
                 styles [
                   "dim-label",
@@ -174,7 +174,7 @@ template $MusePlayerStartPage: Adw.Bin {
                 ellipsize: end;
 
                 styles [
-                  "title-2",
+                  "title-3",
                 ]
               }
 
@@ -349,26 +349,24 @@ template $MusePlayerStartPage: Adw.Bin {
       };
     };
 
-    // Medium: the two top cards (2 × 560 px, the gap and the page margins) do
-    // not fit side by side, so they go one under the other. The conditions do
-    // not overlap, so only one breakpoint applies at a time.
+    // Medium: the hero and the random album card do not fit side by side, so
+    // they go one under the other. The conditions do not overlap, so only one
+    // breakpoint applies at a time.
     Adw.Breakpoint {
-      condition ("max-width: 1200sp and min-width: 621sp")
+      condition ("max-width: 900sp and min-width: 621sp")
 
       setters {
         top_row.orientation: vertical;
       }
     }
 
-    // Narrow: the cards take the width there is instead of their usual 560 px,
-    // which would not fit (plus the page margins).
+    // Narrow: the random album card takes the width there is instead of its
+    // usual 380 px, and the covers shrink.
     Adw.Breakpoint {
       condition ("max-width: 620sp")
 
       setters {
         top_row.orientation: vertical;
-        continue_card.width-request: -1;
-        continue_card.halign: fill;
         continue_cover_frame.width-request: 80;
         continue_cover_frame.height-request: 80;
         random_card.width-request: -1;

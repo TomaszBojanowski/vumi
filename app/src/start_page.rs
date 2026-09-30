@@ -73,6 +73,8 @@ mod imp {
         pub random_next: gtk::TemplateChild<gtk::Button>,
         /// The album on the "Random Album" card.
         pub random_album: RefCell<Option<Arc<subsonic::Album>>>,
+        /// The tint of the hero card, after its cover (tint.rs).
+        pub(crate) hero_tint: std::cell::OnceCell<crate::tint::Dynamic>,
         /// The similar songs, played by the radio button next to the shelf title.
         pub similar: RefCell<Option<Rc<[subsonic::Song]>>>,
         /// The song they are similar to, so the server is asked once per song.
@@ -215,6 +217,9 @@ impl StartPage {
             connect_arrows(&imp.similar_scroll, &imp.similar_prev, &imp.similar_next);
             connect_wheel(&imp.recent_scroll);
             connect_wheel(&imp.similar_scroll);
+            // The hero card takes the colour of its cover (tint_hero).
+            let tint = imp.hero_tint.get_or_init(crate::tint::Dynamic::new);
+            imp.continue_card.add_css_class(tint.class());
         }
 
         // The "Random Album" card: play it, or pick another one.
@@ -364,14 +369,13 @@ impl StartPage {
         imp.continue_album.replace(album.id.clone());
         if new_album {
             imp.continue_cover.set_paintable(None::<&gtk::gdk::Paintable>);
+            self.tint_hero(None);
         }
         if let Some(cover) = album.cover_art.clone().filter(|_| new_album) {
-            crate::covers::load_for(
-                &imp.continue_cover.get(),
-                Some(client.clone()),
-                cover,
-                |picture, texture| picture.set_paintable(texture.as_ref()),
-            );
+            crate::covers::load_for(self, Some(client.clone()), cover, |page, texture| {
+                page.imp().continue_cover.set_paintable(texture.as_ref());
+                page.tint_hero(texture.as_ref());
+            });
         }
 
         imp.resume.replace(Some(Resume {
@@ -567,5 +571,18 @@ impl StartPage {
             }
             crate::player::get().play(client, songs.into(), 0);
         });
+    }
+}
+
+impl StartPage {
+    /// Colours the hero card after its cover (tint.rs); no cover, no colour.
+    fn tint_hero(&self, texture: Option<&gtk::gdk::Texture>) {
+        let Some(tint) = self.imp().hero_tint.get() else {
+            return;
+        };
+        match texture.and_then(crate::tint::dominant_color) {
+            Some(color) => tint.set_gradient(color),
+            None => tint.clear(),
+        }
     }
 }
