@@ -130,6 +130,9 @@ pub struct Song {
     pub bit_depth: Option<u32>,
     pub sampling_rate: Option<u32>,
     pub starred: Option<String>,
+    /// OpenSubsonic: the composer(s) as one display string.
+    #[serde(rename = "displayComposer")]
+    pub composer: Option<String>,
 }
 
 impl Client {

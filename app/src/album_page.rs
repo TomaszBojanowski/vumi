@@ -848,6 +848,7 @@ fn same_album(local: &subsonic::AlbumWithSongs, server: &subsonic::AlbumWithSong
                 && a.title == b.title
                 && a.artist == b.artist
                 && a.starred == b.starred
+                && a.composer == b.composer
                 && a.duration == b.duration
                 && a.track == b.track
                 && a.disc_number == b.disc_number
