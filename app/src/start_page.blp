@@ -100,25 +100,6 @@ template $MusePlayerStartPage: Adw.Bin {
                 ]
               }
 
-              // Where in the song it stopped: a progress bar and the time.
-              Box {
-                spacing: 10;
-                margin-top: 4;
-
-                ProgressBar continue_progress {
-                  hexpand: true;
-                  valign: center;
-                }
-
-                Label continue_time {
-                  styles [
-                    "caption",
-                    "numeric",
-                    "dim-label",
-                  ]
-                }
-              }
-
               Button continue_button {
                 halign: start;
                 margin-top: 8;

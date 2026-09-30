@@ -44,10 +44,6 @@ mod imp {
         #[template_child]
         pub continue_subtitle: gtk::TemplateChild<gtk::Label>,
         #[template_child]
-        pub continue_progress: gtk::TemplateChild<gtk::ProgressBar>,
-        #[template_child]
-        pub continue_time: gtk::TemplateChild<gtk::Label>,
-        #[template_child]
         pub continue_button: gtk::TemplateChild<gtk::Button>,
         #[template_child]
         pub similar_shelf: gtk::TemplateChild<gtk::Box>,
@@ -250,18 +246,19 @@ impl StartPage {
             });
         }
 
-        // The card is for picking up the previous session: it hides as soon as
-        // something is loaded in the player.
+        // The card follows the player: what plays now, or what played last.
         {
             let page = self.downgrade();
             let listener = crate::player::get().connect_changed(move || {
                 let Some(page) = page.upgrade() else {
                     return;
                 };
-                // Once something is loaded in the player, the sidebar card shows it
-                // and controls it: a second card here would only repeat it.
-                if crate::player::get().current().is_some() {
-                    page.imp().continue_card.set_visible(false);
+                // The song and where in it at the moment of the change (a new
+                // song, pause, resume); the sidebar card has the live progress.
+                let player = crate::player::get();
+                if let Some(song) = player.current() {
+                    let seconds = player.position_secs().unwrap_or(0.0);
+                    page.show_continue(song.album_id.as_deref().unwrap_or(""), &song.id, seconds);
                 }
             });
             self.connect_destroy(move |_| crate::player::get().disconnect(listener));
@@ -288,6 +285,13 @@ impl StartPage {
 
     /// The "Continue" card after startup: what played last, as resume.rs saved it.
     fn update_continue(&self) {
+        // Something plays: that, rather than what was saved a while ago.
+        let player = crate::player::get();
+        if let Some(song) = player.current() {
+            let seconds = player.position_secs().unwrap_or(0.0);
+            self.show_continue(song.album_id.as_deref().unwrap_or(""), &song.id, seconds);
+            return;
+        }
         let settings = gio::Settings::new(crate::APP_ID);
         let album_id = settings.string("last-album-id");
         let song_id = settings.string("last-song-id");
@@ -301,12 +305,7 @@ impl StartPage {
         let imp = self.imp();
         // The card keeps what it shows until the new content is known, so a
         // refresh (after connecting, after a sync) does not make it blink. It
-        // hides only when there is nothing to show, or when something is loaded
-        // in the player (the sidebar card has it then).
-        if crate::player::get().current().is_some() {
-            imp.continue_card.set_visible(false);
-            return;
-        }
+        // hides only when there is nothing to show.
         let Some(client) = imp.client.borrow().clone() else {
             imp.continue_card.set_visible(false);
             return;
@@ -350,7 +349,7 @@ impl StartPage {
         };
 
         imp.continue_title.set_label(&album.name);
-        // What plays, and where in it: the song with its artist, and a progress bar.
+        // What plays: the song with its artist.
         let song = &songs[index];
         let artist = song.artist.as_deref().or(album.artist.as_deref());
         let subtitle = match artist {
@@ -359,15 +358,6 @@ impl StartPage {
         };
         imp.continue_subtitle.set_label(&subtitle);
         self.update_similar(song.id.clone(), song.title.clone(), client.clone());
-        let duration = song.duration.unwrap_or(0) as f64;
-        let fraction = if duration > 0.0 {
-            (seconds / duration).clamp(0.0, 1.0)
-        } else {
-            0.0
-        };
-        imp.continue_progress.set_fraction(fraction);
-        imp.continue_time
-            .set_label(&format!("{} / {}", clock(seconds as u64), clock(duration as u64)));
 
         // A new cover only for a new album: no flicker between its tracks.
         let new_album = *imp.continue_album.borrow() != album.id;
@@ -392,11 +382,6 @@ impl StartPage {
         }));
         imp.continue_card.set_visible(true);
     }
-}
-
-/// Seconds as "m:ss".
-fn clock(seconds: u64) -> String {
-    format!("{}:{:02}", seconds / 60, seconds % 60)
 }
 
 impl StartPage {
