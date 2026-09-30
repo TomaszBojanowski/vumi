@@ -428,11 +428,13 @@ impl Player {
         self.pending_seek.set(None);
         let queue = self.queue.borrow().clone();
         let from = self.position.get();
+        // From the song after the current one: the same song twice in a row
+        // (A, A, B) must move on to the second A, not stay on the first.
         let found = queue
             .iter()
-            .skip(from)
+            .skip(from + 1)
             .position(|song| song.id == id)
-            .map(|offset| offset + from)
+            .map(|offset| offset + from + 1)
             .or_else(|| queue.iter().position(|song| song.id == id));
         match found {
             Some(index) => {
@@ -574,6 +576,9 @@ impl Player {
     /// The current command number; see `command`. A request to the server keeps
     /// it and checks it against `is_current` when the answer arrives.
     pub(crate) fn command_id(&self) -> u64 {
+        // A new command right away, so of two radios asked for in a row the
+        // later one wins, whichever answer arrives first.
+        self.command.set(self.command.get() + 1);
         self.command.get()
     }
 
