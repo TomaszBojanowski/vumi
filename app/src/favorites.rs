@@ -67,22 +67,27 @@ pub(crate) fn star_button(
             let result = runtime()
                 .spawn(async move { client.set_starred(item.as_starrable(), starred).await })
                 .await;
+            let confirmed = matches!(result, Ok(Ok(())));
+            if confirmed {
+                // Confirmed: the local database follows now, whether or not the
+                // button still exists (the page may have been left meanwhile).
+                let _ = runtime()
+                    .spawn_blocking(move || crate::library::set_starred(&server, is_album, &id, starred))
+                    .await;
+            }
             let Some(button) = button.upgrade() else {
                 return;
             };
             button.set_sensitive(true);
 
-            if !matches!(result, Ok(Ok(()))) {
+            if !confirmed {
                 reverting.set(true);
                 button.set_active(!starred);
                 reverting.set(false);
                 show_toast(&button, &gettext("Could not change favorites. Please try again."));
             } else {
-                // Confirmed: the local database follows now, and the Favorites
-                // page with it, without waiting for the next sync.
-                let _ = runtime()
-                    .spawn_blocking(move || crate::library::set_starred(&server, is_album, &id, starred))
-                    .await;
+                // The Favorites page follows the database, without waiting for
+                // the next sync.
                 if let Some(main) = button
                     .ancestor(crate::main_view::MainView::static_type())
                     .and_downcast::<crate::main_view::MainView>()
