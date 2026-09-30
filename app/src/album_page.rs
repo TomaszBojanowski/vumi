@@ -261,26 +261,31 @@ impl AlbumPage {
         let discs: BTreeSet<u32> = songs.iter().filter_map(|s| s.disc_number).collect();
         let multi_disc = discs.len() > 1;
 
-        // The composer: once in the header when the whole album has one (and
-        // it is not the album artist), else on each track where it differs.
-        // Compared as sets of names: "A • B" and "B • A" are the same composers.
-        let composers: BTreeSet<String> = songs
+        // The composer named on at least half of the tracks goes into the
+        // header (unless it is the album artist); rows name theirs only where
+        // it differs, so a band's album with two covers marks just the covers.
+        // Composers compare as sets of names: "A • B" and "B • A" are the same.
+        let mut counts: std::collections::HashMap<String, (usize, &str)> =
+            std::collections::HashMap::new();
+        for composer in songs
             .iter()
             .filter_map(|s| s.composer.as_deref())
-            .map(composer_key)
-            .filter(|c| !c.is_empty())
-            .collect();
-        let one_composer = (composers.len() == 1)
-            .then(|| {
-                songs
-                    .iter()
-                    .find_map(|s| s.composer.as_deref().filter(|c| !c.trim().is_empty()))
-            })
-            .flatten()
-            .filter(|c| Some(composer_key(c)) != album_artist.map(composer_key));
-        match one_composer {
-            // Translators: {name} is the composer of every track of the album.
-            Some(name) => {
+            .filter(|c| !c.trim().is_empty())
+        {
+            counts.entry(composer_key(composer)).or_insert((0, composer)).0 += 1;
+        }
+        let dominant = counts
+            .iter()
+            .max_by_key(|(_, (count, _))| *count)
+            .filter(|(_, (count, _))| count * 2 >= songs.len())
+            .map(|(key, (_, text))| (key.clone(), (*text).to_string()));
+        let album_artist_key = album_artist.map(composer_key);
+        match dominant
+            .as_ref()
+            .filter(|(key, _)| Some(key) != album_artist_key.as_ref())
+        {
+            // Translators: {name} is the composer of (most of) the album's tracks.
+            Some((_, name)) => {
                 let name = format!("<i>{}</i>", glib::markup_escape_text(name));
                 imp.composer.set_use_markup(true);
                 imp.composer.set_label(
@@ -291,7 +296,7 @@ impl AlbumPage {
             }
             None => imp.composer.set_visible(false),
         }
-        let composer_per_track = composers.len() > 1;
+        let hidden_composer = dominant.map(|(key, _)| key);
 
         // The rows start over (a refresh); batches of an older call stop by themselves.
         while let Some(child) = imp.tracks.first_child() {
@@ -310,7 +315,7 @@ impl AlbumPage {
                 .map(|t| (t.disc, t.title.clone()))
                 .collect(),
             multi_disc,
-            composer_per_track,
+            hidden_composer,
             generation,
             next: std::cell::Cell::new(0),
             group: std::cell::RefCell::new(None),
@@ -388,12 +393,12 @@ pub(crate) struct TrackRow {
 }
 
 /// One track: number (or a playing icon), title, duration, favourite star;
-/// the artist only if it differs from the album's, the composer only when
-/// the album's tracks have different ones.
+/// the artist only if it differs from the album's, the composer only if it is
+/// not the one named in the header and not one of the track's performers.
 fn track_row(
     song: &subsonic::Song,
     album_artist: Option<&str>,
-    show_composer: bool,
+    hidden_composer: Option<&str>,
     client: &subsonic::Client,
     index: usize,
     queue: &Rc<[subsonic::Song]>,
@@ -402,6 +407,7 @@ fn track_row(
     let row = adw::ActionRow::builder()
         .title(glib::markup_escape_text(&song.title))
         .use_markup(true)
+        .subtitle_lines(1)
         .build();
 
     // A click on a row plays the album from this track.
@@ -423,14 +429,17 @@ fn track_row(
     if let Some(artist) = song.artist.as_deref().filter(|a| Some(*a) != album_artist) {
         subtitle.push(glib::markup_escape_text(artist).to_string());
     }
-    if show_composer {
-        if let Some(composer) = song
-            .composer
-            .as_deref()
-            .filter(|c| !c.is_empty() && Some(*c) != song.artist.as_deref())
-        {
+    if let Some(composer) = song.composer.as_deref().filter(|c| !c.trim().is_empty()) {
+        // Left out when it is the header's composer, or when the composers
+        // all perform the track themselves.
+        let performers = names_of(song.artist.as_deref().unwrap_or(""));
+        let performs = names_of(composer).iter().all(|name| performers.contains(name));
+        if Some(composer_key(composer).as_str()) != hidden_composer && !performs {
             // In italics, so the composer is told from the performer.
-            subtitle.push(format!("<i>{}</i>", glib::markup_escape_text(composer)));
+            subtitle.push(format!(
+                "<i>{}</i>",
+                glib::markup_escape_text(&short_names(composer))
+            ));
         }
     }
     if !subtitle.is_empty() {
@@ -648,8 +657,9 @@ struct RowBuilder {
     /// Disc number and title, for albums whose discs have names.
     disc_titles: Vec<(u32, String)>,
     multi_disc: bool,
-    /// The tracks have different composers: each row names its own.
-    composer_per_track: bool,
+    /// The composer named in the header (as a key, see composer_key), or the
+    /// album artist's: rows leave it out and name only a different one.
+    hidden_composer: Option<String>,
     /// Which call of show_tracks this belongs to; batches of an older one stop.
     generation: u32,
     /// The next track to build a row for.
@@ -693,7 +703,7 @@ impl AlbumPage {
                 let track = track_row(
                     song,
                     builder.album_artist.as_deref(),
-                    builder.composer_per_track,
+                    builder.hidden_composer.as_deref(),
                     &builder.client,
                     index,
                     &builder.queue,
@@ -891,16 +901,36 @@ impl AlbumPage {
     }
 }
 
-/// The names in a composer string ("Lennon • McCartney", "Lennon/McCartney"),
-/// sorted and in lower case, so the same people in another order compare equal.
-fn composer_key(text: &str) -> String {
-    let mut names: Vec<String> = text
-        .split(['•', '/', ';'])
+/// The names in an artist or composer string ("Lennon • McCartney",
+/// "Lennon/McCartney"), trimmed and in lower case.
+fn names_of(text: &str) -> Vec<String> {
+    text.split(['•', '/', ';'])
         .map(|name| name.trim().to_lowercase())
         .filter(|name| !name.is_empty())
-        .collect();
+        .collect()
+}
+
+/// The names sorted and joined, so the same people in another order compare
+/// equal.
+fn composer_key(text: &str) -> String {
+    let mut names = names_of(text);
     names.sort();
     names.join("|")
+}
+
+/// At most three names for a row: "A • B • …" when there are more. The full
+/// list is in Song Information.
+fn short_names(text: &str) -> String {
+    let names: Vec<&str> = text
+        .split(['•', '/', ';'])
+        .map(str::trim)
+        .filter(|name| !name.is_empty())
+        .collect();
+    if names.len() <= 3 {
+        text.to_string()
+    } else {
+        format!("{} • {} • …", names[0], names[1])
+    }
 }
 
 /// True if the server's answer shows nothing the local copy does not.
