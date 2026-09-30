@@ -46,6 +46,8 @@ mod imp {
         #[template_child]
         pub continue_button: gtk::TemplateChild<gtk::Button>,
         #[template_child]
+        pub continue_content: gtk::TemplateChild<adw::ButtonContent>,
+        #[template_child]
         pub similar_shelf: gtk::TemplateChild<gtk::Box>,
         #[template_child]
         pub similar_title: gtk::TemplateChild<gtk::Label>,
@@ -373,6 +375,19 @@ impl StartPage {
             None => song.title.clone(),
         };
         imp.continue_subtitle.set_label(&subtitle);
+        // The button says what a click does: pause or resume the song while it
+        // is in the player, otherwise continue from where it stopped.
+        let player = crate::player::get();
+        let in_player = player.current().is_some_and(|now| now.id == song.id);
+        let (icon, label) = if in_player && player.is_playing() {
+            ("media-playback-pause-symbolic", gettext("Pause"))
+        } else if in_player && player.is_paused() {
+            ("media-playback-start-symbolic", gettext("Resume"))
+        } else {
+            ("media-playback-start-symbolic", gettext("Continue"))
+        };
+        imp.continue_content.set_icon_name(icon);
+        imp.continue_content.set_label(&label);
         self.update_similar(song.id.clone(), song.title.clone(), client.clone());
 
         // A new cover only for a new album: no flicker between its tracks.
