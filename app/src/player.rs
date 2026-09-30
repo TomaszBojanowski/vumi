@@ -157,10 +157,11 @@ impl Player {
         }
     }
 
-    /// A command that replaces or edits the queue: an answer to an older
-    /// request (a radio asked for before it) is dropped when it arrives.
-    /// Automatic changes (gapless, the next track after one ends, a pause) do
-    /// not count, so a radio asked for near the end of a track still plays.
+    /// A command that replaces or edits the queue, or picks a track by hand:
+    /// an answer to an older request (a radio asked for before it) is dropped
+    /// when it arrives. Automatic changes (gapless, the next track after one
+    /// ends) and a pause do not count, so a radio asked for near the end of a
+    /// track still plays.
     fn new_command(&self) {
         self.command.set(self.command.get() + 1);
     }
@@ -273,6 +274,7 @@ impl Player {
     }
 
     pub(crate) fn next(&self) {
+        self.new_command();
         let next = self.position.get() + 1;
         if next < self.queue.borrow().len() {
             self.play_at(next);
@@ -281,6 +283,7 @@ impl Player {
 
     /// Back to the start of the track, or to the previous track if we are at its start.
     pub(crate) fn previous(&self) {
+        self.new_command();
         let position = self.position.get();
         if self.position_secs().unwrap_or(0.0) > 3.0 || position == 0 {
             self.seek(0.0);
@@ -481,6 +484,7 @@ impl Player {
 
     /// Jumps to another track of the current queue (the queue panel).
     pub(crate) fn play_index(&self, index: usize) {
+        self.new_command();
         if index < self.queue.borrow().len() {
             self.play_at(index);
         }
