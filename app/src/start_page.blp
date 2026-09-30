@@ -172,6 +172,8 @@ template $MusePlayerStartPage: Adw.Bin {
               Label random_title {
                 xalign: 0;
                 ellipsize: end;
+                // Long names shorten, so the card never grows past its width.
+                max-width-chars: 24;
 
                 styles [
                   "title-3",
@@ -181,6 +183,8 @@ template $MusePlayerStartPage: Adw.Bin {
               Label random_subtitle {
                 xalign: 0;
                 ellipsize: end;
+                // Long names shorten, so the card never grows past its width.
+                max-width-chars: 24;
 
                 styles [
                   "dim-label",
