@@ -137,8 +137,6 @@ impl Player {
     }
 
     fn notify(&self) {
-        // Every change the listeners hear about counts as a command.
-        self.command.set(self.command.get() + 1);
         for (_, listener) in self.listeners.borrow().iter() {
             listener();
         }
@@ -159,8 +157,17 @@ impl Player {
         }
     }
 
+    /// A command that replaces or edits the queue: an answer to an older
+    /// request (a radio asked for before it) is dropped when it arrives.
+    /// Automatic changes (gapless, the next track after one ends, a pause) do
+    /// not count, so a radio asked for near the end of a track still plays.
+    fn new_command(&self) {
+        self.command.set(self.command.get() + 1);
+    }
+
     /// Replaces the queue with `songs` and starts playing the one at `start`.
     pub(crate) fn play(&self, client: subsonic::Client, songs: Rc<[subsonic::Song]>, start: usize) {
+        self.new_command();
         self.client.replace(Some(client));
         self.queue.replace(songs);
         self.play_at(start);
@@ -397,6 +404,7 @@ impl Player {
     /// Stop (MPRIS): like reaching the end of the queue; Play starts it again.
     pub(crate) fn stop(&self) {
         if self.current().is_some() {
+            self.new_command();
             let _ = self.playbin.set_state(gst::State::Null);
             self.set_state(State::Ended);
         }
@@ -487,6 +495,7 @@ impl Player {
         if index >= queue.len() {
             return;
         }
+        self.new_command();
         let mut songs = queue.to_vec();
         songs.remove(index);
         let position = self.position.get();
@@ -510,6 +519,7 @@ impl Player {
         if from >= queue.len() || to >= queue.len() || from == to {
             return;
         }
+        self.new_command();
         let mut songs = queue.to_vec();
         let song = songs.remove(from);
         songs.insert(to, song);
@@ -534,6 +544,7 @@ impl Player {
     /// Puts `song` right after the playing track (Play Next). With nothing in
     /// progress, it simply plays.
     pub(crate) fn play_next(&self, client: subsonic::Client, song: subsonic::Song) {
+        self.new_command();
         if !self.is_active() {
             self.play(client, vec![song].into(), 0);
             return;
@@ -552,6 +563,7 @@ impl Player {
     /// Adds `song` at the end of the queue (Add to Queue). With nothing in
     /// progress, it simply plays.
     pub(crate) fn enqueue(&self, client: subsonic::Client, song: subsonic::Song) {
+        self.new_command();
         if !self.is_active() {
             self.play(client, vec![song].into(), 0);
             return;
@@ -569,6 +581,7 @@ impl Player {
     /// credentials, the prepared next track. Play from MPRIS can then not
     /// start the old account's music again.
     pub(crate) fn reset(&self) {
+        self.new_command();
         let _ = self.playbin.set_state(gst::State::Null);
         self.pending_seek.set(None);
         self.forget_switch();
