@@ -447,6 +447,12 @@ impl Player {
         }
     }
 
+    /// Gapless: about-to-finish has already handed the next track to GStreamer,
+    /// and it will play whatever the queue says now.
+    fn switch_pending(&self) -> bool {
+        self.switched_to.lock().is_ok_and(|s| s.is_some())
+    }
+
     /// A switch queued for the previous track must not move the queue on.
     fn forget_switch(&self) {
         if let Ok(mut switched) = self.switched_to.lock() {
@@ -533,7 +539,11 @@ impl Player {
             return;
         }
         let mut songs = self.queue.borrow().to_vec();
-        songs.insert(self.position.get() + 1, song);
+        // Once the next track is with GStreamer it plays no matter what, so a
+        // song put before it would be skipped: it goes after that track instead.
+        let after = if self.switch_pending() { 2 } else { 1 };
+        let index = (self.position.get() + after).min(songs.len());
+        songs.insert(index, song);
         self.queue.replace(songs.into());
         self.prepare_next();
         self.notify();
