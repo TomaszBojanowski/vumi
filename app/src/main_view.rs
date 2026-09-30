@@ -263,23 +263,23 @@ impl MainView {
             let Some(view) = view.upgrade() else {
                 return;
             };
-            // Superseded meanwhile: the albums are still saved for their
-            // server, but the newer sync shows its own.
+            // Superseded meanwhile: the newer sync owns both the view and the
+            // database, so this response is neither shown nor saved.
             let stale = view.imp().sync_generation.get() != generation;
             match result {
                 Ok(Ok(albums)) => {
                     eprintln!("Synced {} albums in {:.2?}", albums.len(), started.elapsed());
                     // Shared, not copied: the grid and the save below point at the same albums.
                     let albums: Vec<Arc<subsonic::Album>> = albums.into_iter().map(Arc::new).collect();
+                    if stale {
+                        return;
+                    }
                     let to_save = albums.clone();
                     runtime().spawn_blocking(move || {
                         if let Err(e) = library::save_albums(&server, &to_save) {
                             eprintln!("Could not save the library database: {e}");
                         }
                     });
-                    if stale {
-                        return;
-                    }
                     view.show_albums(albums);
                     // Songs next, in the background: album pages open already filled.
                     view.sync_songs();
@@ -521,6 +521,14 @@ impl MainView {
                 }
                 Err(_) => return,
             };
+            // Superseded meanwhile: a newer sync may have saved fresher songs
+            // already, so this response is dropped instead of written over them.
+            if !view
+                .upgrade()
+                .is_some_and(|v| v.imp().sync_generation.get() == generation)
+            {
+                return;
+            }
             let count = songs.len();
             let saved = runtime()
                 .spawn_blocking(move || library::save_songs(&server, &songs))
