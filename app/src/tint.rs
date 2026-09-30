@@ -101,7 +101,8 @@ pub(crate) fn apply(widget: &impl IsA<gtk::Widget>, (r, g, b): (u8, u8, u8)) {
             id,
             format!(
                 ".{class} {{ background-image: linear-gradient(to bottom, \
-                 rgba({r}, {g}, {b}, 0.45), transparent 480px); }}"
+                 rgba({r}, {g}, {b}, 0.6), rgba({r}, {g}, {b}, 0.3) 240px, \
+                 transparent 440px); }}"
             ),
         )
     });

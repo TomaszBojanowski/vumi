@@ -3,6 +3,13 @@
   box-shadow: 0 6px 20px alpha(black, 0.35);
 }
 
+/* The album name: the largest text on the page, as in a record sleeve. */
+.album-title {
+  font-size: 34px;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
 /* Audio quality pill on the album page. */
 .quality-badge {
   padding: 2px 10px;
