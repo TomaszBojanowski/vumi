@@ -22,8 +22,11 @@ fn next_id() -> u64 {
     })
 }
 
-/// Weighted average of the cover's pixels: colourful, bright pixels count most,
-/// greys and black barely count, so the result is a colour rather than mud.
+/// The colour of the cover: the hue most of its colourful pixels share.
+/// Pixels are sorted by hue into bins, weighted by saturation and brightness
+/// (greys and black barely count); the fullest bin, with its two neighbours,
+/// gives the colour, so a purple-and-yellow cover comes out purple rather
+/// than brown. A cover with hardly any colour gets its weighted average.
 pub(crate) fn dominant_color(texture: &gdk::Texture) -> Option<(u8, u8, u8)> {
     let width = texture.width() as usize;
     let height = texture.height() as usize;
@@ -35,20 +38,56 @@ pub(crate) fn dominant_color(texture: &gdk::Texture) -> Option<(u8, u8, u8)> {
     // Default memory format: B, G, R, A bytes per pixel.
     texture.download(&mut pixels, stride);
 
-    let (mut r, mut g, mut b, mut total) = (0f32, 0f32, 0f32, 0f32);
-    // Every 7th pixel is plenty for an average colour.
+    const BINS: usize = 12;
+    // Per bin: weighted r, g, b and the weight.
+    let mut bins = [(0f32, 0f32, 0f32, 0f32); BINS];
+    let (mut avg_r, mut avg_g, mut avg_b, mut avg_w) = (0f32, 0f32, 0f32, 0f32);
+    // Every 7th pixel is plenty.
     for px in pixels.chunks_exact(4).step_by(7) {
         let (pb, pg, pr) = (px[0] as f32, px[1] as f32, px[2] as f32);
         let max = pr.max(pg).max(pb);
         let min = pr.min(pg).min(pb);
-        let saturation = if max > 0.0 { (max - min) / max } else { 0.0 };
-        let weight = saturation * saturation * (max / 255.0) + 0.001;
-        r += pr * weight;
-        g += pg * weight;
-        b += pb * weight;
-        total += weight;
+        let chroma = max - min;
+        let saturation = if max > 0.0 { chroma / max } else { 0.0 };
+        let weight = saturation * saturation * (max / 255.0);
+        avg_r += pr * (weight + 0.001);
+        avg_g += pg * (weight + 0.001);
+        avg_b += pb * (weight + 0.001);
+        avg_w += weight + 0.001;
+        if chroma <= 0.0 {
+            continue;
+        }
+        // Hue as 0..6 (the six sectors of the colour wheel).
+        let hue = if max == pr {
+            ((pg - pb) / chroma).rem_euclid(6.0)
+        } else if max == pg {
+            (pb - pr) / chroma + 2.0
+        } else {
+            (pr - pg) / chroma + 4.0
+        };
+        let bin = ((hue / 6.0 * BINS as f32) as usize).min(BINS - 1);
+        bins[bin].0 += pr * weight;
+        bins[bin].1 += pg * weight;
+        bins[bin].2 += pb * weight;
+        bins[bin].3 += weight;
     }
-    Some(((r / total) as u8, (g / total) as u8, (b / total) as u8))
+
+    let prev = |i: usize| (i + BINS - 1) % BINS;
+    let next = |i: usize| (i + 1) % BINS;
+    let score = |i: usize| bins[prev(i)].3 / 2.0 + bins[i].3 + bins[next(i)].3 / 2.0;
+    let best = (0..BINS).max_by(|a, b| score(*a).total_cmp(&score(*b)))?;
+    let (mut r, mut g, mut b, mut w) = (0f32, 0f32, 0f32, 0f32);
+    for i in [prev(best), best, next(best)] {
+        r += bins[i].0;
+        g += bins[i].1;
+        b += bins[i].2;
+        w += bins[i].3;
+    }
+    // Hardly any colour on the cover: the weighted average of everything.
+    if w < avg_w * 0.05 {
+        return Some(((avg_r / avg_w) as u8, (avg_g / avg_w) as u8, (avg_b / avg_w) as u8));
+    }
+    Some(((r / w) as u8, (g / w) as u8, (b / w) as u8))
 }
 
 /// Gives `widget` a background gradient in `color` that belongs to it alone
@@ -127,6 +166,18 @@ impl Dynamic {
             format!(".now-playing-pill.{c} .pill-play {{ background-color: color-mix(in srgb, {color} 45%, transparent); }}"),
         ]
         .join("\n");
+        RULES.with(|rules| rules.borrow_mut().insert(self.id, rule));
+        reload();
+    }
+
+    /// A gradient of the cover colour across the widget, strongest at its
+    /// start (the Last Played card); the widget's own background shows through.
+    pub(crate) fn set_gradient(&self, (r, g, b): (u8, u8, u8)) {
+        let c = &self.class;
+        let rule = format!(
+            ".{c} {{ background-image: linear-gradient(120deg, \
+             rgba({r}, {g}, {b}, 0.55), rgba({r}, {g}, {b}, 0.1)); }}"
+        );
         RULES.with(|rules| rules.borrow_mut().insert(self.id, rule));
         reload();
     }
