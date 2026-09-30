@@ -283,7 +283,18 @@ impl StartPage {
                 .as_ref()
                 .map(|r| (r.client.clone(), r.songs.clone(), r.index, r.seconds));
             if let Some((client, songs, index, seconds)) = resume {
-                crate::player::get().play_from(client, songs, index, seconds);
+                let player = crate::player::get();
+                // Already in the player: the card is a pause button then, as its
+                // label says. Starting over would rewind the track and replace
+                // whatever queue is playing with the album.
+                let in_player = player
+                    .current()
+                    .is_some_and(|now| songs.get(index).is_some_and(|song| song.id == now.id));
+                if in_player {
+                    player.toggle_pause();
+                } else {
+                    player.play_from(client, songs, index, seconds);
+                }
             }
         });
     }
