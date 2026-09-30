@@ -25,3 +25,5 @@ app/src/results_view.blp
 app/src/queue_page.blp
 app/src/queue_page.rs
 app/src/song_menu.rs
+app/src/search_page.rs
+app/src/start_page.rs

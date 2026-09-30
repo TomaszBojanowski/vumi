@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: muse-player\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-30 01:57+0200\n"
+"POT-Creation-Date: 2026-09-30 16:12+0200\n"
 "PO-Revision-Date: 2026-09-27 20:40+0200\n"
 "Last-Translator: Tomasz Bojanowski <tomasz@bojanowski.me>\n"
 "Language-Team: Polish\n"
@@ -79,100 +79,100 @@ msgstr "Połączono z serwerem {server} {version}"
 msgid "Offline"
 msgstr "Brak połączenia"
 
-#: app/src/main_view.blp:21
+#: app/src/main_view.blp:25
 msgid "Hide sidebar"
 msgstr "Ukryj panel boczny"
 
-#: app/src/main_view.blp:34
+#: app/src/main_view.blp:38
 msgid "Main Menu"
 msgstr "Menu główne"
 
-#: app/src/main_view.blp:42
+#: app/src/main_view.blp:46
 msgid "Sync Library"
 msgstr "Synchronizuj bibliotekę"
 
-#: app/src/main_view.blp:51
+#: app/src/main_view.blp:55
 msgid "Search Library"
 msgstr "Wyszukiwanie w bibliotece"
 
-#: app/src/main_view.blp:90 app/src/main_view.blp:96 app/src/main_view.blp:102
+#: app/src/main_view.blp:94 app/src/main_view.blp:100 app/src/main_view.blp:106
 msgid "Start"
 msgstr "Start"
 
-#: app/src/main_view.blp:108 app/src/main_view.blp:140
-#: app/src/main_view.blp:204 app/src/main_view.blp:238
-#: app/src/main_view.blp:262 app/src/main_view.blp:291
+#: app/src/main_view.blp:112 app/src/main_view.blp:144
+#: app/src/main_view.blp:208 app/src/main_view.blp:242
+#: app/src/main_view.blp:266 app/src/main_view.blp:295
 msgid "Show sidebar"
 msgstr "Wyświetl panel boczny"
 
-#: app/src/main_view.blp:124 app/src/main_view.blp:132
-#: app/src/main_view.blp:165 app/src/artist_page.blp:86
+#: app/src/main_view.blp:128 app/src/main_view.blp:136
+#: app/src/main_view.blp:169 app/src/artist_page.blp:86
 #: app/src/results_view.blp:31
 msgid "Albums"
 msgstr "Albumy"
 
-#: app/src/main_view.blp:127 app/src/preferences.blp:59
+#: app/src/main_view.blp:131 app/src/preferences.blp:59
 msgid "Library"
 msgstr "Biblioteka"
 
-#: app/src/main_view.blp:148
+#: app/src/main_view.blp:152
 msgid "Sort"
 msgstr "Sortowanie"
 
-#: app/src/main_view.blp:156
+#: app/src/main_view.blp:160
 msgid "Retry"
 msgstr "Spróbuj ponownie"
 
-#: app/src/main_view.blp:195 app/src/main_view.blp:212
+#: app/src/main_view.blp:199 app/src/main_view.blp:216
 msgid "Artists"
 msgstr "Wykonawcy"
 
-#: app/src/main_view.blp:213 app/src/main_view.blp:271
-#: app/src/main_view.blp:300
+#: app/src/main_view.blp:217 app/src/main_view.blp:275
+#: app/src/main_view.blp:304
 msgid "Coming soon"
 msgstr "Wkrótce"
 
-#: app/src/main_view.blp:222 app/src/main_view.blp:230
+#: app/src/main_view.blp:226 app/src/main_view.blp:234
 msgid "Favorites"
 msgstr "Ulubione"
 
-#: app/src/main_view.blp:225
+#: app/src/main_view.blp:229
 msgid "Collections"
 msgstr "Kolekcje"
 
-#: app/src/main_view.blp:253 app/src/main_view.blp:270
+#: app/src/main_view.blp:257 app/src/main_view.blp:274
 msgid "Playlists"
 msgstr "Listy odtwarzania"
 
-#: app/src/main_view.blp:280 app/src/main_view.blp:299
+#: app/src/main_view.blp:284 app/src/main_view.blp:303
 msgid "Similar and Radio"
 msgstr "Podobne i radio"
 
-#: app/src/main_view.blp:283
+#: app/src/main_view.blp:287
 msgid "Discover"
 msgstr "Odkrywanie"
 
-#: app/src/main_view.blp:344
+#: app/src/main_view.blp:348
 msgid "Name"
 msgstr "Nazwa"
 
-#: app/src/main_view.blp:350 app/src/song_menu.rs:177
+#: app/src/main_view.blp:354 app/src/song_menu.rs:177
 msgid "Artist"
 msgstr "Wykonawca"
 
-#: app/src/main_view.blp:356
+#: app/src/main_view.blp:360
 msgid "Year (Newest)"
 msgstr "Rok (od najnowszych)"
 
-#: app/src/main_view.blp:362
+#: app/src/main_view.blp:366
 msgid "Year (Oldest)"
 msgstr "Rok (od najstarszych)"
 
-#: app/src/main_view.blp:368 app/src/start_page.blp:248
+#: app/src/main_view.blp:372 app/src/start_page.blp:229
 msgid "Recently Added"
 msgstr "Ostatnio dodane"
 
-#: app/src/main_view.blp:379
+#: app/src/main_view.blp:383
 msgid "Preferences"
 msgstr "Preferencje"
 
@@ -325,7 +325,7 @@ msgstr "Wznów"
 
 #: app/src/album_page.rs:569 app/src/album_page.rs:744
 #: app/src/now_playing.rs:192 app/src/mini_player.rs:101
-#: app/src/start_page.blp:220
+#: app/src/start_page.blp:201
 msgid "Play"
 msgstr "Odtwórz"
 
@@ -399,31 +399,31 @@ msgstr "Nie można odtworzyć utworu"
 msgid "Could not start playback"
 msgstr "Nie można rozpocząć odtwarzania"
 
-#: app/src/start_page.blp:76
+#: app/src/start_page.blp:75
 msgid "Last Played"
 msgstr "Ostatnio słuchane"
 
-#: app/src/start_page.blp:132
+#: app/src/start_page.blp:113
 msgid "Continue"
 msgstr "Kontynuuj"
 
-#: app/src/start_page.blp:182
+#: app/src/start_page.blp:163
 msgid "Random Album"
 msgstr "Losowy album"
 
-#: app/src/start_page.blp:226
+#: app/src/start_page.blp:207
 msgid "Another Random Album"
 msgstr "Inny losowy album"
 
-#: app/src/start_page.blp:264 app/src/start_page.blp:336
+#: app/src/start_page.blp:245 app/src/start_page.blp:317
 msgid "Previous Albums"
 msgstr "Poprzednie albumy"
 
-#: app/src/start_page.blp:275 app/src/start_page.blp:347
+#: app/src/start_page.blp:256 app/src/start_page.blp:328
 msgid "Next Albums"
 msgstr "Następne albumy"
 
-#: app/src/start_page.blp:319
+#: app/src/start_page.blp:300
 msgid "Play Similar Songs"
 msgstr "Odtwórz podobne utwory"
 
@@ -505,7 +505,7 @@ msgstr "Kolejka jest pusta"
 
 #: app/src/queue_page.blp:43
 msgid "Play an album, a song or the radio"
-msgstr "Proszę odtworzyć album, utwór lub radio"
+msgstr "Utwory pojawią się tu po odtworzeniu albumu, utworu lub radia"
 
 #: app/src/queue_page.rs:126
 msgid "Remove from Queue"
@@ -583,5 +583,15 @@ msgstr "Częstotliwość próbkowania"
 msgid "Bit Rate"
 msgstr "Przepływność"
 
-#~ msgid "Similar to “{title}”"
-#~ msgstr "Podobne do „{title}”"
+#: app/src/search_page.rs:45
+msgid "No Results"
+msgstr "Brak wyników"
+
+#: app/src/search_page.rs:46
+msgid "Try other words"
+msgstr "Można spróbować innych słów"
+
+#: app/src/start_page.rs:436
+#, rust-format
+msgid "Similar to “{title}”"
+msgstr "Podobne do „{title}”"

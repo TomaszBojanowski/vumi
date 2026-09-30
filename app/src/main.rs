@@ -38,7 +38,7 @@ use welcome_page::WelcomePage;
 
 // Working ID and name, will change together with the final app name.
 pub const APP_ID: &str = "io.github.tomaszbojanowski.MusePlayer";
-const APP_NAME: &str = "muse-player";
+const APP_NAME: &str = "Muse Player";
 
 const GETTEXT_PACKAGE: &str = "muse-player";
 // Set by Meson at build time; the fallback matches the Flatpak prefix.
