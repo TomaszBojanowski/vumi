@@ -427,12 +427,18 @@ impl StartPage {
         let page = self.downgrade();
         glib::spawn_future_local(async move {
             let request = client.clone();
+            let seed_id = song_id.clone();
             let result = crate::runtime()
-                .spawn(async move { request.similar_songs(&song_id, 40).await })
+                .spawn(async move { request.similar_songs(&seed_id, 40).await })
                 .await;
             let Some(page) = page.upgrade() else {
                 return;
             };
+            // Another song has played meanwhile and asked for its own shelf:
+            // this answer would show the wrong albums under its title.
+            if *page.imp().similar_seed.borrow() != song_id {
+                return;
+            }
             let songs = match result {
                 Ok(Ok(songs)) => songs,
                 _ => Vec::new(),
