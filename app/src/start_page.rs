@@ -136,6 +136,11 @@ impl StartPage {
         fill_shelf(&imp.recent_row, &imp.recent_ids, &recent, client.clone());
         imp.albums.replace(albums.to_vec());
         imp.client.replace(client);
+        // No library (logged out): the pick goes too, or the card would stay
+        // hidden after logging in again with the same album still remembered.
+        if albums.is_empty() {
+            imp.random_album.replace(None);
+        }
         // A new pick only when there is none yet, or it left the library.
         let keep = imp
             .random_album
