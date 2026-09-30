@@ -123,9 +123,9 @@ struct Memory {
     bytes: usize,
 }
 
-thread_local! {
-    static MEMORY: std::cell::RefCell<Memory> = std::cell::RefCell::new(Memory::default());
-}
+// Shared by all threads: clearing the cache runs on a worker thread.
+static MEMORY: std::sync::LazyLock<std::sync::Mutex<Memory>> =
+    std::sync::LazyLock::new(Default::default);
 
 fn texture_bytes(texture: &gdk::Texture) -> usize {
     use gtk::gdk::prelude::TextureExt as _;
@@ -133,36 +133,34 @@ fn texture_bytes(texture: &gdk::Texture) -> usize {
 }
 
 fn memory_get(key: &str) -> Option<gdk::Texture> {
-    MEMORY.with(|memory| {
-        let mut memory = memory.borrow_mut();
-        let texture = memory.textures.get(key)?.clone();
-        if let Some(index) = memory.order.iter().position(|k| k == key) {
-            if let Some(k) = memory.order.remove(index) {
-                memory.order.push_back(k);
-            }
+    let mut memory = MEMORY.lock().ok()?;
+    let texture = memory.textures.get(key)?.clone();
+    if let Some(index) = memory.order.iter().position(|k| k == key) {
+        if let Some(k) = memory.order.remove(index) {
+            memory.order.push_back(k);
         }
-        Some(texture)
-    })
+    }
+    Some(texture)
 }
 
 fn memory_put(key: String, texture: gdk::Texture) {
-    MEMORY.with(|memory| {
-        let mut memory = memory.borrow_mut();
-        if memory.textures.contains_key(&key) {
-            return;
+    let Ok(mut memory) = MEMORY.lock() else {
+        return;
+    };
+    if memory.textures.contains_key(&key) {
+        return;
+    }
+    memory.bytes += texture_bytes(&texture);
+    memory.order.push_back(key.clone());
+    memory.textures.insert(key, texture);
+    while memory.bytes > MEMORY_LIMIT {
+        let Some(oldest) = memory.order.pop_front() else {
+            break;
+        };
+        if let Some(old) = memory.textures.remove(&oldest) {
+            memory.bytes -= texture_bytes(&old);
         }
-        memory.bytes += texture_bytes(&texture);
-        memory.order.push_back(key.clone());
-        memory.textures.insert(key, texture);
-        while memory.bytes > MEMORY_LIMIT {
-            let Some(oldest) = memory.order.pop_front() else {
-                break;
-            };
-            if let Some(old) = memory.textures.remove(&oldest) {
-                memory.bytes -= texture_bytes(&old);
-            }
-        }
-    })
+    }
 }
 
 /// Decoding a JPEG takes a few milliseconds, so it runs on a worker thread.
@@ -235,7 +233,9 @@ pub(crate) fn cache_size() -> u64 {
 /// Removes every cached cover (Preferences); covers are fetched again when
 /// needed. Blocks: call it on a worker thread.
 pub(crate) fn clear_cache() -> std::io::Result<()> {
-    MEMORY.with(|memory| *memory.borrow_mut() = Memory::default());
+    if let Ok(mut memory) = MEMORY.lock() {
+        *memory = Memory::default();
+    }
     for entry in std::fs::read_dir(cache_dir())?.flatten() {
         if entry.path().is_file() {
             std::fs::remove_file(entry.path())?;
