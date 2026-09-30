@@ -263,15 +263,21 @@ impl AlbumPage {
 
         // The composer: once in the header when the whole album has one (and
         // it is not the album artist), else on each track where it differs.
-        let composers: BTreeSet<&str> = songs
+        // Compared as sets of names: "A • B" and "B • A" are the same composers.
+        let composers: BTreeSet<String> = songs
             .iter()
             .filter_map(|s| s.composer.as_deref())
+            .map(composer_key)
             .filter(|c| !c.is_empty())
             .collect();
         let one_composer = (composers.len() == 1)
-            .then(|| composers.iter().next().copied())
+            .then(|| {
+                songs
+                    .iter()
+                    .find_map(|s| s.composer.as_deref().filter(|c| !c.trim().is_empty()))
+            })
             .flatten()
-            .filter(|c| Some(*c) != album_artist);
+            .filter(|c| Some(composer_key(c)) != album_artist.map(composer_key));
         match one_composer {
             // Translators: {name} is the composer of every track of the album.
             Some(name) => {
@@ -883,6 +889,18 @@ impl AlbumPage {
             disc_titles: Vec::new(),
         })
     }
+}
+
+/// The names in a composer string ("Lennon • McCartney", "Lennon/McCartney"),
+/// sorted and in lower case, so the same people in another order compare equal.
+fn composer_key(text: &str) -> String {
+    let mut names: Vec<String> = text
+        .split(['•', '/', ';'])
+        .map(|name| name.trim().to_lowercase())
+        .filter(|name| !name.is_empty())
+        .collect();
+    names.sort();
+    names.join("|")
 }
 
 /// True if the server's answer shows nothing the local copy does not.
