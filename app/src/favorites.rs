@@ -61,6 +61,12 @@ pub(crate) fn star_button(
         button.set_sensitive(false);
 
         let item = item.clone();
+        // Found now, while the button is still in a window: the Favorites page
+        // is refreshed even if the button is gone by the time the server answers.
+        let main = button
+            .ancestor(crate::main_view::MainView::static_type())
+            .and_downcast::<crate::main_view::MainView>()
+            .map(|m| m.downgrade());
         let button = button.downgrade();
         let reverting = reverting.clone();
         glib::spawn_future_local(async move {
@@ -74,6 +80,11 @@ pub(crate) fn star_button(
                 let _ = runtime()
                     .spawn_blocking(move || crate::library::set_starred(&server, is_album, &id, starred))
                     .await;
+                // The Favorites page follows the database, without waiting for
+                // the next sync.
+                if let Some(main) = main.as_ref().and_then(|m| m.upgrade()) {
+                    main.refresh_favorites();
+                }
             }
             let Some(button) = button.upgrade() else {
                 return;
@@ -85,15 +96,6 @@ pub(crate) fn star_button(
                 button.set_active(!starred);
                 reverting.set(false);
                 show_toast(&button, &gettext("Could not change favorites. Please try again."));
-            } else {
-                // The Favorites page follows the database, without waiting for
-                // the next sync.
-                if let Some(main) = button
-                    .ancestor(crate::main_view::MainView::static_type())
-                    .and_downcast::<crate::main_view::MainView>()
-                {
-                    main.refresh_favorites();
-                }
             }
         });
     });
