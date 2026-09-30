@@ -455,10 +455,10 @@ impl Player {
         }
     }
 
-    /// Gapless: about-to-finish has already handed the next track to GStreamer,
-    /// and it will play whatever the queue says now.
-    fn switch_pending(&self) -> bool {
-        self.switched_to.lock().is_ok_and(|s| s.is_some())
+    /// Gapless: the id of the track about-to-finish has already handed to
+    /// GStreamer, which will play whatever the queue says now.
+    fn pending_switch(&self) -> Option<String> {
+        self.switched_to.lock().ok().and_then(|s| s.clone())
     }
 
     /// A switch queued for the previous track must not move the queue on.
@@ -550,10 +550,20 @@ impl Player {
             return;
         }
         let mut songs = self.queue.borrow().to_vec();
+        let position = self.position.get();
         // Once the next track is with GStreamer it plays no matter what, so a
-        // song put before it would be skipped: it goes after that track instead.
-        let after = if self.switch_pending() { 2 } else { 1 };
-        let index = (self.position.get() + after).min(songs.len());
+        // song put before it would be skipped: it goes right after that track,
+        // wherever the queue has it by now.
+        let index = match self.pending_switch() {
+            Some(id) => songs
+                .iter()
+                .skip(position + 1)
+                .position(|s| s.id == id)
+                .map(|offset| position + offset + 2)
+                .unwrap_or(position + 1),
+            None => position + 1,
+        }
+        .min(songs.len());
         songs.insert(index, song);
         self.queue.replace(songs.into());
         self.prepare_next();
