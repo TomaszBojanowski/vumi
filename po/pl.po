@@ -702,3 +702,23 @@ msgstr "Wysyłanie odsłuchów na serwer"
 #: app/src/preferences.blp
 msgid "The server sees what is playing and counts plays; it may pass them on to Last.fm or ListenBrainz"
 msgstr "Serwer widzi, co jest odtwarzane, i liczy odtworzenia; może je przekazać do Last.fm lub ListenBrainz"
+
+#: app/src/preferences.blp
+msgid "Appearance"
+msgstr "Wygląd"
+
+#: app/src/preferences.blp
+msgid "Style"
+msgstr "Styl"
+
+#: app/src/preferences.blp
+msgid "Follow System"
+msgstr "Systemowy"
+
+#: app/src/preferences.blp
+msgid "Light"
+msgstr "Jasny"
+
+#: app/src/preferences.blp
+msgid "Dark"
+msgstr "Ciemny"

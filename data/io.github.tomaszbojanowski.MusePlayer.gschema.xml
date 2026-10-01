@@ -53,5 +53,9 @@
       <default>true</default>
       <summary>Tell the server what is playing and count finished listens</summary>
     </key>
+    <key name="color-scheme" type="u">
+      <default>0</default>
+      <summary>Style: 0 follows the system, 1 is always light, 2 is always dark</summary>
+    </key>
   </schema>
 </schemalist>

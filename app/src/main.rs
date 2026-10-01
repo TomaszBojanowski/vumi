@@ -143,6 +143,23 @@ fn build_ui(app: &adw::Application) {
     // "Endless Radio" in the main menu, kept in GSettings.
     app.add_action(&gtk::gio::Settings::new(APP_ID).create_action("endless-radio"));
 
+    // Style (Preferences): follow the system, or always light or dark.
+    {
+        let settings = gtk::gio::Settings::new(APP_ID);
+        let apply = |settings: &gtk::gio::Settings| {
+            let scheme = match settings.uint("color-scheme") {
+                1 => adw::ColorScheme::ForceLight,
+                2 => adw::ColorScheme::ForceDark,
+                _ => adw::ColorScheme::Default,
+            };
+            adw::StyleManager::default().set_color_scheme(scheme);
+        };
+        apply(&settings);
+        settings.connect_changed(Some("color-scheme"), move |settings, _| apply(settings));
+        // Kept for the whole run: the change signal goes with the object.
+        std::mem::forget(settings);
+    }
+
     // Playback errors appear in the window, not only in the terminal.
     let toasts_weak = toasts.downgrade();
     player::get().set_error_handler(move |message| {

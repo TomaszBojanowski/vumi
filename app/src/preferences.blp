@@ -42,6 +42,22 @@ template $MusePlayerPreferences: Adw.PreferencesDialog {
     }
 
     Adw.PreferencesGroup {
+      title: _("Appearance");
+
+      Adw.ComboRow color_scheme {
+        title: _("Style");
+
+        model: StringList {
+          strings [
+            _("Follow System"),
+            _("Light"),
+            _("Dark"),
+          ]
+        };
+      }
+    }
+
+    Adw.PreferencesGroup {
       title: _("Playback");
 
       Adw.SwitchRow endless_radio {
