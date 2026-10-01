@@ -96,6 +96,13 @@ mod imp {
         pub similar_seed: RefCell<String>,
         /// What "Continue" plays: the album's songs, the track, the second.
         pub(crate) resume: RefCell<Option<super::Resume>>,
+        /// The album on the card and its songs as last read from the database,
+        /// so a change that keeps the album (pause, the next track, the volume)
+        /// does not read them again.
+        pub continue_songs: RefCell<Option<(String, Rc<[subsonic::Song]>)>>,
+        /// Bumped by every show_continue; a database answer for an older call
+        /// is dropped.
+        pub continue_generation: std::cell::Cell<u32>,
         /// The library and the client, so the card can follow the player.
         pub albums: RefCell<Vec<Arc<subsonic::Album>>>,
         pub client: RefCell<Option<subsonic::Client>>,
@@ -316,7 +323,12 @@ impl StartPage {
                 let player = crate::player::get();
                 if let Some(song) = player.current() {
                     let seconds = player.position_secs().unwrap_or(0.0);
-                    page.show_continue(song.album_id.as_deref().unwrap_or(""), &song.id, seconds);
+                    page.show_continue(
+                        song.album_id.as_deref().unwrap_or(""),
+                        &song.id,
+                        seconds,
+                        false,
+                    );
                 }
             });
             self.connect_destroy(move |_| crate::player::get().disconnect(listener));
@@ -354,28 +366,38 @@ impl StartPage {
 
     /// The "Continue" card after startup: what played last, as resume.rs saved it.
     fn update_continue(&self) {
+        // Called when the library may have changed (a sync, another account),
+        // so the songs are read from the database again (reload).
         // Something plays: that, rather than what was saved a while ago.
         let player = crate::player::get();
         if let Some(song) = player.current() {
             let seconds = player.position_secs().unwrap_or(0.0);
-            self.show_continue(song.album_id.as_deref().unwrap_or(""), &song.id, seconds);
+            self.show_continue(song.album_id.as_deref().unwrap_or(""), &song.id, seconds, true);
             return;
         }
         let settings = gio::Settings::new(crate::APP_ID);
         let album_id = settings.string("last-album-id");
         let song_id = settings.string("last-song-id");
         let seconds = settings.uint("last-position") as f64;
-        self.show_continue(&album_id, &song_id, seconds);
+        self.show_continue(&album_id, &song_id, seconds, true);
     }
 
     /// Fills the "Continue" card with a song of an album from the library, or
-    /// hides it if the album or the song cannot be found.
-    fn show_continue(&self, album_id: &str, song_id: &str, seconds: f64) {
+    /// hides it if the album or the song cannot be found. The album's songs
+    /// are read from the database only for another album than last time, or
+    /// when `reload` asks for it.
+    fn show_continue(&self, album_id: &str, song_id: &str, seconds: f64, reload: bool) {
         let imp = self.imp();
+        // This call is the newest now: an answer still on its way from the
+        // database belongs to an older one and must not replace the card.
+        let generation = imp.continue_generation.get().wrapping_add(1);
+        imp.continue_generation.set(generation);
         // The card keeps what it shows until the new content is known, so a
         // refresh (after connecting, after a sync) does not make it blink. It
         // hides only when there is nothing to show.
         let Some(client) = imp.client.borrow().clone() else {
+            // Logged out: the songs remembered belong to that account.
+            imp.continue_songs.replace(None);
             imp.continue_card.set_visible(false);
             return;
         };
@@ -383,6 +405,16 @@ impl StartPage {
             imp.continue_card.set_visible(false);
             return;
         };
+        let remembered = imp
+            .continue_songs
+            .borrow()
+            .as_ref()
+            .filter(|(id, _)| !reload && *id == album.id)
+            .map(|(_, songs)| songs.clone());
+        if let Some(songs) = remembered {
+            self.fill_continue(&album, client, songs, song_id, seconds);
+            return;
+        }
         // The songs come from the database in the background; the rest of the
         // card follows once they are there.
         let page = self.downgrade();
@@ -390,15 +422,30 @@ impl StartPage {
         let server = client.server_key();
         let album_id = album.id.clone();
         glib::spawn_future_local(async move {
-            let songs = crate::runtime()
+            let read = crate::runtime()
                 .spawn_blocking(move || crate::library::load_album_songs(&server, &album_id))
                 .await
                 .ok()
-                .and_then(Result::ok)
-                .unwrap_or_default();
-            if let Some(page) = page.upgrade() {
-                page.fill_continue(&album, client, songs, &song_id, seconds);
+                .and_then(Result::ok);
+            let Some(page) = page.upgrade() else {
+                return;
+            };
+            let imp = page.imp();
+            if imp.continue_generation.get() != generation {
+                return;
             }
+            // Only a read that worked is remembered: after an error the next
+            // change asks the database again.
+            let songs: Rc<[subsonic::Song]> = match read {
+                Some(songs) => {
+                    let songs: Rc<[subsonic::Song]> = songs.into();
+                    imp.continue_songs
+                        .replace(Some((album.id.clone(), songs.clone())));
+                    songs
+                }
+                None => Vec::new().into(),
+            };
+            page.fill_continue(&album, client, songs, &song_id, seconds);
         });
     }
 
@@ -407,7 +454,7 @@ impl StartPage {
         &self,
         album: &Arc<subsonic::Album>,
         client: subsonic::Client,
-        songs: Vec<subsonic::Song>,
+        songs: Rc<[subsonic::Song]>,
         song_id: &str,
         seconds: f64,
     ) {
@@ -457,7 +504,7 @@ impl StartPage {
 
         imp.resume.replace(Some(Resume {
             client,
-            songs: songs.into(),
+            songs,
             index,
             seconds,
         }));
