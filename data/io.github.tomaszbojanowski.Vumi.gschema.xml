@@ -74,5 +74,10 @@
       <default>"none"</default>
       <summary>Repeat: none, the whole queue, or the current track</summary>
     </key>
+    <key name="volume" type="d">
+      <range min="0" max="1"/>
+      <default>1.0</default>
+      <summary>Playback volume as on the slider, from 0 to 1 (1 leaves the signal unchanged)</summary>
+    </key>
   </schema>
 </schemalist>

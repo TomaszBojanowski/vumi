@@ -754,3 +754,7 @@ msgstr "Dla albumu"
 #: app/src/main_view.blp
 msgid "Repeat"
 msgstr "Powtarzanie"
+
+#: app/src/now_playing.blp
+msgid "Volume"
+msgstr "Głośność"

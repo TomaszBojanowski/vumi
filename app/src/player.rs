@@ -44,6 +44,8 @@ pub(crate) struct Player {
     report_support: std::cell::Cell<Option<bool>>,
     /// The ReplayGain mode the audio filter was built for.
     replay_gain_mode: std::cell::Cell<Option<u32>>,
+    /// Volume as on the slider (0 to 1); GStreamer gets its cube.
+    volume: std::cell::Cell<f64>,
     /// Told about every jump of the position (MPRIS sends Seeked).
     seek_handler: RefCell<Option<Box<dyn Fn(f64)>>>,
     /// Counts the user's commands (play, stop, changes to the queue). Requests
@@ -123,6 +125,7 @@ impl Player {
                 listen_timer: std::cell::Cell::new(false),
                 report_support: std::cell::Cell::new(None),
                 replay_gain_mode: std::cell::Cell::new(None),
+                volume: std::cell::Cell::new(saved_volume()),
                 seek_handler: RefCell::new(None),
                 command: Cell::new(0),
                 pending_seek: Cell::new(None),
@@ -254,6 +257,7 @@ impl Player {
         };
         let _ = self.playbin.set_state(gst::State::Null);
         self.apply_replay_gain();
+        self.apply_volume();
         self.playbin.set_property("uri", url.as_str());
         match self.playbin.set_state(gst::State::Playing) {
             Ok(_) => {
@@ -558,6 +562,38 @@ impl Player {
         self.playbin.set_property("audio-filter", filter.as_ref());
         self.replay_gain_mode.set(Some(mode));
     }
+}
+
+impl Player {
+    pub(crate) fn volume(&self) -> f64 {
+        self.volume.get()
+    }
+
+    /// From the slider, the scroll wheel or MPRIS; remembered for next time.
+    pub(crate) fn set_volume(&self, volume: f64) {
+        let volume = volume.clamp(0.0, 1.0);
+        if (self.volume.get() - volume).abs() < 1e-4 {
+            return;
+        }
+        self.volume.set(volume);
+        self.apply_volume();
+        use gtk::gio::prelude::*;
+        let _ = gtk::gio::Settings::new(crate::APP_ID).set_double("volume", volume);
+        self.notify();
+    }
+
+    /// The slider is perceptual, GStreamer's volume linear: the cube makes half
+    /// the slider sound like half as loud. 1 stays exactly 1, so at full volume
+    /// the signal is unchanged.
+    fn apply_volume(&self) {
+        self.playbin.set_property("volume", self.volume.get().powi(3));
+    }
+}
+
+/// The volume left last time.
+fn saved_volume() -> f64 {
+    use gtk::gio::prelude::*;
+    gtk::gio::Settings::new(crate::APP_ID).double("volume")
 }
 
 /// "Volume Normalization" in Preferences: 0 off, 1 per track, 2 per album.

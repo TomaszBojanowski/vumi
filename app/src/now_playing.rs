@@ -40,6 +40,10 @@ mod imp {
         pub total: gtk::TemplateChild<gtk::Label>,
         #[template_child]
         pub star_slot: gtk::TemplateChild<adw::Bin>,
+        #[template_child]
+        pub volume_button: gtk::TemplateChild<gtk::MenuButton>,
+        #[template_child]
+        pub volume_scale: gtk::TemplateChild<gtk::Scale>,
         /// The song whose star is in `star_slot`.
         pub star_song: RefCell<Option<String>>,
         #[template_child]
@@ -97,6 +101,16 @@ impl NowPlaying {
         let _ = imp.tint.set(tint);
 
         imp.play_pause.connect_clicked(|_| player::get().toggle_pause());
+        imp.volume_scale
+            .connect_value_changed(|scale| player::get().set_volume(scale.value()));
+        // The scroll wheel over the button: 5% a step, without opening it.
+        let scroll = gtk::EventControllerScroll::new(gtk::EventControllerScrollFlags::VERTICAL);
+        scroll.connect_scroll(|_, _, dy| {
+            let player = player::get();
+            player.set_volume(player.volume() - dy * 0.05);
+            glib::Propagation::Stop
+        });
+        imp.volume_button.add_controller(scroll);
         imp.previous.connect_clicked(|_| player::get().previous());
         imp.next.connect_clicked(|_| player::get().next());
         imp.queue_button.connect_clicked(|button| {
@@ -178,6 +192,18 @@ impl NowPlaying {
     fn update(&self) {
         let imp = self.imp();
         let player = player::get();
+
+        // The volume, whoever changed it (here, the scroll wheel, MPRIS).
+        let volume = player.volume();
+        if (imp.volume_scale.value() - volume).abs() > 1e-4 {
+            imp.volume_scale.set_value(volume);
+        }
+        imp.volume_button.set_icon_name(match volume {
+            v if v <= 0.0 => "audio-volume-muted-symbolic",
+            v if v < 0.34 => "audio-volume-low-symbolic",
+            v if v < 0.67 => "audio-volume-medium-symbolic",
+            _ => "audio-volume-high-symbolic",
+        });
         let Some(song) = player.current() else {
             imp.revealer.set_reveal_child(false);
             self.stop_timer();
