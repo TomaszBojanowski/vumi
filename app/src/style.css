@@ -277,3 +277,13 @@ button.syncing > image {
 .playlist-card .playlist-play:hover {
   background-color: alpha(currentColor, 0.2);
 }
+
+/* The volume slider in the now-playing card: no wider than it needs to be. */
+.volume-popover > contents {
+  padding: 8px 2px;
+  min-width: 0;
+}
+
+.volume-popover scale.vertical {
+  padding: 0 4px;
+}

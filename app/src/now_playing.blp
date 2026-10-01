@@ -57,42 +57,52 @@ template $VumiNowPlaying: Adw.Bin {
           };
         }
 
+        // Title, artist and album, with the song's star (put in from the code).
         Box {
-          orientation: vertical;
+          spacing: 6;
 
-          Label title {
-            xalign: 0;
-            ellipsize: end;
-            max-width-chars: 1;
+          Box {
+            orientation: vertical;
+          hexpand: true;
 
-            styles [
-              "heading",
-              "pill-title",
-            ]
+            Label title {
+              xalign: 0;
+              ellipsize: end;
+              max-width-chars: 1;
+
+              styles [
+                "heading",
+                "pill-title",
+              ]
+            }
+
+            Label artist {
+              xalign: 0;
+              ellipsize: end;
+              max-width-chars: 1;
+              opacity: 0.75;
+
+              styles [
+                "caption",
+              ]
+            }
+
+            Label album {
+              xalign: 0;
+              ellipsize: end;
+              max-width-chars: 1;
+              opacity: 0.6;
+
+              styles [
+                "caption",
+              ]
+            }
+
           }
 
-          Label artist {
-            xalign: 0;
-            ellipsize: end;
-            max-width-chars: 1;
-            opacity: 0.75;
-
-            styles [
-              "caption",
-            ]
+          Adw.Bin star_slot {
+            valign: center;
           }
-
-          Label album {
-            xalign: 0;
-            ellipsize: end;
-            max-width-chars: 1;
-            opacity: 0.6;
-
-            styles [
-              "caption",
-            ]
-          }
-
         }
       }
 
@@ -192,9 +202,37 @@ template $VumiNowPlaying: Adw.Bin {
           }
         };
 
-        // The current song's star, put in from the code.
-        end-widget: Adw.Bin star_slot {
-          valign: center;
+        // The volume, balancing the queue button on the left.
+        end-widget: MenuButton volume_button {
+            icon-name: "audio-volume-high-symbolic";
+            tooltip-text: _("Volume");
+            valign: center;
+
+            styles [
+              "flat",
+              "circular",
+            ]
+
+            popover: Popover {
+              styles [
+                "volume-popover",
+              ]
+
+              child: Scale volume_scale {
+                orientation: vertical;
+                inverted: true;
+                height-request: 100;
+                margin-top: 6;
+                margin-bottom: 6;
+
+                adjustment: Adjustment {
+                  lower: 0;
+                  upper: 1;
+                  step-increment: 0.05;
+                  page-increment: 0.1;
+                };
+              };
+            };
         };
       }
     };
