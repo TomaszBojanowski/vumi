@@ -74,6 +74,19 @@ template $MusePlayerPreferences: Adw.PreferencesDialog {
         title: _("Play After the Window Is Closed");
         subtitle: _("The music goes on; the controls stay in the system menu");
       }
+
+      Adw.ComboRow replay_gain {
+        title: _("Volume Normalization");
+        subtitle: _("From ReplayGain tags; off keeps the signal unchanged");
+
+        model: StringList {
+          strings [
+            _("Off"),
+            _("Per Track"),
+            _("Per Album"),
+          ]
+        };
+      }
     }
 
     Adw.PreferencesGroup {

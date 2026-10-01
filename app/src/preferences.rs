@@ -28,6 +28,8 @@ mod imp {
         #[template_child]
         pub cover_colors: gtk::TemplateChild<adw::SwitchRow>,
         #[template_child]
+        pub replay_gain: gtk::TemplateChild<adw::ComboRow>,
+        #[template_child]
         pub report_listens: gtk::TemplateChild<adw::SwitchRow>,
         #[template_child]
         pub sync_row: gtk::TemplateChild<adw::ButtonRow>,
@@ -84,6 +86,9 @@ mod imp {
                 .build();
             settings
                 .bind("cover-colors", &*self.cover_colors, "active")
+                .build();
+            settings
+                .bind("replay-gain", &*self.replay_gain, "selected")
                 .build();
         }
     }

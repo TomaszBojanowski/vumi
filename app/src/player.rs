@@ -42,6 +42,8 @@ pub(crate) struct Player {
     /// Whether the server takes live playback reports (OpenSubsonic
     /// playbackReport): None until asked, Some(false) while asking.
     report_support: std::cell::Cell<Option<bool>>,
+    /// The ReplayGain mode the audio filter was built for.
+    replay_gain_mode: std::cell::Cell<Option<u32>>,
     /// Told about every jump of the position (MPRIS sends Seeked).
     seek_handler: RefCell<Option<Box<dyn Fn(f64)>>>,
     /// Counts the user's commands (play, stop, changes to the queue). Requests
@@ -120,6 +122,7 @@ impl Player {
                 listen: RefCell::new(None),
                 listen_timer: std::cell::Cell::new(false),
                 report_support: std::cell::Cell::new(None),
+                replay_gain_mode: std::cell::Cell::new(None),
                 seek_handler: RefCell::new(None),
                 command: Cell::new(0),
                 pending_seek: Cell::new(None),
@@ -250,6 +253,7 @@ impl Player {
             return;
         };
         let _ = self.playbin.set_state(gst::State::Null);
+        self.apply_replay_gain();
         self.playbin.set_property("uri", url.as_str());
         match self.playbin.set_state(gst::State::Playing) {
             Ok(_) => {
@@ -520,6 +524,41 @@ impl Player {
             }
         });
     }
+}
+
+impl Player {
+    /// ReplayGain from Preferences. playbin takes a new audio filter only while
+    /// stopped, so this runs as a track starts. Off means no element at all:
+    /// the signal stays bit-perfect.
+    fn apply_replay_gain(&self) {
+        let mode = replay_gain();
+        if self.replay_gain_mode.get() == Some(mode) {
+            return;
+        }
+        let filter: Option<gst::Element> = match mode {
+            0 => None,
+            _ => gst::parse::bin_from_description(
+                "audioconvert ! rgvolume name=rg ! rglimiter ! audioconvert",
+                true,
+            )
+            .map_err(|e| eprintln!("ReplayGain: {e}"))
+            .ok()
+            .map(|bin| {
+                if let Some(rg) = bin.by_name("rg") {
+                    rg.set_property("album-mode", mode == 2);
+                }
+                bin.upcast()
+            }),
+        };
+        self.playbin.set_property("audio-filter", filter.as_ref());
+        self.replay_gain_mode.set(Some(mode));
+    }
+}
+
+/// "Volume Normalization" in Preferences: 0 off, 1 per track, 2 per album.
+fn replay_gain() -> u32 {
+    use gtk::gio::prelude::*;
+    gtk::gio::Settings::new(crate::APP_ID).uint("replay-gain")
 }
 
 /// "Share Listening Activity" in Preferences.

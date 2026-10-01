@@ -730,3 +730,23 @@ msgstr "Kolory okładki"
 #: app/src/preferences.blp
 msgid "Tint the album page and the player with the colour of the cover"
 msgstr "Barwienie strony albumu i odtwarzacza kolorem okładki"
+
+#: app/src/preferences.blp
+msgid "Volume Normalization"
+msgstr "Wyrównywanie głośności"
+
+#: app/src/preferences.blp
+msgid "From ReplayGain tags; off keeps the signal unchanged"
+msgstr "Na podstawie tagów ReplayGain; wyłączone nie zmienia sygnału"
+
+#: app/src/preferences.blp
+msgid "Off"
+msgstr "Wyłączone"
+
+#: app/src/preferences.blp
+msgid "Per Track"
+msgstr "Dla utworu"
+
+#: app/src/preferences.blp
+msgid "Per Album"
+msgstr "Dla albumu"

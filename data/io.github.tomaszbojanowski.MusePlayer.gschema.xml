@@ -61,5 +61,9 @@
       <default>true</default>
       <summary>Tint the album page and the player cards with the cover colour</summary>
     </key>
+    <key name="replay-gain" type="u">
+      <default>0</default>
+      <summary>Volume normalization from ReplayGain tags: 0 off, 1 per track, 2 per album</summary>
+    </key>
   </schema>
 </schemalist>
