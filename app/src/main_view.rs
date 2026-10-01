@@ -15,6 +15,15 @@ use crate::artist_card::ArtistCard;
 use crate::artist_page::ArtistPage;
 use crate::{covers, error_message, library, runtime, since_start, APP_ID, APP_NAME};
 
+/// One artist in the Artists grid.
+struct ArtistItem {
+    id: String,
+    name: String,
+    albums: u32,
+    /// The cover id of the artist's picture, if the server has one.
+    picture: Option<String>,
+}
+
 mod imp {
     use super::*;
 
@@ -48,7 +57,9 @@ mod imp {
         #[template_child]
         pub artists_stack: gtk::TemplateChild<gtk::Stack>,
         #[template_child]
-        pub artists_box: gtk::TemplateChild<gtk::Box>,
+        pub artists_grid: gtk::TemplateChild<gtk::GridView>,
+        /// The artists in the grid, in the order shown.
+        pub artist_items: OnceCell<gio::ListStore>,
         #[template_child]
         pub playlists_page: gtk::TemplateChild<adw::ViewStackPage>,
         #[template_child]
@@ -135,6 +146,7 @@ impl MainView {
         let view: Self = glib::Object::new();
         view.set_title(APP_NAME);
         view.setup_grid();
+        view.setup_artists_grid();
         view.setup_queue();
         view.setup_playlists();
         view.setup_sorting();
@@ -209,6 +221,70 @@ impl MainView {
             .set_model(Some(&gtk::NoSelection::new(Some(albums.clone()))));
         imp.grid.set_factory(Some(&factory));
         let _ = imp.albums.set(albums);
+    }
+
+    /// Connects the Artists grid to its store. As in the album grid, cards
+    /// exist only for the artists on screen and are reused while scrolling.
+    fn setup_artists_grid(&self) {
+        let imp = self.imp();
+        let artists = gio::ListStore::new::<glib::BoxedAnyObject>();
+
+        let factory = gtk::SignalListItemFactory::new();
+        factory.connect_setup(|_, item| {
+            if let Some(item) = item.downcast_ref::<gtk::ListItem>() {
+                item.set_child(Some(&ArtistCard::new()));
+            }
+        });
+        let view = self.downgrade();
+        factory.connect_bind(move |_, item| {
+            let Some(item) = item.downcast_ref::<gtk::ListItem>() else {
+                return;
+            };
+            let card = item.child().and_downcast::<ArtistCard>();
+            let object = item.item().and_downcast::<glib::BoxedAnyObject>();
+            let (Some(card), Some(object)) = (card, object) else {
+                return;
+            };
+            let client = view.upgrade().and_then(|v| v.imp().client.borrow().clone());
+            let artist = object.borrow::<ArtistItem>();
+            card.set_artist(&artist.name, artist.albums, artist.picture.clone(), client);
+        });
+        // Scrolled out of sight: the card lets go of the picture. The cover
+        // cache still has it for a while, should the artist come back.
+        factory.connect_unbind(|_, item| {
+            let card = item
+                .downcast_ref::<gtk::ListItem>()
+                .and_then(|item| item.child())
+                .and_downcast::<ArtistCard>();
+            if let Some(card) = card {
+                card.clear();
+            }
+        });
+
+        // A click on a card opens the artist page on top of the list.
+        let view = self.downgrade();
+        imp.artists_grid.connect_activate(move |grid, position| {
+            let Some(view) = view.upgrade() else {
+                return;
+            };
+            let Some(object) = grid
+                .model()
+                .and_then(|model| model.item(position))
+                .and_downcast::<glib::BoxedAnyObject>()
+            else {
+                return;
+            };
+            let Some(client) = view.imp().client.borrow().clone() else {
+                return;
+            };
+            let artist = object.borrow::<ArtistItem>();
+            view.open_artist_from(grid, &artist.id, &artist.name, client);
+        });
+
+        imp.artists_grid
+            .set_model(Some(&gtk::NoSelection::new(Some(artists.clone()))));
+        imp.artists_grid.set_factory(Some(&factory));
+        let _ = imp.artist_items.set(artists);
     }
 
     /// Fills the grid from the local database, without touching the network.
@@ -664,9 +740,9 @@ impl MainView {
         });
     }
 
-    /// The Artists section: a card per artist (picture or initials, name,
-    /// number of albums), grouped under the first letter of the name. From the
-    /// server's list when it is there, else from the albums in memory.
+    /// The Artists section: the artists by name, each a card in the grid
+    /// (picture or initials, name, number of albums). From the server's list
+    /// when it is there, else from the albums in memory.
     fn refresh_artists(&self) {
         let imp = self.imp();
 
@@ -711,68 +787,20 @@ impl MainView {
         }
         imp.artists_shown.replace(shown);
 
-        while let Some(child) = imp.artists_box.first_child() {
-            imp.artists_box.remove(&child);
+        let count = artists.len();
+        let objects: Vec<glib::BoxedAnyObject> = artists
+            .into_iter()
+            .map(|(id, name, albums, picture)| {
+                glib::BoxedAnyObject::new(ArtistItem { id, name, albums, picture })
+            })
+            .collect();
+        if let Some(store) = imp.artist_items.get() {
+            // One change notification for the whole list, not one per artist.
+            store.splice(0, store.n_items(), &objects);
         }
-        let client = imp.client.borrow().clone();
-        let mut letter: Option<String> = None;
-        let mut flow: Option<gtk::FlowBox> = None;
-        for (id, name, count, picture) in &artists {
-            // A new heading when the first letter changes; digits and the like
-            // go under "#".
-            let first = name
-                .chars()
-                .next()
-                .filter(|c| c.is_alphabetic())
-                .map(|c| c.to_uppercase().to_string())
-                .unwrap_or_else(|| "#".to_string());
-            if letter.as_deref() != Some(first.as_str()) {
-                let heading = gtk::Label::builder()
-                    .label(&first)
-                    .xalign(0.0)
-                    .margin_top(12)
-                    .css_classes(["title-2"])
-                    .build();
-                imp.artists_box.append(&heading);
-                let box_ = gtk::FlowBox::builder()
-                    .selection_mode(gtk::SelectionMode::None)
-                    .homogeneous(true)
-                    .column_spacing(12)
-                    .row_spacing(12)
-                    .max_children_per_line(12)
-                    .build();
-                imp.artists_box.append(&box_);
-                flow = Some(box_);
-                letter = Some(first);
-            }
-            let Some(flow) = flow.as_ref() else {
-                continue;
-            };
-
-            let card = ArtistCard::new();
-            card.set_artist(name, *count, picture.clone(), client.clone());
-            let button = gtk::Button::builder()
-                .child(&card)
-                .css_classes(["flat", "shelf-card"])
-                .build();
-
-            let id = id.clone();
-            let name = name.clone();
-            let view = self.downgrade();
-            button.connect_clicked(move |button| {
-                let Some(view) = view.upgrade() else {
-                    return;
-                };
-                let Some(client) = view.imp().client.borrow().clone() else {
-                    return;
-                };
-                view.open_artist_from(button, &id, &name, client);
-            });
-            flow.append(&button);
-        }
-        imp.artists_page.set_badge_number(artists.len() as u32);
+        imp.artists_page.set_badge_number(count as u32);
         imp.artists_stack
-            .set_visible_child_name(if artists.is_empty() { "empty" } else { "list" });
+            .set_visible_child_name(if count == 0 { "empty" } else { "list" });
     }
 }
 

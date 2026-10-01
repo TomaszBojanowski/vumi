@@ -232,18 +232,24 @@ template $VumiMainView: Adw.NavigationPage {
                       child: ScrolledWindow {
                         hscrollbar-policy: never;
 
-                        child: Adw.Clamp {
+                        styles [
+                          "artists-scroll",
+                        ]
+
+                        // Scrollable itself, so the grid inside still knows
+                        // what is on screen.
+                        child: Adw.ClampScrollable {
                           maximum-size: 1200;
 
-                          // One heading and one flow box of cards per letter.
-                          child: Box artists_box {
-                            orientation: vertical;
-                            spacing: 12;
-                            margin-top: 24;
-                            margin-bottom: 24;
-                            margin-start: 24;
-                            margin-end: 24;
-                            valign: start;
+                          // Only visible cards exist; they are reused while scrolling.
+                          child: GridView artists_grid {
+                            min-columns: 2;
+                            max-columns: 12;
+                            single-click-activate: true;
+
+                            styles [
+                              "artists-grid",
+                            ]
                           };
                         };
                       };

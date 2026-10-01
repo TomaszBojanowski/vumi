@@ -1,5 +1,6 @@
-//! One artist in the Artists section: the picture or the initials, the name
-//! and the number of albums.
+//! One artist in the Artists grid: the picture or the initials, the name and
+//! the number of albums. The grid reuses cards while scrolling, so
+//! set_artist() is called many times on the same card.
 
 use adw::subclass::prelude::*;
 use gettextrs::ngettext;
@@ -84,5 +85,13 @@ impl ArtistCard {
                 }
             });
         }
+    }
+
+    /// The card is off screen: it lets go of the picture, and a picture
+    /// still on its way is no longer wanted.
+    pub(crate) fn clear(&self) {
+        let imp = self.imp();
+        imp.avatar.set_custom_image(None::<&gtk::gdk::Paintable>);
+        imp.picture_id.replace(None);
     }
 }

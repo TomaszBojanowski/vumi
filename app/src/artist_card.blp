@@ -4,6 +4,10 @@ using Adw 1;
 template $VumiArtistCard: Box {
   orientation: vertical;
   spacing: 6;
+  margin-top: 12;
+  margin-bottom: 12;
+  margin-start: 12;
+  margin-end: 12;
 
   // The initials show until the picture is there, and for artists without one.
   Adw.Avatar avatar {
@@ -11,23 +15,69 @@ template $VumiArtistCard: Box {
     show-initials: true;
   }
 
-  Label name {
-    justify: center;
-    wrap: true;
-    wrap-mode: word_char;
-    lines: 2;
-    ellipsize: end;
-    max-width-chars: 16;
+  // Both boxes share the one cell. The invisible one always takes the room
+  // of a two-line name, so every card, and with it every row, is as tall.
+  Grid {
+    Box {
+      orientation: vertical;
+      spacing: 6;
+      opacity: 0;
+      accessible-role: presentation;
 
-    styles [
-      "heading",
-    ]
-  }
+      layout {
+        column: 0;
+        row: 0;
+      }
 
-  Label albums {
-    styles [
-      "caption",
-      "dim-label",
-    ]
+      Label {
+        label: "\n";
+        accessible-role: presentation;
+
+        styles [
+          "heading",
+        ]
+      }
+
+      Label {
+        label: " ";
+        accessible-role: presentation;
+
+        styles [
+          "caption",
+        ]
+      }
+    }
+
+    Box {
+      orientation: vertical;
+      spacing: 6;
+      valign: start;
+      hexpand: true;
+
+      layout {
+        column: 0;
+        row: 0;
+      }
+
+      Label name {
+        justify: center;
+        wrap: true;
+        wrap-mode: word_char;
+        lines: 2;
+        ellipsize: end;
+        max-width-chars: 16;
+
+        styles [
+          "heading",
+        ]
+      }
+
+      Label albums {
+        styles [
+          "caption",
+          "dim-label",
+        ]
+      }
+    }
   }
 }
