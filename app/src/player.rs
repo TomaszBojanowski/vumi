@@ -465,6 +465,9 @@ impl Player {
     /// Live state for the server's "now playing", if it takes such reports.
     /// `position_ms` defaults to where playback is now.
     fn report(&self, state: &'static str, position_ms: Option<u64>) {
+        if !report_listens() {
+            return;
+        }
         if self.report_support.get() != Some(true) {
             return;
         }
@@ -505,6 +508,9 @@ impl Player {
 
     /// Sends a scrobble in the background; a failure only goes to the log.
     fn scrobble(&self, id: String, submission: bool, time: Option<u64>) {
+        if !report_listens() {
+            return;
+        }
         let Some(client) = self.client.borrow().clone() else {
             return;
         };
@@ -514,6 +520,12 @@ impl Player {
             }
         });
     }
+}
+
+/// "Share Listening Activity" in Preferences.
+fn report_listens() -> bool {
+    use gtk::gio::prelude::*;
+    gtk::gio::Settings::new(crate::APP_ID).boolean("report-listens")
 }
 
 /// "Endless Radio" from the main menu.

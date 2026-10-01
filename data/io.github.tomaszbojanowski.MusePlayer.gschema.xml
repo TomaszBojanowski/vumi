@@ -49,5 +49,9 @@
       <default>false</default>
       <summary>Keep playing after the window is closed</summary>
     </key>
+    <key name="report-listens" type="b">
+      <default>true</default>
+      <summary>Tell the server what is playing and count finished listens</summary>
+    </key>
   </schema>
 </schemalist>

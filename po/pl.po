@@ -690,3 +690,15 @@ msgstr "Poprzedni utwór"
 #: app/src/main.rs
 msgid "Next Track"
 msgstr "Następny utwór"
+
+#: app/src/preferences.blp
+msgid "Privacy"
+msgstr "Prywatność"
+
+#: app/src/preferences.blp
+msgid "Share Listening Activity"
+msgstr "Wysyłanie odsłuchów na serwer"
+
+#: app/src/preferences.blp
+msgid "The server sees what is playing and counts plays; it may pass them on to Last.fm or ListenBrainz"
+msgstr "Serwer widzi, co jest odtwarzane, i liczy odtworzenia; może je przekazać do Last.fm lub ListenBrainz"

@@ -24,6 +24,8 @@ mod imp {
         #[template_child]
         pub background_playback: gtk::TemplateChild<adw::SwitchRow>,
         #[template_child]
+        pub report_listens: gtk::TemplateChild<adw::SwitchRow>,
+        #[template_child]
         pub sync_row: gtk::TemplateChild<adw::ButtonRow>,
         #[template_child]
         pub covers_row: gtk::TemplateChild<adw::ActionRow>,
@@ -69,6 +71,9 @@ mod imp {
                 .build();
             settings
                 .bind("background-playback", &*self.background_playback, "active")
+                .build();
+            settings
+                .bind("report-listens", &*self.report_listens, "active")
                 .build();
         }
     }

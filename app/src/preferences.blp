@@ -75,5 +75,14 @@ template $MusePlayerPreferences: Adw.PreferencesDialog {
         }
       }
     }
+
+    Adw.PreferencesGroup {
+      title: _("Privacy");
+
+      Adw.SwitchRow report_listens {
+        title: _("Share Listening Activity");
+        subtitle: _("The server sees what is playing and counts plays; it may pass them on to Last.fm or ListenBrainz");
+      }
+    }
   }
 }
