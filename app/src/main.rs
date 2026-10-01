@@ -20,6 +20,7 @@ mod results_view;
 mod resume;
 mod search_page;
 mod song_menu;
+mod song_row;
 mod start_page;
 mod secrets;
 mod tint;

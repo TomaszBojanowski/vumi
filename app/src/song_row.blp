@@ -1,0 +1,64 @@
+using Gtk 4.0;
+
+// Built like the inside of an Adw.ActionRow (a box "header" with "prefixes",
+// "title" and "suffixes"), so the theme styles it the same way in any list.
+template $VumiSongRow: Box {
+  valign: center;
+
+  styles [
+    "header",
+  ]
+
+  Box prefixes {
+    styles [
+      "prefixes",
+    ]
+  }
+
+  Box {
+    orientation: vertical;
+    valign: center;
+    hexpand: true;
+
+    styles [
+      "title",
+    ]
+
+    Label title {
+      xalign: 0;
+      wrap: true;
+      wrap-mode: word_char;
+
+      styles [
+        "title",
+      ]
+    }
+
+    // One line: a long list of performers must not make a row taller than
+    // the others.
+    Label subtitle {
+      xalign: 0;
+      wrap: true;
+      wrap-mode: word_char;
+      lines: 1;
+      ellipsize: end;
+
+      styles [
+        "subtitle",
+      ]
+    }
+  }
+
+  Box suffixes {
+    styles [
+      "suffixes",
+    ]
+
+    Label duration {
+      styles [
+        "dim-label",
+        "numeric",
+      ]
+    }
+  }
+}

@@ -19,16 +19,33 @@ pub(crate) fn attach(
     client: Option<subsonic::Client>,
     go_to_album: bool,
 ) {
+    let songs = songs.clone();
+    let button = menu_button(
+        row,
+        move || songs.get(index).cloned().zip(client.clone()),
+        go_to_album,
+    );
+    row.add_suffix(&button);
+}
+
+/// The ⋮ button with the song menu, for the end of a row. Its actions live on
+/// `owner` (the row, or what the row holds) and ask `current` for the song
+/// and the client only when one of them is used, so a row that is reused for
+/// another song needs no new menu.
+pub(crate) fn menu_button(
+    owner: &impl IsA<gtk::Widget>,
+    current: impl Fn() -> Option<(subsonic::Song, subsonic::Client)> + 'static,
+    go_to_album: bool,
+) -> gtk::MenuButton {
+    let row: &gtk::Widget = owner.upcast_ref();
+    let current: Rc<dyn Fn() -> Option<(subsonic::Song, subsonic::Client)>> = Rc::new(current);
     let actions = gio::SimpleActionGroup::new();
-    let add = |name: &str, run: Box<dyn Fn(&adw::ActionRow, subsonic::Song, subsonic::Client)>| {
+    let add = |name: &str, run: Box<dyn Fn(&gtk::Widget, subsonic::Song, subsonic::Client)>| {
         let action = gio::SimpleAction::new(name, None);
-        let songs = songs.clone();
-        let client = client.clone();
+        let current = current.clone();
         let row_weak = row.downgrade();
         action.connect_activate(move |_, _| {
-            let (Some(row), Some(client), Some(song)) =
-                (row_weak.upgrade(), client.clone(), songs.get(index).cloned())
-            else {
+            let (Some(row), Some((song, client))) = (row_weak.upgrade(), current()) else {
                 return;
             };
             run(&row, song, client);
@@ -119,20 +136,17 @@ pub(crate) fn attach(
     info.append(Some(&gettext("Song Information")), Some("song.info"));
     menu.append_section(None, &info);
 
-    // The ⋮ button at the end of the row.
-    row.add_suffix(
-        &gtk::MenuButton::builder()
-            .icon_name("view-more-symbolic")
-            .menu_model(&menu)
-            .tooltip_text(gettext("More"))
-            .valign(gtk::Align::Center)
-            .css_classes(["flat", "circular"])
-            .build(),
-    );
+    gtk::MenuButton::builder()
+        .icon_name("view-more-symbolic")
+        .menu_model(&menu)
+        .tooltip_text(gettext("More"))
+        .valign(gtk::Align::Center)
+        .css_classes(["flat", "circular"])
+        .build()
 }
 
 /// Play Similar: this song, then songs that sound like it (AudioMuse-AI).
-fn play_similar(row: &adw::ActionRow, song: subsonic::Song, client: subsonic::Client) {
+fn play_similar(row: &gtk::Widget, song: subsonic::Song, client: subsonic::Client) {
     let row = row.downgrade();
     let command = player::get().command_id();
     glib::spawn_future_local(async move {
@@ -164,7 +178,7 @@ fn play_similar(row: &adw::ActionRow, song: subsonic::Song, client: subsonic::Cl
 
 /// Add to Playlist: a dialog with a field for a new playlist and the list of
 /// the existing ones; a click on one adds the song to it.
-fn choose_playlist(parent: &adw::ActionRow, song: subsonic::Song, client: subsonic::Client) {
+fn choose_playlist(parent: &gtk::Widget, song: subsonic::Song, client: subsonic::Client) {
     let Some(main) = parent
         .ancestor(MainView::static_type())
         .and_downcast::<MainView>()
@@ -291,7 +305,7 @@ fn choose_playlist(parent: &adw::ActionRow, song: subsonic::Song, client: subson
 }
 
 /// Song Information: what the server knows about the file.
-fn show_info(parent: &adw::ActionRow, song: &subsonic::Song) {
+fn show_info(parent: &gtk::Widget, song: &subsonic::Song) {
     let group = adw::PreferencesGroup::new();
     let add = |title: String, value: Option<String>| {
         if let Some(value) = value.filter(|v| !v.is_empty()) {

@@ -10,6 +10,7 @@ use std::sync::Arc;
 use crate::album_card::AlbumCard;
 use crate::main_view::MainView;
 use crate::player;
+use crate::song_row::SongRow;
 
 mod imp {
     use super::*;
@@ -29,8 +30,11 @@ mod imp {
         pub songs_list: gtk::TemplateChild<gtk::ListBox>,
         #[template_child]
         pub empty_page: gtk::TemplateChild<adw::StatusPage>,
-        /// Song rows with their bars, to mark the one that is playing.
-        pub rows: std::cell::RefCell<Vec<(String, adw::ActionRow, gtk::Box)>>,
+        /// Song ids with their rows, to mark the one that is playing.
+        pub rows: std::cell::RefCell<Vec<(String, SongRow)>>,
+        /// The songs listed and the client to play them with: a click on a
+        /// song plays it, then the ones after it.
+        pub songs: std::cell::RefCell<Option<(Rc<[subsonic::Song]>, Option<subsonic::Client>)>>,
     }
 
     #[glib::object_subclass]
@@ -63,6 +67,17 @@ mod imp {
             });
             self.obj()
                 .connect_destroy(move |_| player::get().disconnect(listener));
+
+            let view = self.obj().downgrade();
+            self.songs_list.connect_row_activated(move |_, row| {
+                let Some(view) = view.upgrade() else {
+                    return;
+                };
+                let songs = view.imp().songs.borrow().clone();
+                if let (Some((queue, Some(client))), Ok(index)) = (songs, usize::try_from(row.index())) {
+                    player::get().play(client, queue, index);
+                }
+            });
         }
     }
     impl WidgetImpl for ResultsView {}
@@ -124,43 +139,24 @@ impl ResultsView {
                 .flatten()
                 .collect::<Vec<_>>()
                 .join(" · ");
-            let row = adw::ActionRow::builder()
-                .title(song.title.as_str())
-                .use_markup(false)
-                .activatable(true)
-                // One line each: a long list of performers must not make a
-                // row taller than the others.
-                .subtitle_lines(1)
-                .build();
-            // Set after use_markup is off: names like "Simon & Garfunkel" are plain
-            // text, not markup.
-            row.set_subtitle(&subtitle);
-            // Bars before the title, see-through unless the song plays, so the
-            // titles stay aligned either way.
-            let bars = crate::album_page::eq_bars();
-            bars.set_opacity(0.0);
-            row.add_prefix(&bars);
-            imp.rows
-                .borrow_mut()
-                .push((song.id.clone(), row.clone(), bars));
-            if let Some(d) = song.duration {
-                row.add_suffix(
-                    &gtk::Label::builder()
-                        .label(format!("{}:{:02}", d / 60, d % 60))
-                        .css_classes(["dim-label", "numeric"])
-                        .build(),
-                );
-            }
-            crate::song_menu::attach(&row, &queue, index, client.clone(), true);
-            let queue = queue.clone();
-            let client = client.clone();
-            row.connect_activated(move |_| {
-                if let Some(client) = client.clone() {
-                    player::get().play(client, queue.clone(), index);
-                }
-            });
-            imp.songs_list.append(&row);
+            let row = SongRow::new();
+            row.set_song(song, &subtitle);
+            let menu = {
+                let queue = queue.clone();
+                let client = client.clone();
+                crate::song_menu::menu_button(
+                    &row,
+                    move || queue.get(index).cloned().zip(client.clone()),
+                    true,
+                )
+            };
+            row.add_suffix(&menu);
+            imp.rows.borrow_mut().push((song.id.clone(), row.clone()));
+            imp.songs_list.append(
+                &gtk::ListBoxRow::builder().child(&row).activatable(true).build(),
+            );
         }
+        imp.songs.replace(Some((queue.clone(), client)));
         imp.songs_section.set_visible(!queue.is_empty());
         self.mark_playing();
 
@@ -177,19 +173,9 @@ impl ResultsView {
             .current()
             .filter(|_| player.is_active())
             .map(|song| song.id);
-        for (id, row, bars) in self.imp().rows.borrow().iter() {
+        for (id, row) in self.imp().rows.borrow().iter() {
             let playing = current.as_deref() == Some(id.as_str());
-            bars.set_opacity(if playing { 1.0 } else { 0.0 });
-            if player.is_playing() {
-                bars.remove_css_class("paused");
-            } else {
-                bars.add_css_class("paused");
-            }
-            if playing {
-                row.add_css_class("playing");
-            } else {
-                row.remove_css_class("playing");
-            }
+            row.set_playing(playing, !player.is_playing());
         }
     }
 }
