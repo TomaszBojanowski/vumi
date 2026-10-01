@@ -837,10 +837,11 @@ impl Player {
 
 impl Player {
     /// Puts `song` right after the playing track (Play Next). With nothing in
-    /// progress, it simply plays.
+    /// progress, it simply plays; after an error the queue is still there, so
+    /// the song joins it and nothing starts.
     pub(crate) fn play_next(&self, client: subsonic::Client, song: subsonic::Song) {
         self.new_command();
-        if !self.is_active() {
+        if !self.is_active() && self.failure().is_none() {
             self.play(client, vec![song].into(), 0);
             return;
         }
@@ -866,10 +867,11 @@ impl Player {
     }
 
     /// Adds `song` at the end of the queue (Add to Queue). With nothing in
-    /// progress, it simply plays.
+    /// progress, it simply plays; after an error the queue is still there, so
+    /// the song joins it and nothing starts.
     pub(crate) fn enqueue(&self, client: subsonic::Client, song: subsonic::Song) {
         self.new_command();
-        if !self.is_active() {
+        if !self.is_active() && self.failure().is_none() {
             self.play(client, vec![song].into(), 0);
             return;
         }
