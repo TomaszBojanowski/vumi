@@ -16,6 +16,83 @@
   border-radius: 8px;
 }
 
+/* Song lists in a list view (search, Favorites, playlists): the rows are
+   drawn as one boxed list, as Adwaita draws "list.boxed-list". A list view has
+   no such style, and the card cannot be the list itself: that is the part
+   that scrolls. So every song row carries its piece of the card. The look is
+   on the song row inside the list's own row, which stays bare. */
+listview.song-list {
+  background: none;
+  color: inherit;
+}
+
+listview.song-list > row {
+  margin-left: 24px;
+  margin-right: 24px;
+  padding: 0;
+  background: none;
+}
+
+/* Where a boxed list has the row's padding and the header's margin, this
+   has padding alone: the same place for the content, and the background
+   reaches the edge of the card. */
+listview.song-list > row > box.song-row {
+  margin: 0;
+  padding: 2px 14px;
+  background-color: var(--card-bg-color);
+  color: var(--card-fg-color);
+  border-bottom: 1px solid var(--card-shade-color);
+  /* The card's outline, on the two sides this row has of it. */
+  box-shadow: -1px 0 0 0 rgb(0 0 6 / 3%),
+              1px 0 0 0 rgb(0 0 6 / 3%);
+}
+
+listview.song-list > row > box.song-row.first {
+  border-top-left-radius: 12px;
+  border-top-right-radius: 12px;
+  box-shadow: -1px 0 0 0 rgb(0 0 6 / 3%),
+              1px 0 0 0 rgb(0 0 6 / 3%),
+              0 -1px 0 0 rgb(0 0 6 / 3%);
+}
+
+listview.song-list > row > box.song-row.last {
+  border-bottom-left-radius: 12px;
+  border-bottom-right-radius: 12px;
+  border-bottom-width: 0;
+  margin-bottom: 24px;
+  /* The card's shadow falls below its last row. */
+  box-shadow: -1px 0 0 0 rgb(0 0 6 / 3%),
+              1px 0 0 0 rgb(0 0 6 / 3%),
+              0 1px 0 0 rgb(0 0 6 / 3%),
+              0 2px 3px 0 rgb(0 0 6 / 7%),
+              0 3px 6px 1px rgb(0 0 6 / 3%);
+}
+
+listview.song-list > row > box.song-row.first.last {
+  box-shadow: 0 0 0 1px rgb(0 0 6 / 3%),
+              0 1px 3px 1px rgb(0 0 6 / 7%),
+              0 2px 6px 2px rgb(0 0 6 / 3%);
+}
+
+listview.song-list > row.activatable:hover > box.song-row,
+listview.song-list > row.activatable.has-open-popup > box.song-row {
+  background-image: image(color-mix(in srgb, currentColor 3%, transparent));
+}
+
+listview.song-list > row.activatable:active > box.song-row {
+  background-image: image(color-mix(in srgb, currentColor 8%, transparent));
+}
+
+/* The song that is playing: as "row.playing" below, on an album page. */
+listview.song-list > row > box.song-row.playing {
+  background-color: color-mix(in srgb, var(--window-fg-color) 7%, var(--card-bg-color));
+}
+
+box.song-row.playing label.title {
+  color: var(--window-fg-color);
+  font-weight: bold;
+}
+
 /* The album name: the largest text on the page, as in a record sleeve. */
 .album-title {
   font-size: 34px;

@@ -4,6 +4,46 @@ using Adw 1;
 translation-domain "vumi";
 
 // Albums as cards and songs as a list: search results, favourites.
+// What stands above the songs, and scrolls away with them: put into the
+// first row of the list from the code.
+Box header {
+  orientation: vertical;
+  spacing: 24;
+  margin-top: 24;
+  margin-bottom: 12;
+
+  Box albums_section {
+    orientation: vertical;
+    spacing: 12;
+
+    Label {
+      label: _("Albums");
+      xalign: 0;
+
+      styles [
+        "title-4",
+      ]
+    }
+
+    FlowBox albums_box {
+      selection-mode: none;
+      homogeneous: true;
+      max-children-per-line: 6;
+      column-spacing: 12;
+      row-spacing: 12;
+    }
+  }
+
+  Label songs_title {
+    label: _("Songs");
+    xalign: 0;
+
+    styles [
+      "title-4",
+    ]
+  }
+}
+
 template $VumiResultsView: Adw.Bin {
   child: Stack stack {
     StackPage {
@@ -12,60 +52,19 @@ template $VumiResultsView: Adw.Bin {
       child: ScrolledWindow {
         hscrollbar-policy: never;
 
-        child: Adw.Clamp {
+        // Scrollable itself, so the list inside still knows what is on screen.
+        child: Adw.ClampScrollable {
           maximum-size: 1000;
 
-          child: Box {
-            orientation: vertical;
-            spacing: 24;
-            margin-top: 24;
-            margin-bottom: 24;
-            margin-start: 24;
-            margin-end: 24;
+          // Only rows on screen exist; they are reused while scrolling. The
+          // first row holds "header" below, the others one song each. The
+          // rows are styled to look like a boxed list (style.css).
+          child: ListView songs_list {
+            single-click-activate: true;
 
-            Box albums_section {
-              orientation: vertical;
-              spacing: 12;
-
-              Label {
-                label: _("Albums");
-                xalign: 0;
-
-                styles [
-                  "title-4",
-                ]
-              }
-
-              FlowBox albums_box {
-                selection-mode: none;
-                homogeneous: true;
-                max-children-per-line: 6;
-                column-spacing: 12;
-                row-spacing: 12;
-              }
-            }
-
-            Box songs_section {
-              orientation: vertical;
-              spacing: 12;
-
-              Label {
-                label: _("Songs");
-                xalign: 0;
-
-                styles [
-                  "title-4",
-                ]
-              }
-
-              ListBox songs_list {
-                selection-mode: none;
-
-                styles [
-                  "boxed-list",
-                ]
-              }
-            }
+            styles [
+              "song-list",
+            ]
           };
         };
       };
