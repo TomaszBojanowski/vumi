@@ -85,7 +85,7 @@ fn register(connection: &gio::DBusConnection, app: glib::WeakRef<adw::Applicatio
     // Every jump of the position is announced once, from Player::seek.
     {
         let connection = connection.clone();
-        player::get().set_seek_handler(move |seconds| emit_seeked(&connection, seconds));
+        player::get().connect_seeked(move |seconds| emit_seeked(&connection, seconds));
     }
     let node = match gio::DBusNodeInfo::for_xml(XML) {
         Ok(node) => node,

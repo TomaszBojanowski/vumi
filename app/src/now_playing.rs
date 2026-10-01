@@ -186,6 +186,14 @@ impl NowPlaying {
                 bar.update();
             }
         });
+        // A jump while paused: the timer is not running, and the player
+        // still answers with the old position until the seek has landed.
+        let bar_weak = bar.downgrade();
+        player::get().connect_seeked(move |seconds| {
+            if let Some(bar) = bar_weak.upgrade() {
+                bar.show_position(seconds);
+            }
+        });
         bar
     }
 
@@ -319,12 +327,15 @@ impl NowPlaying {
 
     /// Moves the progress line and the time label to the current position.
     fn tick(&self) {
+        self.show_position(player::get().position_secs().unwrap_or(0.0));
+    }
+
+    fn show_position(&self, position: f64) {
         let imp = self.imp();
         // The user is dragging the slider: do not pull it back.
         if imp.seek_pending.borrow().is_some() {
             return;
         }
-        let position = player::get().position_secs().unwrap_or(0.0);
         imp.progress.set_value(position);
         let duration = imp.progress.adjustment().upper() as u64;
         imp.elapsed.set_label(&clock(position as u64));

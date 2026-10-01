@@ -46,8 +46,9 @@ pub(crate) struct Player {
     replay_gain_mode: std::cell::Cell<Option<u32>>,
     /// Volume as on the slider (0 to 1); GStreamer gets its cube.
     volume: std::cell::Cell<f64>,
-    /// Told about every jump of the position (MPRIS sends Seeked).
-    seek_handler: RefCell<Option<Box<dyn Fn(f64)>>>,
+    /// Told about every jump of the position, with the new position in
+    /// seconds (MPRIS sends Seeked, the sidebar card moves its slider).
+    seek_listeners: RefCell<Vec<Box<dyn Fn(f64)>>>,
     /// Counts the user's commands (play, stop, changes to the queue). Requests
     /// to the server remember it; an answer for an older command is dropped.
     command: Cell<u64>,
@@ -126,7 +127,7 @@ impl Player {
                 report_support: std::cell::Cell::new(None),
                 replay_gain_mode: std::cell::Cell::new(None),
                 volume: std::cell::Cell::new(saved_volume()),
-                seek_handler: RefCell::new(None),
+                seek_listeners: RefCell::new(Vec::new()),
                 command: Cell::new(0),
                 pending_seek: Cell::new(None),
                 next_uri,
@@ -155,8 +156,16 @@ impl Player {
         self.error_handler.replace(Some(Box::new(f)));
     }
 
-    pub(crate) fn set_seek_handler(&self, f: impl Fn(f64) + 'static) {
-        self.seek_handler.replace(Some(Box::new(f)));
+    /// Calls `f` with the new position after every jump. Lighter than
+    /// connect_changed: nothing else about the player has changed.
+    pub(crate) fn connect_seeked(&self, f: impl Fn(f64) + 'static) {
+        self.seek_listeners.borrow_mut().push(Box::new(f));
+    }
+
+    fn notify_seeked(&self, seconds: f64) {
+        for listener in self.seek_listeners.borrow().iter() {
+            listener(seconds);
+        }
     }
 
     fn notify(&self) {
@@ -365,9 +374,7 @@ impl Player {
         if sought.is_ok() {
             let state = if self.is_playing() { "playing" } else { "paused" };
             self.report(state, Some((seconds.max(0.0) * 1000.0) as u64));
-            if let Some(handler) = self.seek_handler.borrow().as_ref() {
-                handler(seconds.max(0.0));
-            }
+            self.notify_seeked(seconds.max(0.0));
         }
     }
 
@@ -446,9 +453,7 @@ impl Player {
         // an error): nothing else tells an MPRIS client that the position is
         // back at the start.
         if previous.is_some_and(|listen| listen.id == song.id) {
-            if let Some(handler) = self.seek_handler.borrow().as_ref() {
-                handler(0.0);
-            }
+            self.notify_seeked(0.0);
         }
         if self.report_support.get() == Some(true) {
             self.report("starting", Some(0));
