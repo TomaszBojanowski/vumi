@@ -318,7 +318,6 @@ impl MainView {
                     view.show_albums(albums);
                     // Songs next, in the background: album pages open already filled.
                     view.sync_songs();
-                    view.sync_artists();
                     view.sync_playlists();
                     view.sync_frequent();
                 }
@@ -583,6 +582,9 @@ impl MainView {
                     {
                         view.refresh_start();
                         view.refresh_favorites();
+                        // After the songs, not alongside them: a busy server
+                        // answers one big request at a time more reliably.
+                        view.sync_artists();
                     }
                 }
                 Ok(Err(e)) => eprintln!("Could not save songs: {e}"),
@@ -629,21 +631,35 @@ impl MainView {
         let generation = self.imp().sync_generation.get();
         let view = self.downgrade();
         glib::spawn_future_local(async move {
-            let result = runtime().spawn(async move { client.artists().await }).await;
-            let Some(view) = view
-                .upgrade()
-                .filter(|v| v.imp().sync_generation.get() == generation)
-            else {
+            let current = |view: &glib::WeakRef<MainView>| {
+                view.upgrade()
+                    .filter(|v| v.imp().sync_generation.get() == generation)
+            };
+            // A server busy with other work may time out once: one more try
+            // after a pause, before the list made from the albums stays.
+            let mut artists = None;
+            for attempt in 1..=2 {
+                if attempt > 1 {
+                    glib::timeout_future_seconds(5).await;
+                    if current(&view).is_none() {
+                        return;
+                    }
+                }
+                let client = client.clone();
+                match runtime().spawn(async move { client.artists().await }).await {
+                    Ok(Ok(list)) => {
+                        artists = Some(list);
+                        break;
+                    }
+                    Ok(Err(e)) => eprintln!("Could not fetch the artists (try {attempt}): {e}"),
+                    Err(_) => return,
+                }
+            }
+            let (Some(view), Some(artists)) = (current(&view), artists) else {
                 return;
             };
-            match result {
-                Ok(Ok(artists)) => {
-                    view.imp().artists.replace(artists);
-                    view.refresh_artists();
-                }
-                Ok(Err(e)) => eprintln!("Could not fetch the artists: {e}"),
-                Err(_) => {}
-            }
+            view.imp().artists.replace(artists);
+            view.refresh_artists();
         });
     }
 
