@@ -29,11 +29,25 @@ impl From<reqwest::Error> for Error {
         if let Some(status) = e.status() {
             Error::BadResponse(format!("HTTP {status}"))
         } else if e.is_decode() {
-            Error::BadResponse(e.without_url().to_string())
+            Error::BadResponse(describe(&e.without_url()))
         } else {
-            Error::Unreachable(e.without_url().to_string())
+            Error::Unreachable(describe(&e.without_url()))
         }
     }
+}
+
+/// The error with every cause under it ("error sending request: operation
+/// timed out"): the top line alone rarely says what went wrong. The URL is
+/// already gone (it carries the login token); the causes below never have it.
+fn describe(e: &reqwest::Error) -> String {
+    let mut text = e.to_string();
+    let mut source = std::error::Error::source(e);
+    while let Some(cause) = source {
+        text.push_str(": ");
+        text.push_str(&cause.to_string());
+        source = cause.source();
+    }
+    text
 }
 
 /// Cheap to clone: everything inside is shared (Arc), nothing is copied.
