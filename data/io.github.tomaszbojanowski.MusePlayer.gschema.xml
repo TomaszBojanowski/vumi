@@ -65,5 +65,14 @@
       <default>0</default>
       <summary>Volume normalization from ReplayGain tags: 0 off, 1 per track, 2 per album</summary>
     </key>
+    <key name="repeat" type="s">
+      <choices>
+        <choice value="none"/>
+        <choice value="queue"/>
+        <choice value="track"/>
+      </choices>
+      <default>"none"</default>
+      <summary>Repeat: none, the whole queue, or the current track</summary>
+    </key>
   </schema>
 </schemalist>

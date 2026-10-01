@@ -142,6 +142,7 @@ fn build_ui(app: &adw::Application) {
 
     // "Endless Radio" in the main menu, kept in GSettings.
     app.add_action(&gtk::gio::Settings::new(APP_ID).create_action("endless-radio"));
+    app.add_action(&gtk::gio::Settings::new(APP_ID).create_action("repeat"));
 
     // Style (Preferences): follow the system, or always light or dark.
     {
@@ -158,6 +159,8 @@ fn build_ui(app: &adw::Application) {
         settings.connect_changed(Some("color-scheme"), move |settings, _| apply(settings));
         // Cover Colors (Preferences): on and off at once, on every open page.
         settings.connect_changed(Some("cover-colors"), |_, _| crate::tint::reload());
+        // Repeat (main menu): the track handed to GStreamer ahead follows at once.
+        settings.connect_changed(Some("repeat"), |_, _| crate::player::get().repeat_changed());
         // Kept for the whole run: the change signal goes with the object.
         std::mem::forget(settings);
     }

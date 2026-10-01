@@ -316,9 +316,14 @@ impl Player {
 
     pub(crate) fn next(&self) {
         self.new_command();
+        // By hand: on to the next track even when one track repeats; past the
+        // end only when the whole queue does.
         let next = self.position.get() + 1;
-        if next < self.queue.borrow().len() {
+        let len = self.queue.borrow().len();
+        if next < len {
             self.play_at(next);
+        } else if repeat_mode() == "queue" && len > 0 {
+            self.play_at(0);
         }
     }
 
@@ -355,7 +360,7 @@ impl Player {
 
     fn on_message(&self, message: &gst::Message) {
         match message.view() {
-            gst::MessageView::Eos(..) => self.play_at(self.position.get() + 1),
+            gst::MessageView::Eos(..) => self.play_at(self.following(self.position.get())),
             // A track has begun: if about-to-finish queued it, this is the gapless
             // step to the next track in the queue.
             gst::MessageView::StreamStart(..) => {
@@ -567,6 +572,32 @@ fn report_listens() -> bool {
     gtk::gio::Settings::new(crate::APP_ID).boolean("report-listens")
 }
 
+impl Player {
+    /// What plays on its own after the track at `index`: the next, the first
+    /// again when the queue repeats, the same when the track repeats. The
+    /// length of the queue means the end.
+    fn following(&self, index: usize) -> usize {
+        let len = self.queue.borrow().len();
+        match repeat_mode().as_str() {
+            "track" => index,
+            "queue" if len > 0 => (index + 1) % len,
+            _ => index + 1,
+        }
+    }
+
+    /// Repeat changed: the track handed to GStreamer ahead follows it.
+    pub(crate) fn repeat_changed(&self) {
+        self.prepare_next();
+        self.notify();
+    }
+}
+
+/// "Repeat" from the main menu: none, queue or track.
+fn repeat_mode() -> String {
+    use gtk::gio::prelude::*;
+    gtk::gio::Settings::new(crate::APP_ID).string("repeat").to_string()
+}
+
 /// "Endless Radio" from the main menu.
 fn endless_radio() -> bool {
     use gtk::gio::prelude::*;
@@ -626,7 +657,8 @@ impl Player {
 impl Player {
     /// True if there is a track after the current one (MPRIS: CanGoNext).
     pub(crate) fn has_next(&self) -> bool {
-        self.position.get() + 1 < self.queue.borrow().len()
+        let len = self.queue.borrow().len();
+        self.position.get() + 1 < len || (repeat_mode() == "queue" && len > 0)
     }
 
     /// Stop (MPRIS): like reaching the end of the queue; Play starts it again.
@@ -644,7 +676,7 @@ impl Player {
     /// about-to-finish. None at the end of the queue (then the queue simply ends,
     /// or Endless Radio adds more).
     fn prepare_next(&self) {
-        let next = self.position.get() + 1;
+        let next = self.following(self.position.get());
         let uri = self.queue.borrow().get(next).and_then(|song| {
             self.client
                 .borrow()
@@ -664,18 +696,20 @@ impl Player {
         self.pending_seek.set(None);
         let queue = self.queue.borrow().clone();
         let from = self.position.get();
-        // Only the song right after the current one counts (so A, A, B moves on
-        // to the second A). Queue edits keep the handed-over track there, except
-        // moving or removing it after about-to-finish: then the queue wins and
-        // the song that is next now starts, with a short gap.
-        match queue.get(from + 1) {
+        // Only the song that follows the current one counts: the next (so A, A, B
+        // moves on to the second A), the first when the queue repeats, the same
+        // one when the track repeats. Queue edits keep the handed-over track
+        // there, except moving or removing it after about-to-finish, or changing
+        // Repeat: then the queue wins and that song starts now, with a short gap.
+        let expected = self.following(from);
+        match queue.get(expected) {
             Some(song) if song.id == id => {
-                self.position.set(from + 1);
+                self.position.set(expected);
                 self.set_state(State::Playing);
                 self.begin_listen();
                 self.prepare_next();
             }
-            _ => self.play_at(from + 1),
+            _ => self.play_at(expected),
         }
     }
 

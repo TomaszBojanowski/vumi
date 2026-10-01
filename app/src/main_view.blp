@@ -456,6 +456,28 @@ menu main_menu {
       label: _("Endless Radio");
       action: "app.endless-radio";
     }
+
+    submenu {
+      label: _("Repeat");
+
+      item {
+        label: _("Off");
+        action: "app.repeat";
+        target: "none";
+      }
+
+      item {
+        label: _("Queue");
+        action: "app.repeat";
+        target: "queue";
+      }
+
+      item {
+        label: _("Track");
+        action: "app.repeat";
+        target: "track";
+      }
+    }
   }
 
   section {

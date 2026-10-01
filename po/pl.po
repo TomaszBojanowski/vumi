@@ -750,3 +750,7 @@ msgstr "Dla utworu"
 #: app/src/preferences.blp
 msgid "Per Album"
 msgstr "Dla albumu"
+
+#: app/src/main_view.blp
+msgid "Repeat"
+msgstr "Powtarzanie"
