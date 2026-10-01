@@ -284,6 +284,17 @@ fn build_ui(app: &adw::Application) {
         app.set_accels_for_action(&format!("app.{name}"), &[accel]);
     }
 
+    // Keyboard Shortcuts (main menu, Ctrl+?).
+    let shortcuts = gtk::gio::SimpleAction::new("shortcuts", None);
+    let window_for_shortcuts = window.downgrade();
+    shortcuts.connect_activate(move |_, _| {
+        if let Some(window) = window_for_shortcuts.upgrade() {
+            show_shortcuts(&window);
+        }
+    });
+    app.add_action(&shortcuts);
+    app.set_accels_for_action("app.shortcuts", &["<Control>question"]);
+
     // Closing the window while music is loaded (Preferences: "Play After the
     // Window Is Closed") only hides it: the music goes on, controlled from
     // GNOME Shell (MPRIS). Opening the app again, or Raise from Shell, shows it.
@@ -445,4 +456,43 @@ fn debug_info() -> String {
         adw::micro_version(),
         gstreamer::version_string(),
     )
+}
+
+/// The Keyboard Shortcuts dialog. Each item reads its keys from the action
+/// itself, so the list always matches what is really set.
+fn show_shortcuts(parent: &impl gtk::prelude::IsA<gtk::Widget>) {
+    let dialog = adw::ShortcutsDialog::new();
+    let sections = [
+        (
+            gettext("Playback"),
+            vec![
+                (gettext("Play or Pause"), "app.play-pause"),
+                (gettext("Previous Track"), "app.previous"),
+                (gettext("Next Track"), "app.next"),
+            ],
+        ),
+        (
+            gettext("Library"),
+            vec![
+                (gettext("Search Library"), "win.search"),
+                (gettext("Sync Library"), "app.sync"),
+            ],
+        ),
+        (
+            gettext("General"),
+            vec![
+                (gettext("Preferences"), "app.preferences"),
+                (gettext("Keyboard Shortcuts"), "app.shortcuts"),
+                (gettext("Quit"), "app.quit"),
+            ],
+        ),
+    ];
+    for (title, items) in sections {
+        let section = adw::ShortcutsSection::new(Some(&title));
+        for (label, action) in items {
+            section.add(adw::ShortcutsItem::from_action(&label, action));
+        }
+        dialog.add(section);
+    }
+    dialog.present(Some(parent));
 }

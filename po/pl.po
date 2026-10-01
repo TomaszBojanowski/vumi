@@ -674,3 +674,19 @@ msgstr "Wykorzystane projekty"
 #: app/src/main.rs
 msgid "translator-credits"
 msgstr "Tomasz Bojanowski <tomasz@bojanowski.me>"
+
+#: app/src/main.rs
+msgid "Keyboard Shortcuts"
+msgstr "Skróty klawiszowe"
+
+#: app/src/main.rs
+msgid "Play or Pause"
+msgstr "Odtworzenie lub wstrzymanie"
+
+#: app/src/main.rs
+msgid "Previous Track"
+msgstr "Poprzedni utwór"
+
+#: app/src/main.rs
+msgid "Next Track"
+msgstr "Następny utwór"
