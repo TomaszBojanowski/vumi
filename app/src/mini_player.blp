@@ -1,11 +1,11 @@
 using Gtk 4.0;
 using Adw 1;
 
-translation-domain "muse-player";
+translation-domain "vumi";
 
 // Compact now-playing bar under the content on narrow windows.
 // A click on it opens the sidebar with the full card.
-template $MusePlayerMiniPlayer: Adw.Bin {
+template $VumiMiniPlayer: Adw.Bin {
   // Hidden until something plays.
   child: Revealer revealer {
     transition-type: slide_up;

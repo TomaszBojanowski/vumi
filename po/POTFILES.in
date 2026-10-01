@@ -1,4 +1,4 @@
-data/io.github.tomaszbojanowski.MusePlayer.desktop.in
+data/io.github.tomaszbojanowski.Vumi.desktop.in
 app/src/main.rs
 app/src/main_view.rs
 app/src/main_view.blp

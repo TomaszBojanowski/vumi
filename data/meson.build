@@ -17,6 +17,6 @@ subdir('icons')
 
 # Symbolic icons the app uses inside (the Radio button), next to the app icon.
 install_data(
-  'icons/muse-player-radio-symbolic.svg',
+  'icons/vumi-radio-symbolic.svg',
   install_dir: get_option('datadir') / 'icons' / 'hicolor' / 'symbolic' / 'apps',
 )

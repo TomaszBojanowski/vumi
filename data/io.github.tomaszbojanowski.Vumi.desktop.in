@@ -1,8 +1,8 @@
 [Desktop Entry]
-Name=muse-player
+Name=Vumi
 Comment=Fast music player for Navidrome and Subsonic servers
-Exec=muse-player
-Icon=io.github.tomaszbojanowski.MusePlayer
+Exec=vumi
+Icon=io.github.tomaszbojanowski.Vumi
 Terminal=false
 Type=Application
 Categories=GTK;GNOME;AudioVideo;Audio;Player;

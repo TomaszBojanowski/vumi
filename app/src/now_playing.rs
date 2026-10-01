@@ -62,8 +62,8 @@ mod imp {
 
     #[glib::object_subclass]
     impl ObjectSubclass for NowPlaying {
-        // Must match "template $MusePlayerNowPlaying" in the Blueprint file.
-        const NAME: &'static str = "MusePlayerNowPlaying";
+        // Must match "template $VumiNowPlaying" in the Blueprint file.
+        const NAME: &'static str = "VumiNowPlaying";
         type Type = super::NowPlaying;
         type ParentType = adw::Bin;
 

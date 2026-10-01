@@ -35,8 +35,8 @@ mod imp {
 
     #[glib::object_subclass]
     impl ObjectSubclass for ResultsView {
-        // Must match "template $MusePlayerResultsView" in the Blueprint file.
-        const NAME: &'static str = "MusePlayerResultsView";
+        // Must match "template $VumiResultsView" in the Blueprint file.
+        const NAME: &'static str = "VumiResultsView";
         type Type = super::ResultsView;
         type ParentType = adw::Bin;
 

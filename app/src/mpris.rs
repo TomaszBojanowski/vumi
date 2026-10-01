@@ -9,7 +9,7 @@ use std::cell::OnceCell;
 
 use crate::player;
 
-const BUS_NAME: &str = "org.mpris.MediaPlayer2.MusePlayer";
+const BUS_NAME: &str = "org.mpris.MediaPlayer2.Vumi";
 const PATH: &str = "/org/mpris/MediaPlayer2";
 const ROOT: &str = "org.mpris.MediaPlayer2";
 const PLAYER: &str = "org.mpris.MediaPlayer2.Player";
@@ -324,5 +324,5 @@ fn track_path(song_id: &str) -> Option<glib::variant::ObjectPath> {
         .chars()
         .map(|c| if c.is_ascii_alphanumeric() { c } else { '_' })
         .collect();
-    glib::variant::ObjectPath::try_from(format!("/io/github/tomaszbojanowski/MusePlayer/track/t{id}")).ok()
+    glib::variant::ObjectPath::try_from(format!("/io/github/tomaszbojanowski/Vumi/track/t{id}")).ok()
 }

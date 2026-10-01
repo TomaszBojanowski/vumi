@@ -3,7 +3,7 @@ use std::sync::Arc;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 const API_VERSION: &str = "1.16.1";
-const CLIENT_NAME: &str = "muse-player";
+const CLIENT_NAME: &str = "vumi";
 
 /// Subsonic error code for a wrong username or password.
 const WRONG_CREDENTIALS: i32 = 40;

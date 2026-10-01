@@ -1,16 +1,16 @@
 using Gtk 4.0;
 using Adw 1;
 
-translation-domain "muse-player";
+translation-domain "vumi";
 
 // Search results: the shared results view on top of the library.
-template $MusePlayerSearchPage: Adw.NavigationPage {
+template $VumiSearchPage: Adw.NavigationPage {
   title: _("Search");
 
   child: Adw.ToolbarView {
     [top]
     Adw.HeaderBar {}
 
-    content: $MusePlayerResultsView results {};
+    content: $VumiResultsView results {};
   };
 }

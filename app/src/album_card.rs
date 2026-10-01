@@ -26,8 +26,8 @@ mod imp {
 
     #[glib::object_subclass]
     impl ObjectSubclass for AlbumCard {
-        // Must match "template $MusePlayerAlbumCard" in the Blueprint file.
-        const NAME: &'static str = "MusePlayerAlbumCard";
+        // Must match "template $VumiAlbumCard" in the Blueprint file.
+        const NAME: &'static str = "VumiAlbumCard";
         type Type = super::AlbumCard;
         type ParentType = gtk::Box;
 

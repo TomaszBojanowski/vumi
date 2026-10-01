@@ -1,10 +1,10 @@
-# Polish translation for muse-player.
+# Polish translation for vumi.
 # Copyright (C) 2026 Tomasz Bojanowski
-# This file is distributed under the same license as the muse-player package.
+# This file is distributed under the same license as the vumi package.
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: muse-player\n"
+"Project-Id-Version: vumi\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-09-30 22:47+0200\n"
 "PO-Revision-Date: 2026-09-27 20:40+0200\n"
@@ -17,15 +17,15 @@ msgstr ""
 "Plural-Forms: nplurals=3; plural=(n==1 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 "
 "|| n%100>=20) ? 1 : 2);\n"
 
-#: data/io.github.tomaszbojanowski.MusePlayer.desktop.in:2
-msgid "muse-player"
-msgstr "muse-player"
+#: data/io.github.tomaszbojanowski.Vumi.desktop.in:2
+msgid "Vumi"
+msgstr "Vumi"
 
-#: data/io.github.tomaszbojanowski.MusePlayer.desktop.in:3
+#: data/io.github.tomaszbojanowski.Vumi.desktop.in:3
 msgid "Fast music player for Navidrome and Subsonic servers"
 msgstr "Szybki odtwarzacz muzyki z serwerów Navidrome i Subsonic"
 
-#: data/io.github.tomaszbojanowski.MusePlayer.desktop.in:9
+#: data/io.github.tomaszbojanowski.Vumi.desktop.in:9
 msgid "music;player;navidrome;subsonic;"
 msgstr "muzyka;odtwarzacz;navidrome;subsonic;music;player;"
 
@@ -660,8 +660,8 @@ msgid "Quit"
 msgstr "Zakończ"
 
 #: app/src/main.rs
-msgid "About Muse Player"
-msgstr "O programie Muse Player"
+msgid "About Vumi"
+msgstr "O programie Vumi"
 
 #: app/src/main.rs
 msgid "A music player for Navidrome and other Subsonic servers"

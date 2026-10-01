@@ -17,5 +17,5 @@ subsonic = { version = "0.1.0", path = "../subsonic" }
 tokio = { version = "1.53.1", features = ["fs", "rt-multi-thread", "sync"] }
 
 [[bin]]
-name = "muse-player"
+name = "vumi"
 path = "src/main.rs"

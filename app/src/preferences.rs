@@ -41,8 +41,8 @@ mod imp {
 
     #[glib::object_subclass]
     impl ObjectSubclass for Preferences {
-        // Must match "template $MusePlayerPreferences" in the Blueprint file.
-        const NAME: &'static str = "MusePlayerPreferences";
+        // Must match "template $VumiPreferences" in the Blueprint file.
+        const NAME: &'static str = "VumiPreferences";
         type Type = super::Preferences;
         type ParentType = adw::PreferencesDialog;
 

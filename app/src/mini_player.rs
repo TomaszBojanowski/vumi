@@ -33,8 +33,8 @@ mod imp {
 
     #[glib::object_subclass]
     impl ObjectSubclass for MiniPlayer {
-        // Must match "template $MusePlayerMiniPlayer" in the Blueprint file.
-        const NAME: &'static str = "MusePlayerMiniPlayer";
+        // Must match "template $VumiMiniPlayer" in the Blueprint file.
+        const NAME: &'static str = "VumiMiniPlayer";
         type Type = super::MiniPlayer;
         type ParentType = adw::Bin;
 

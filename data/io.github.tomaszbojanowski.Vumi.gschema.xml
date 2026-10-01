@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <schemalist>
-  <schema id="io.github.tomaszbojanowski.MusePlayer" path="/io/github/tomaszbojanowski/MusePlayer/">
+  <schema id="io.github.tomaszbojanowski.Vumi" path="/io/github/tomaszbojanowski/Vumi/">
     <key name="window-width" type="i">
       <default>900</default>
       <summary>Window width</summary>

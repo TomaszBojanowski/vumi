@@ -38,10 +38,10 @@ use now_playing::NowPlaying;
 use welcome_page::WelcomePage;
 
 // Working ID and name, will change together with the final app name.
-pub const APP_ID: &str = "io.github.tomaszbojanowski.MusePlayer";
-const APP_NAME: &str = "Muse Player";
+pub const APP_ID: &str = "io.github.tomaszbojanowski.Vumi";
+const APP_NAME: &str = "Vumi";
 
-const GETTEXT_PACKAGE: &str = "muse-player";
+const GETTEXT_PACKAGE: &str = "vumi";
 // Set by Meson at build time; the fallback matches the Flatpak prefix.
 const LOCALEDIR: &str = match option_env!("LOCALEDIR") {
     Some(dir) => dir,
@@ -276,7 +276,7 @@ fn build_ui(app: &adw::Application) {
     app.add_action(&quit);
     app.set_accels_for_action("app.quit", &["<Control>q"]);
 
-    // About Muse Player (main menu).
+    // About Vumi (main menu).
     let about = gtk::gio::SimpleAction::new("about", None);
     let window_for_about = window.downgrade();
     about.connect_activate(move |_, _| {
@@ -443,7 +443,7 @@ fn load_css() {
 /// versions a bug report needs.
 fn show_about(parent: &impl gtk::prelude::IsA<gtk::Widget>) {
     let dialog = adw::AboutDialog::builder()
-        .application_name("Muse Player")
+        .application_name("Vumi")
         .application_icon(APP_ID)
         .developer_name("Tomasz Bojanowski")
         .developers(["Tomasz Bojanowski"])
@@ -453,7 +453,7 @@ fn show_about(parent: &impl gtk::prelude::IsA<gtk::Widget>) {
         .comments(gettext("A music player for Navidrome and other Subsonic servers"))
         .translator_credits(gettext("translator-credits"))
         .debug_info(debug_info())
-        .debug_info_filename("muse-player-debug.txt")
+        .debug_info_filename("vumi-debug.txt")
         .build();
     dialog.add_acknowledgement_section(
         Some(&gettext("Built With")),
@@ -468,7 +468,7 @@ fn show_about(parent: &impl gtk::prelude::IsA<gtk::Widget>) {
 /// Versions of the app and the libraries under it, for bug reports.
 fn debug_info() -> String {
     format!(
-        "Muse Player {}\nGTK {}.{}.{}\nlibadwaita {}.{}.{}\n{}\n",
+        "Vumi {}\nGTK {}.{}.{}\nlibadwaita {}.{}.{}\n{}\n",
         env!("CARGO_PKG_VERSION"),
         gtk::major_version(),
         gtk::minor_version(),

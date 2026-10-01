@@ -1,9 +1,9 @@
 using Gtk 4.0;
 using Adw 1;
 
-translation-domain "muse-player";
+translation-domain "vumi";
 
-template $MusePlayerMainView: Adw.NavigationPage {
+template $VumiMainView: Adw.NavigationPage {
   // Lets the layout react to the window width (see the breakpoint at the end).
   child: Adw.BreakpointBin {
     width-request: 366;
@@ -28,7 +28,7 @@ template $MusePlayerMainView: Adw.NavigationPage {
           }
 
           title-widget: Adw.WindowTitle {
-            title: "Muse Player";
+            title: "Vumi";
           };
 
           [end]
@@ -80,7 +80,7 @@ template $MusePlayerMainView: Adw.NavigationPage {
         min-sidebar-width: 280;
         max-sidebar-width: 380;
 
-        sidebar: $MusePlayerQueuePage queue_page {};
+        sidebar: $VumiQueuePage queue_page {};
 
         content: Box {
         orientation: vertical;
@@ -115,7 +115,7 @@ template $MusePlayerMainView: Adw.NavigationPage {
                 }
               }
 
-              content: $MusePlayerStartPage start_page {};
+              content: $VumiStartPage start_page {};
             };
               }
             };
@@ -281,7 +281,7 @@ template $MusePlayerMainView: Adw.NavigationPage {
               }
 
               // Starred albums and songs, from the local database (main_view.rs).
-              content: $MusePlayerResultsView favorites {};
+              content: $VumiResultsView favorites {};
             };
               }
             };
@@ -499,7 +499,7 @@ menu main_menu {
     }
 
     item {
-      label: _("About Muse Player");
+      label: _("About Vumi");
       action: "app.about";
     }
 

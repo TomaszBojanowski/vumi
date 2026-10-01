@@ -15,9 +15,9 @@ const SIZE: u32 = 320;
 /// At most this many covers are downloaded at the same time.
 const MAX_DOWNLOADS: usize = 6;
 
-/// Inside Flatpak this is ~/.var/app/<app id>/cache/muse-player/covers.
+/// Inside Flatpak this is ~/.var/app/<app id>/cache/vumi/covers.
 fn cache_dir() -> PathBuf {
-    glib::user_cache_dir().join("muse-player").join("covers")
+    glib::user_cache_dir().join("vumi").join("covers")
 }
 
 fn downloads() -> &'static Semaphore {

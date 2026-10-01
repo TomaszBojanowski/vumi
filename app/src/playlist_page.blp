@@ -1,11 +1,11 @@
 using Gtk 4.0;
 using Adw 1;
 
-translation-domain "muse-player";
+translation-domain "vumi";
 
 // Playlist page: a compact header (cover, name, numbers, description) with
 // Play and Shuffle, and the tracks below in the shared results view.
-template $MusePlayerPlaylistPage: Adw.NavigationPage {
+template $VumiPlaylistPage: Adw.NavigationPage {
   child: Adw.ToolbarView {
     [top]
     Adw.HeaderBar {}
@@ -102,7 +102,7 @@ template $MusePlayerPlaylistPage: Adw.NavigationPage {
         };
       }
 
-      $MusePlayerResultsView results {
+      $VumiResultsView results {
         vexpand: true;
       }
     };

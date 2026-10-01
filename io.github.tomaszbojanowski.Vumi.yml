@@ -1,13 +1,13 @@
 # Development manifest (local builds only, uses network during build).
-id: io.github.tomaszbojanowski.MusePlayer
+id: io.github.tomaszbojanowski.Vumi
 runtime: org.gnome.Platform
 runtime-version: '51'
 sdk: org.gnome.Sdk
 sdk-extensions:
   - org.freedesktop.Sdk.Extension.rust-stable
-command: muse-player
+command: vumi
 finish-args:
-  - --own-name=org.mpris.MediaPlayer2.MusePlayer
+  - --own-name=org.mpris.MediaPlayer2.Vumi
   - --share=network
   - --share=ipc
   - --socket=wayland
@@ -19,9 +19,9 @@ build-options:
   build-args:
     - --share=network
   env:
-    CARGO_HOME: /run/build/muse-player/cargo
+    CARGO_HOME: /run/build/vumi/cargo
 modules:
-  - name: muse-player
+  - name: vumi
     buildsystem: meson
     builddir: true
     sources:

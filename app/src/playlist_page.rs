@@ -40,8 +40,8 @@ mod imp {
 
     #[glib::object_subclass]
     impl ObjectSubclass for PlaylistPage {
-        // Must match "template $MusePlayerPlaylistPage" in the Blueprint file.
-        const NAME: &'static str = "MusePlayerPlaylistPage";
+        // Must match "template $VumiPlaylistPage" in the Blueprint file.
+        const NAME: &'static str = "VumiPlaylistPage";
         type Type = super::PlaylistPage;
         type ParentType = adw::NavigationPage;
 

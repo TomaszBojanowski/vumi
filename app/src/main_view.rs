@@ -100,8 +100,8 @@ mod imp {
 
     #[glib::object_subclass]
     impl ObjectSubclass for MainView {
-        // Must match "template $MusePlayerMainView" in the Blueprint file.
-        const NAME: &'static str = "MusePlayerMainView";
+        // Must match "template $VumiMainView" in the Blueprint file.
+        const NAME: &'static str = "VumiMainView";
         type Type = super::MainView;
         type ParentType = adw::NavigationPage;
 

@@ -78,8 +78,8 @@ mod imp {
 
     #[glib::object_subclass]
     impl ObjectSubclass for AlbumPage {
-        // Must match "template $MusePlayerAlbumPage" in the Blueprint file.
-        const NAME: &'static str = "MusePlayerAlbumPage";
+        // Must match "template $VumiAlbumPage" in the Blueprint file.
+        const NAME: &'static str = "VumiAlbumPage";
         type Type = super::AlbumPage;
         type ParentType = adw::NavigationPage;
 
@@ -791,7 +791,7 @@ impl AlbumPage {
         let imp = self.imp();
         // Radio: a random song of this album, then songs that sound like it.
         let radio_button = gtk::Button::builder()
-            .icon_name("muse-player-radio-symbolic")
+            .icon_name("vumi-radio-symbolic")
             .tooltip_text(gettext("Radio"))
             .valign(gtk::Align::Center)
             .css_classes(["circular", "flat", "album-action"])

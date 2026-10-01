@@ -1,4 +1,4 @@
-# muse-player
+# vumi
 
 A fast GTK4/libadwaita music player for Navidrome (Subsonic API),
 with first-class AudioMuse-AI integration. Written in Rust.

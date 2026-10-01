@@ -1,10 +1,10 @@
 using Gtk 4.0;
 using Adw 1;
 
-translation-domain "muse-player";
+translation-domain "vumi";
 
 // The Start page: shelves that answer "what shall I listen to now".
-template $MusePlayerStartPage: Adw.Bin {
+template $VumiStartPage: Adw.Bin {
   // Lets the page react to its own width (see the breakpoint at the end).
   child: Adw.BreakpointBin {
     width-request: 300;
@@ -359,7 +359,7 @@ template $MusePlayerStartPage: Adw.Bin {
             }
 
             Button similar_radio {
-              icon-name: "muse-player-radio-symbolic";
+              icon-name: "vumi-radio-symbolic";
               tooltip-text: _("Play Similar Songs");
               valign: center;
 

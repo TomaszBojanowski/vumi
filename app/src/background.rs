@@ -31,7 +31,7 @@ pub(crate) fn request() {
         // listen there first, so a quick answer is not missed.
         let token = TOKEN.with(|t| {
             t.set(t.get() + 1);
-            format!("muse_player_{}", t.get())
+            format!("vumi_{}", t.get())
         });
         let Some(sender) = connection.unique_name() else {
             return;

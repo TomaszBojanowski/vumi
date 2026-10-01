@@ -31,8 +31,8 @@ mod imp {
 
     #[glib::object_subclass]
     impl ObjectSubclass for LoginPage {
-        // Must match "template $MusePlayerLoginPage" in the Blueprint file.
-        const NAME: &'static str = "MusePlayerLoginPage";
+        // Must match "template $VumiLoginPage" in the Blueprint file.
+        const NAME: &'static str = "VumiLoginPage";
         type Type = super::LoginPage;
         type ParentType = adw::NavigationPage;
 

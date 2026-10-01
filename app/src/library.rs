@@ -11,9 +11,9 @@ use rusqlite::{params, Connection};
 use std::path::PathBuf;
 use std::sync::Arc;
 
-/// Inside Flatpak this is ~/.var/app/<app id>/data/muse-player/library.db
+/// Inside Flatpak this is ~/.var/app/<app id>/data/vumi/library.db
 fn db_path() -> PathBuf {
-    glib::user_data_dir().join("muse-player").join("library.db")
+    glib::user_data_dir().join("vumi").join("library.db")
 }
 
 fn open() -> rusqlite::Result<Connection> {

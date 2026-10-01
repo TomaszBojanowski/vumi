@@ -1,5 +1,5 @@
 project(
-  'muse-player',
+  'vumi',
   version: '0.1.0',
   license: 'GPL-3.0-or-later',
   meson_version: '>= 1.0',
@@ -8,7 +8,7 @@ project(
 gnome = import('gnome')
 i18n = import('i18n')
 
-application_id = 'io.github.tomaszbojanowski.MusePlayer'
+application_id = 'io.github.tomaszbojanowski.Vumi'
 localedir = get_option('prefix') / get_option('localedir')
 
 subdir('data')

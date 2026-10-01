@@ -33,8 +33,8 @@ mod imp {
 
     #[glib::object_subclass]
     impl ObjectSubclass for QueuePage {
-        // Must match "template $MusePlayerQueuePage" in the Blueprint file.
-        const NAME: &'static str = "MusePlayerQueuePage";
+        // Must match "template $VumiQueuePage" in the Blueprint file.
+        const NAME: &'static str = "VumiQueuePage";
         type Type = super::QueuePage;
         type ParentType = adw::Bin;
 
