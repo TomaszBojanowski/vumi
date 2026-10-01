@@ -105,7 +105,7 @@ mod imp {
         /// until the sync, when the albums in memory stand in.
         pub artists: RefCell<Vec<subsonic::Artist>>,
         /// What the grid shows now (id, album count, picture), so an unchanged
-        /// grid is not rebuilt.
+        /// list is not put into the grid again.
         pub artists_shown: RefCell<Vec<(String, u32, Option<String>)>>,
         #[template_child]
         pub search_entry: gtk::TemplateChild<gtk::SearchEntry>,
