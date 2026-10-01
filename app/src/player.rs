@@ -39,6 +39,9 @@ pub(crate) struct Player {
     listen: RefCell<Option<Listen>>,
     /// Whether the once-a-second listen timer runs already.
     listen_timer: std::cell::Cell<bool>,
+    /// Whether the server takes live playback reports (OpenSubsonic
+    /// playbackReport): None until asked, Some(false) while asking.
+    report_support: std::cell::Cell<Option<bool>>,
     /// Told about every jump of the position (MPRIS sends Seeked).
     seek_handler: RefCell<Option<Box<dyn Fn(f64)>>>,
     /// Counts the user's commands (play, stop, changes to the queue). Requests
@@ -116,6 +119,7 @@ impl Player {
                 error_handler: RefCell::new(None),
                 listen: RefCell::new(None),
                 listen_timer: std::cell::Cell::new(false),
+                report_support: std::cell::Cell::new(None),
                 seek_handler: RefCell::new(None),
                 command: Cell::new(0),
                 pending_seek: Cell::new(None),
@@ -156,7 +160,18 @@ impl Player {
     }
 
     fn set_state(&self, state: State) {
-        self.state.replace(state);
+        let old = self.state.replace(state);
+        let report = match (&old, &*self.state.borrow()) {
+            (State::Playing, State::Paused) => Some("paused"),
+            (State::Paused, State::Playing) => Some("playing"),
+            (State::Playing | State::Paused, State::Ended | State::Failed(_) | State::Idle) => {
+                Some("stopped")
+            }
+            _ => None,
+        };
+        if let Some(report) = report {
+            self.report(report, None);
+        }
         self.notify();
     }
 
@@ -320,6 +335,8 @@ impl Player {
             .playbin
             .seek_simple(gst::SeekFlags::FLUSH | gst::SeekFlags::KEY_UNIT, target);
         if sought.is_ok() {
+            let state = if self.is_playing() { "playing" } else { "paused" };
+            self.report(state, Some((seconds.max(0.0) * 1000.0) as u64));
             if let Some(handler) = self.seek_handler.borrow().as_ref() {
                 handler(seconds.max(0.0));
             }
@@ -396,7 +413,14 @@ impl Player {
             played: 0,
             submitted: false,
         }));
-        self.scrobble(song.id.clone(), false, None);
+        if self.report_support.get() == Some(true) {
+            self.report("starting", Some(0));
+        } else {
+            self.scrobble(song.id.clone(), false, None);
+        }
+        if self.report_support.get().is_none() {
+            self.check_report_support();
+        }
 
         if !self.listen_timer.replace(true) {
             gst::glib::timeout_add_seconds_local(1, || {
@@ -417,18 +441,66 @@ impl Player {
             .query_duration::<gst::ClockTime>()
             .map(|d| d.seconds() / 2)
             .unwrap_or(240);
-        let mut listen = self.listen.borrow_mut();
-        let Some(listen) = listen.as_mut() else {
+        let (submit, heartbeat) = {
+            let mut guard = self.listen.borrow_mut();
+            let Some(listen) = guard.as_mut() else {
+                return;
+            };
+            listen.played += 1;
+            let submit = (!listen.submitted && listen.played >= half.min(240)).then(|| {
+                listen.submitted = true;
+                (listen.id.clone(), listen.started)
+            });
+            (submit, listen.played % 15 == 0)
+        };
+        if let Some((id, started)) = submit {
+            self.scrobble(id, true, Some(started));
+        }
+        // Every 15 s: keeps the server's position bar in step.
+        if heartbeat {
+            self.report("playing", None);
+        }
+    }
+
+    /// Live state for the server's "now playing", if it takes such reports.
+    /// `position_ms` defaults to where playback is now.
+    fn report(&self, state: &'static str, position_ms: Option<u64>) {
+        if self.report_support.get() != Some(true) {
+            return;
+        }
+        let Some(id) = self.listen.borrow().as_ref().map(|l| l.id.clone()) else {
             return;
         };
-        if listen.submitted {
+        let Some(client) = self.client.borrow().clone() else {
             return;
-        }
-        listen.played += 1;
-        if listen.played >= half.min(240) {
-            listen.submitted = true;
-            self.scrobble(listen.id.clone(), true, Some(listen.started));
-        }
+        };
+        let position_ms =
+            position_ms.unwrap_or_else(|| (self.position_secs().unwrap_or(0.0) * 1000.0) as u64);
+        crate::runtime().spawn(async move {
+            if let Err(e) = client.report_playback(&id, state, position_ms).await {
+                eprintln!("Could not report playback of {id}: {e}");
+            }
+        });
+    }
+
+    /// Asks the server once whether it takes live reports; until it answers,
+    /// the old now-playing scrobble stands in.
+    fn check_report_support(&self) {
+        let Some(client) = self.client.borrow().clone() else {
+            return;
+        };
+        self.report_support.set(Some(false));
+        gst::glib::spawn_future_local(async move {
+            let result = crate::runtime().spawn(async move { client.extensions().await }).await;
+            let supported = matches!(&result, Ok(Ok(names)) if names.iter().any(|n| n == "playbackReport"));
+            let player = get();
+            // Logged out meanwhile: the answer is about another server.
+            if supported && player.report_support.get() == Some(false) {
+                player.report_support.set(Some(true));
+                let state = if player.is_playing() { "playing" } else { "paused" };
+                player.report(state, None);
+            }
+        });
     }
 
     /// Sends a scrobble in the background; a failure only goes to the log.
@@ -703,6 +775,7 @@ impl Player {
         self.queue.replace(Vec::new().into());
         self.position.set(0);
         self.client.replace(None);
+        self.report_support.set(None);
         self.set_state(State::Idle);
     }
 }

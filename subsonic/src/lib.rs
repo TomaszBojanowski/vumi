@@ -54,6 +54,9 @@ struct Envelope {
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Response {
+    /// getOpenSubsonicExtensions: what the server adds to the Subsonic API.
+    #[serde(rename = "openSubsonicExtensions")]
+    open_subsonic_extensions: Option<Vec<Extension>>,
     pub status: String,
     pub version: String,
     #[serde(rename = "type")]
@@ -380,6 +383,36 @@ impl Client {
         self.call("scrobble", &params).await?;
         Ok(())
     }
+
+    /// Names of the OpenSubsonic extensions the server supports. A plain
+    /// Subsonic server answers with an error: then it has none.
+    pub async fn extensions(&self) -> Result<Vec<String>> {
+        let response = self.call("getOpenSubsonicExtensions", &[]).await?;
+        Ok(response
+            .open_subsonic_extensions
+            .unwrap_or_default()
+            .into_iter()
+            .map(|e| e.name)
+            .collect())
+    }
+
+    /// Live playback state for the server's "now playing" (OpenSubsonic
+    /// playbackReport extension): `state` is "starting", "playing", "paused"
+    /// or "stopped". Never counted as a listen: `scrobble` does that.
+    pub async fn report_playback(&self, id: &str, state: &str, position_ms: u64) -> Result<()> {
+        self.call(
+            "reportPlayback",
+            &[
+                ("mediaId", id.to_string()),
+                ("mediaType", "song".to_string()),
+                ("positionMs", position_ms.to_string()),
+                ("state", state.to_string()),
+                ("ignoreScrobble", "true".to_string()),
+            ],
+        )
+        .await?;
+        Ok(())
+    }
 }
 
 /// Extra album information the server gathers, e.g. from Last.fm.
@@ -550,4 +583,10 @@ impl Client {
         self.call("updatePlaylist", &params).await?;
         Ok(())
     }
+}
+
+/// One entry of getOpenSubsonicExtensions.
+#[derive(Debug, serde::Deserialize)]
+struct Extension {
+    name: String,
 }
