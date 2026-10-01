@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vumi\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-30 22:47+0200\n"
+"POT-Creation-Date: 2026-10-01 22:13+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -30,75 +30,130 @@ msgstr ""
 msgid "music;player;navidrome;subsonic;"
 msgstr ""
 
-#: app/src/main.rs:321 app/src/login_page.rs:155 app/src/album_page.rs:212
+#: app/src/main.rs:348
+msgid "Playback Stopped"
+msgstr ""
+
+#: app/src/main.rs:404 app/src/login_page.rs:155 app/src/album_page.rs:212
 msgid "Something went wrong. Please try again."
 msgstr ""
 
-#: app/src/main.rs:330
+#: app/src/main.rs:413
 msgid "Wrong username or password."
 msgstr ""
 
-#: app/src/main.rs:331
+#: app/src/main.rs:414
 msgid "Cannot reach the server. Check the address and your connection."
 msgstr ""
 
-#: app/src/main.rs:332
+#: app/src/main.rs:415
 msgid "Invalid server address. It should start with http:// or https://"
 msgstr ""
 
-#: app/src/main.rs:333
+#: app/src/main.rs:416
 msgid "The server answered, but it does not look like a Subsonic server."
 msgstr ""
 
 #. Translators: {message} is the error text sent by the server.
-#: app/src/main.rs:335
+#: app/src/main.rs:418
 #, rust-format
 msgid "Server error: {message}"
 msgstr ""
 
-#: app/src/main_view.rs:143
+#: app/src/main.rs:463
+msgid "A music player for Navidrome and other Subsonic servers"
+msgstr ""
+
+#: app/src/main.rs:464
+msgid "translator-credits"
+msgstr ""
+
+#: app/src/main.rs:469
+msgid "Built With"
+msgstr ""
+
+#: app/src/main.rs:499 app/src/preferences.blp:66
+msgid "Playback"
+msgstr ""
+
+#: app/src/main.rs:501
+msgid "Play or Pause"
+msgstr ""
+
+#: app/src/main.rs:502
+msgid "Previous Track"
+msgstr ""
+
+#: app/src/main.rs:503
+msgid "Next Track"
+msgstr ""
+
+#: app/src/main.rs:507 app/src/main_view.blp:131 app/src/preferences.blp:93
+msgid "Library"
+msgstr ""
+
+#: app/src/main.rs:509 app/src/main_view.blp:55
+msgid "Search Library"
+msgstr ""
+
+#: app/src/main.rs:510 app/src/main_view.blp:46 app/src/main_view.blp:528
+msgid "Sync Library"
+msgstr ""
+
+#: app/src/main.rs:514 app/src/preferences.blp:9
+msgid "General"
+msgstr ""
+
+#: app/src/main.rs:516 app/src/main_view.blp:535
+msgid "Preferences"
+msgstr ""
+
+#: app/src/main.rs:517 app/src/main_view.blp:540
+msgid "Keyboard Shortcuts"
+msgstr ""
+
+#: app/src/main.rs:518 app/src/main_view.blp:550
+msgid "Quit"
+msgstr ""
+
+#: app/src/main_view.rs:193
 msgid "No Favorites"
 msgstr ""
 
-#: app/src/main_view.rs:144
+#: app/src/main_view.rs:194
 msgid "Star albums and songs to see them here"
 msgstr ""
 
-#: app/src/main_view.rs:245
+#: app/src/main_view.rs:372
 msgid "Connecting…"
 msgstr ""
 
 #. Translators: {server} is the server software (e.g. navidrome), {version} its version.
-#: app/src/main_view.rs:253
+#: app/src/main_view.rs:380
 #, rust-format
 msgid "Connected to {server} {version}"
 msgstr ""
 
-#: app/src/main_view.rs:264
+#: app/src/main_view.rs:391
 msgid "Offline"
 msgstr ""
-
-#: app/src/main_view.rs:755 app/src/artist_page.rs:126
-#, rust-format
-msgid "{n} album"
-msgid_plural "{n} albums"
-msgstr[0] ""
-msgstr[1] ""
 
 #. Translators: {n} is a number of tracks.
 #. Translators: {n} is a number of tracks in the queue.
 #. Translators: {n} is a number of tracks.
-#: app/src/main_view.rs:878 app/src/album_page.rs:354 app/src/queue_page.rs:193
-#: app/src/song_menu.rs:245 app/src/playlist_page.rs:125
+#: app/src/main_view.rs:1014 app/src/album_page.rs:354
+#: app/src/queue_page.rs:193 app/src/song_menu.rs:245
+#: app/src/playlist_page.rs:125
 #, rust-format
 msgid "{n} track"
 msgid_plural "{n} tracks"
 msgstr[0] ""
 msgstr[1] ""
 
-#: app/src/main_view.rs:943 app/src/album_page.rs:628 app/src/album_page.rs:810
-#: app/src/now_playing.rs:191 app/src/mini_player.rs:101
-#: app/src/start_page.blp:205 app/src/playlist_page.blp:80
+#: app/src/main_view.rs:1079 app/src/album_page.rs:628
+#: app/src/album_page.rs:810 app/src/now_playing.rs:246
+#: app/src/mini_player.rs:101 app/src/start_page.blp:204
+#: app/src/playlist_page.blp:80
 msgid "Play"
 msgstr ""
 
@@ -110,21 +165,13 @@ msgstr ""
 msgid "Main Menu"
 msgstr ""
 
-#: app/src/main_view.blp:46
-msgid "Sync Library"
-msgstr ""
-
-#: app/src/main_view.blp:55
-msgid "Search Library"
-msgstr ""
-
 #: app/src/main_view.blp:94 app/src/main_view.blp:100 app/src/main_view.blp:106
 msgid "Start"
 msgstr ""
 
 #: app/src/main_view.blp:112 app/src/main_view.blp:144
-#: app/src/main_view.blp:213 app/src/main_view.blp:277
-#: app/src/main_view.blp:306 app/src/main_view.blp:368
+#: app/src/main_view.blp:213 app/src/main_view.blp:306
+#: app/src/main_view.blp:335 app/src/main_view.blp:411
 msgid "Show sidebar"
 msgstr ""
 
@@ -132,10 +179,6 @@ msgstr ""
 #: app/src/main_view.blp:169 app/src/artist_page.blp:86
 #: app/src/results_view.blp:31
 msgid "Albums"
-msgstr ""
-
-#: app/src/main_view.blp:131 app/src/preferences.blp:59
-msgid "Library"
 msgstr ""
 
 #: app/src/main_view.blp:152
@@ -151,60 +194,85 @@ msgstr ""
 msgid "Artists"
 msgstr ""
 
-#: app/src/main_view.blp:261 app/src/main_view.blp:269
+#: app/src/main_view.blp:252
+msgid "Jump to Letter"
+msgstr ""
+
+#: app/src/main_view.blp:290 app/src/main_view.blp:298
 msgid "Favorites"
 msgstr ""
 
-#: app/src/main_view.blp:264
+#: app/src/main_view.blp:293
 msgid "Collections"
 msgstr ""
 
-#: app/src/main_view.blp:292 app/src/main_view.blp:298 app/src/song_menu.rs:234
+#: app/src/main_view.blp:321 app/src/main_view.blp:327 app/src/song_menu.rs:234
 msgid "Playlists"
 msgstr ""
 
-#: app/src/main_view.blp:318
+#: app/src/main_view.blp:347
 msgid "No Playlists"
 msgstr ""
 
-#: app/src/main_view.blp:319
+#: app/src/main_view.blp:348
 msgid "Playlists from the server appear here"
 msgstr ""
 
-#: app/src/main_view.blp:357 app/src/main_view.blp:376
+#: app/src/main_view.blp:400 app/src/main_view.blp:419
 msgid "Similar and Radio"
 msgstr ""
 
-#: app/src/main_view.blp:360
+#: app/src/main_view.blp:403
 msgid "Discover"
 msgstr ""
 
-#: app/src/main_view.blp:377
+#: app/src/main_view.blp:420
 msgid "Coming soon"
 msgstr ""
 
-#: app/src/main_view.blp:421
+#: app/src/main_view.blp:464
 msgid "Name"
 msgstr ""
 
-#: app/src/main_view.blp:427 app/src/song_menu.rs:310
+#: app/src/main_view.blp:470 app/src/song_menu.rs:310
 msgid "Artist"
 msgstr ""
 
-#: app/src/main_view.blp:433
+#: app/src/main_view.blp:476
 msgid "Year (Newest)"
 msgstr ""
 
-#: app/src/main_view.blp:439
+#: app/src/main_view.blp:482
 msgid "Year (Oldest)"
 msgstr ""
 
-#: app/src/main_view.blp:445 app/src/start_page.blp:233
+#: app/src/main_view.blp:488 app/src/start_page.blp:232
 msgid "Recently Added"
 msgstr ""
 
-#: app/src/main_view.blp:456
-msgid "Preferences"
+#: app/src/main_view.blp:499 app/src/preferences.blp:69
+msgid "Endless Radio"
+msgstr ""
+
+#: app/src/main_view.blp:504
+msgid "Repeat"
+msgstr ""
+
+#: app/src/main_view.blp:507 app/src/preferences.blp:84
+msgid "Off"
+msgstr ""
+
+#: app/src/main_view.blp:513 app/src/now_playing.blp:160
+#: app/src/queue_page.blp:12
+msgid "Queue"
+msgstr ""
+
+#: app/src/main_view.blp:519 app/src/song_menu.rs:313
+msgid "Track"
+msgstr ""
+
+#: app/src/main_view.blp:545
+msgid "About Vumi"
 msgstr ""
 
 #: app/src/login_page.rs:130 app/src/login_page.blp:7 app/src/login_page.blp:55
@@ -242,7 +310,7 @@ msgid "Get Started"
 msgstr ""
 
 #: app/src/welcome_page.rs:70 app/src/welcome_page.blp:61
-#: app/src/now_playing.blp:175
+#: app/src/now_playing.blp:195
 msgid "Next"
 msgstr ""
 
@@ -332,12 +400,12 @@ msgstr ""
 msgid "{whole}.{fraction} kHz"
 msgstr ""
 
-#: app/src/album_page.rs:624 app/src/now_playing.rs:187
-#: app/src/mini_player.rs:98 app/src/start_page.rs:430
+#: app/src/album_page.rs:624 app/src/now_playing.rs:242
+#: app/src/mini_player.rs:98 app/src/start_page.rs:483
 msgid "Pause"
 msgstr ""
 
-#: app/src/album_page.rs:626 app/src/start_page.rs:432
+#: app/src/album_page.rs:626 app/src/start_page.rs:485
 msgid "Resume"
 msgstr ""
 
@@ -367,15 +435,15 @@ msgstr ""
 msgid "Show more"
 msgstr ""
 
-#: app/src/favorites.rs:98
+#: app/src/favorites.rs:148
 msgid "Could not change favorites. Please try again."
 msgstr ""
 
-#: app/src/favorites.rs:108
+#: app/src/favorites.rs:158
 msgid "Remove from favorites"
 msgstr ""
 
-#: app/src/favorites.rs:111
+#: app/src/favorites.rs:161
 msgid "Add to favorites"
 msgstr ""
 
@@ -383,23 +451,30 @@ msgstr ""
 msgid "Show less"
 msgstr ""
 
-#: app/src/now_playing.rs:140
+#: app/src/artist_card.rs:81 app/src/artist_page.rs:126
+#, rust-format
+msgid "{n} album"
+msgid_plural "{n} albums"
+msgstr[0] ""
+msgstr[1] ""
+
+#: app/src/now_playing.rs:159
 msgid "Go to album"
 msgstr ""
 
-#: app/src/now_playing.blp:131 app/src/queue_page.blp:12
-msgid "Queue"
-msgstr ""
-
-#: app/src/now_playing.blp:154
+#: app/src/now_playing.blp:174
 msgid "Previous"
 msgstr ""
 
-#: app/src/player.rs:221 app/src/player.rs:328
+#: app/src/now_playing.blp:208
+msgid "Volume"
+msgstr ""
+
+#: app/src/player.rs:270 app/src/player.rs:408
 msgid "Could not play the track"
 msgstr ""
 
-#: app/src/player.rs:232 app/src/player.rs:268
+#: app/src/player.rs:289 app/src/player.rs:333
 msgid "Could not start playback"
 msgstr ""
 
@@ -407,42 +482,38 @@ msgstr ""
 msgid "Last Played"
 msgstr ""
 
-#: app/src/start_page.blp:113 app/src/start_page.rs:434
+#: app/src/start_page.blp:112 app/src/start_page.rs:487
 msgid "Continue"
 msgstr ""
 
-#: app/src/start_page.blp:163
+#: app/src/start_page.blp:162
 msgid "Random Album"
 msgstr ""
 
-#: app/src/start_page.blp:211
+#: app/src/start_page.blp:210
 msgid "Another Random Album"
 msgstr ""
 
-#: app/src/start_page.blp:249 app/src/start_page.blp:309
-#: app/src/start_page.blp:381
+#: app/src/start_page.blp:248 app/src/start_page.blp:308
+#: app/src/start_page.blp:380
 msgid "Previous Albums"
 msgstr ""
 
-#: app/src/start_page.blp:260 app/src/start_page.blp:320
-#: app/src/start_page.blp:392
+#: app/src/start_page.blp:259 app/src/start_page.blp:319
+#: app/src/start_page.blp:391
 msgid "Next Albums"
 msgstr ""
 
-#: app/src/start_page.blp:293
+#: app/src/start_page.blp:292
 msgid "Most Played"
 msgstr ""
 
-#: app/src/start_page.blp:364
+#: app/src/start_page.blp:363
 msgid "Play Similar Songs"
 msgstr ""
 
 #: app/src/search_page.blp:8
 msgid "Search"
-msgstr ""
-
-#: app/src/preferences.blp:9
-msgid "General"
 msgstr ""
 
 #: app/src/preferences.blp:13
@@ -462,42 +533,92 @@ msgid "Log Out"
 msgstr ""
 
 #: app/src/preferences.blp:45
-msgid "Playback"
+msgid "Appearance"
 msgstr ""
 
 #: app/src/preferences.blp:48
-msgid "Endless Radio"
+msgid "Style"
 msgstr ""
 
-#: app/src/preferences.blp:49
-msgid "When the queue ends, keep playing songs similar to the last one"
+#: app/src/preferences.blp:52
+msgid "Follow System"
 msgstr ""
 
 #: app/src/preferences.blp:53
-msgid "Play After the Window Is Closed"
+msgid "Light"
 msgstr ""
 
 #: app/src/preferences.blp:54
+msgid "Dark"
+msgstr ""
+
+#: app/src/preferences.blp:60
+msgid "Cover Colors"
+msgstr ""
+
+#: app/src/preferences.blp:61
+msgid "Tint the album page and the player with the colour of the cover"
+msgstr ""
+
+#: app/src/preferences.blp:70
+msgid "When the queue ends, keep playing songs similar to the last one"
+msgstr ""
+
+#: app/src/preferences.blp:74
+msgid "Play After the Window Is Closed"
+msgstr ""
+
+#: app/src/preferences.blp:75
 msgid "The music goes on; the controls stay in the system menu"
 msgstr ""
 
-#: app/src/preferences.blp:63
+#: app/src/preferences.blp:79
+msgid "Volume Normalization"
+msgstr ""
+
+#: app/src/preferences.blp:80
+msgid "From ReplayGain tags; off keeps the signal unchanged"
+msgstr ""
+
+#: app/src/preferences.blp:85
+msgid "Per Track"
+msgstr ""
+
+#: app/src/preferences.blp:86
+msgid "Per Album"
+msgstr ""
+
+#: app/src/preferences.blp:97
 msgid "Sync Now"
 msgstr ""
 
-#: app/src/preferences.blp:69
+#: app/src/preferences.blp:103
 msgid "Cover Cache"
 msgstr ""
 
-#: app/src/preferences.blp:73
+#: app/src/preferences.blp:107
 msgid "Clear"
 msgstr ""
 
-#: app/src/preferences.rs:102
+#: app/src/preferences.blp:114
+msgid "Privacy"
+msgstr ""
+
+#: app/src/preferences.blp:117
+msgid "Share Listening Activity"
+msgstr ""
+
+#: app/src/preferences.blp:118
+msgid ""
+"The server sees what is playing and counts plays; it may pass them on to "
+"Last.fm or ListenBrainz"
+msgstr ""
+
+#: app/src/preferences.rs:122
 msgid "Syncing the library…"
 msgstr ""
 
-#: app/src/preferences.rs:119
+#: app/src/preferences.rs:139
 msgid "Could not clear the cover cache"
 msgstr ""
 
@@ -591,10 +712,6 @@ msgstr ""
 msgid "Album"
 msgstr ""
 
-#: app/src/song_menu.rs:313
-msgid "Track"
-msgstr ""
-
 #: app/src/song_menu.rs:314
 msgid "Disc"
 msgstr ""
@@ -627,7 +744,7 @@ msgstr ""
 msgid "Try other words"
 msgstr ""
 
-#: app/src/start_page.rs:515
+#: app/src/start_page.rs:568
 #, rust-format
 msgid "Similar to “{title}”"
 msgstr ""
