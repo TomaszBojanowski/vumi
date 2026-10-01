@@ -1,0 +1,53 @@
+{
+  "subsonic-response": {
+    "status": "ok",
+    "version": "1.16.1",
+    "type": "navidrome",
+    "serverVersion": "0.58.0 (13a8af6b)",
+    "openSubsonic": true,
+    "playlist": {
+      "id": "playlist-1",
+      "name": "Sunday Morning",
+      "comment": "Slow and quiet",
+      "songCount": 3,
+      "duration": 812,
+      "public": true,
+      "owner": "anna",
+      "created": "2026-04-12T09:00:00.5Z",
+      "changed": "2026-09-30T18:45:10Z",
+      "coverArt": "pl-playlist-1_66fa0b11",
+      "entry": [
+        {
+          "id": "song-7",
+          "isDir": false,
+          "title": "Night Ferry",
+          "album": "Night Ferry",
+          "artist": "The Nightjars",
+          "duration": 287,
+          "albumId": "album-4",
+          "artistId": "artist-1"
+        },
+        {
+          "id": "song-2",
+          "isDir": false,
+          "title": "Salt Lines",
+          "album": "Low Tide",
+          "artist": "The Nightjars",
+          "duration": 198,
+          "albumId": "album-1",
+          "artistId": "artist-1"
+        },
+        {
+          "id": "song-1",
+          "isDir": false,
+          "title": "Undertow",
+          "album": "Low Tide",
+          "artist": "The Nightjars",
+          "duration": 245,
+          "albumId": "album-1",
+          "artistId": "artist-1"
+        }
+      ]
+    }
+  }
+}

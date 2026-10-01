@@ -1,0 +1,48 @@
+{
+  "subsonic-response": {
+    "status": "ok",
+    "version": "1.16.1",
+    "type": "navidrome",
+    "serverVersion": "0.58.0 (13a8af6b)",
+    "openSubsonic": true,
+    "artists": {
+      "ignoredArticles": "The El La Los Las Le Les Os As O A",
+      "index": [
+        {
+          "name": "A",
+          "artist": [
+            {
+              "id": "artist-2",
+              "name": "Aurora Lane",
+              "coverArt": "ar-artist-2_0",
+              "albumCount": 2,
+              "artistImageUrl": "https://music.example.org/share/img/ar-artist-2_0?size=600",
+              "musicBrainzId": "",
+              "sortName": "aurora lane",
+              "roles": ["albumartist", "artist"]
+            },
+            {
+              "id": "artist-3",
+              "name": "Ayla"
+            }
+          ]
+        },
+        {
+          "name": "M"
+        },
+        {
+          "name": "N",
+          "artist": [
+            {
+              "id": "artist-1",
+              "name": "The Nightjars",
+              "coverArt": "ar-artist-1_0",
+              "albumCount": 4,
+              "starred": "2026-03-04T05:06:07Z"
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

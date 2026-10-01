@@ -1,0 +1,40 @@
+{
+  "subsonic-response": {
+    "status": "ok",
+    "version": "1.16.1",
+    "type": "navidrome",
+    "serverVersion": "0.58.0 (13a8af6b)",
+    "openSubsonic": true,
+    "artist": {
+      "id": "artist-1",
+      "name": "The Nightjars",
+      "coverArt": "ar-artist-1_0",
+      "albumCount": 2,
+      "artistImageUrl": "https://music.example.org/share/img/ar-artist-1_0?size=600",
+      "album": [
+        {
+          "id": "album-1",
+          "name": "Low Tide",
+          "artist": "The Nightjars",
+          "artistId": "artist-1",
+          "coverArt": "al-album-1_65f2a1c4",
+          "songCount": 12,
+          "duration": 2753,
+          "created": "2025-11-03T10:15:42.123Z",
+          "year": 2019
+        },
+        {
+          "id": "album-4",
+          "name": "Night Ferry",
+          "artist": "The Nightjars",
+          "artistId": "artist-1",
+          "coverArt": "al-album-4_0",
+          "songCount": 9,
+          "duration": 2210,
+          "created": "2025-11-03T10:16:01.000Z",
+          "year": 2023
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,50 @@
+{
+  "subsonic-response": {
+    "status": "ok",
+    "version": "1.16.1",
+    "type": "navidrome",
+    "serverVersion": "0.58.0 (13a8af6b)",
+    "openSubsonic": true,
+    "albumList2": {
+      "album": [
+        {
+          "id": "album-1",
+          "name": "Low Tide",
+          "artist": "The Nightjars",
+          "artistId": "artist-1",
+          "coverArt": "al-album-1_65f2a1c4",
+          "songCount": 12,
+          "duration": 2753,
+          "playCount": 31,
+          "played": "2026-09-28T19:02:11.25Z",
+          "created": "2025-11-03T10:15:42.123Z",
+          "year": 2019,
+          "genre": "Indie",
+          "starred": "2026-01-15T08:00:00Z",
+          "userRating": 4,
+          "genres": [{ "name": "Indie" }],
+          "musicBrainzId": "8e1d3b52-2f0b-4c5e-9d6a-1f0c2b7e5a11",
+          "isCompilation": false,
+          "sortName": "low tide",
+          "discTitles": [],
+          "originalReleaseDate": { "year": 2019, "month": 3, "day": 8 },
+          "releaseDate": {},
+          "releaseTypes": ["Album"],
+          "recordLabels": [{ "name": "Harbour Records" }],
+          "moods": [],
+          "artists": [{ "id": "artist-1", "name": "The Nightjars" }],
+          "displayArtist": "The Nightjars",
+          "explicitStatus": "",
+          "version": ""
+        },
+        {
+          "id": "album-2",
+          "name": "Field Recordings",
+          "songCount": 3,
+          "duration": 601,
+          "created": "2024-05-01T12:00:00Z"
+        }
+      ]
+    }
+  }
+}
