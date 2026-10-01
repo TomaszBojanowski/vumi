@@ -397,6 +397,7 @@ impl Player {
             // Only the short error text: the debug details may contain the stream
             // URL, and with it the login token.
             gst::MessageView::Error(err) => {
+                self.blame_pending_switch();
                 self.fail(format!("{}: {}", gettext("Could not play the track"), err.error()));
             }
             _ => {}
@@ -768,6 +769,20 @@ impl Player {
     /// GStreamer, which will play whatever the queue says now.
     fn pending_switch(&self) -> Option<String> {
         self.switched_to.lock().ok().and_then(|s| s.clone())
+    }
+
+    /// Gapless: an error while a track handed to GStreamer has not begun yet
+    /// is taken for that track's. It becomes the current one, so that Play
+    /// tries it again rather than the track before it.
+    fn blame_pending_switch(&self) {
+        let Some(id) = self.switched_to.lock().ok().and_then(|mut s| s.take()) else {
+            return;
+        };
+        let expected = self.following(self.position.get());
+        let handed_over = self.queue.borrow().get(expected).is_some_and(|song| song.id == id);
+        if handed_over {
+            self.position.set(expected);
+        }
     }
 
     /// A switch queued for the previous track must not move the queue on.
