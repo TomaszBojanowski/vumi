@@ -281,8 +281,15 @@ impl MainView {
             view.open_artist_from(grid, &artist.id, &artist.name, client);
         });
 
-        imp.artists_grid
-            .set_model(Some(&gtk::NoSelection::new(Some(artists.clone()))));
+        // The grid gets its model only when the section is first opened: with
+        // a model it makes cards (and loads pictures) for a few hundred artists
+        // even while hidden, and many never open this section.
+        let store = artists.clone();
+        imp.artists_grid.connect_map(move |grid| {
+            if grid.model().is_none() {
+                grid.set_model(Some(&gtk::NoSelection::new(Some(store.clone()))));
+            }
+        });
         imp.artists_grid.set_factory(Some(&factory));
         let _ = imp.artist_items.set(artists);
     }
