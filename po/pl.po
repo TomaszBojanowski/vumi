@@ -185,7 +185,7 @@ msgstr "Albumy"
 
 #: app/src/main_view.blp:152
 msgid "Sort"
-msgstr "Sortowanie"
+msgstr "Sortuj"
 
 #: app/src/main_view.blp:160
 msgid "Retry"
@@ -275,7 +275,7 @@ msgstr "Utwór"
 
 #: app/src/main_view.blp:545
 msgid "About Vumi"
-msgstr "O programie Vumi"
+msgstr "O aplikacji Vumi"
 
 #: app/src/login_page.rs:130 app/src/login_page.blp:7 app/src/login_page.blp:55
 msgid "Connect"
@@ -431,7 +431,7 @@ msgstr "Radio"
 
 #: app/src/album_page.rs:817 app/src/playlist_page.blp:91
 msgid "Shuffle"
-msgstr "Losowo"
+msgstr "Odtwórz losowo"
 
 #: app/src/album_page.rs:1033 app/src/song_menu.rs:154
 msgid "No similar songs found"
@@ -447,7 +447,7 @@ msgstr "Wyświetl więcej"
 
 #: app/src/favorites.rs:148
 msgid "Could not change favorites. Please try again."
-msgstr "Nie udało się zmienić ulubionych. Spróbuj ponownie."
+msgstr "Nie można zmienić ulubionych. Spróbuj ponownie."
 
 #: app/src/favorites.rs:158
 msgid "Remove from favorites"
@@ -503,17 +503,17 @@ msgstr "Losowy album"
 
 #: app/src/start_page.blp:210
 msgid "Another Random Album"
-msgstr "Inny losowy album"
+msgstr "Wylosuj inny album"
 
 #: app/src/start_page.blp:248 app/src/start_page.blp:308
 #: app/src/start_page.blp:380
 msgid "Previous Albums"
-msgstr "Poprzednie albumy"
+msgstr "Wyświetl poprzednie albumy"
 
 #: app/src/start_page.blp:259 app/src/start_page.blp:319
 #: app/src/start_page.blp:391
 msgid "Next Albums"
-msgstr "Następne albumy"
+msgstr "Wyświetl następne albumy"
 
 #: app/src/start_page.blp:292
 msgid "Most Played"
@@ -689,7 +689,7 @@ msgstr "Przejdź do albumu"
 
 #: app/src/song_menu.rs:116
 msgid "Go to Artist"
-msgstr "Przejdź do artysty"
+msgstr "Przejdź do wykonawcy"
 
 #: app/src/song_menu.rs:119 app/src/song_menu.rs:334
 msgid "Song Information"
