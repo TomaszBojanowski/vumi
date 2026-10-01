@@ -254,6 +254,16 @@ fn build_ui(app: &adw::Application) {
     app.add_action(&quit);
     app.set_accels_for_action("app.quit", &["<Control>q"]);
 
+    // About Muse Player (main menu).
+    let about = gtk::gio::SimpleAction::new("about", None);
+    let window_for_about = window.downgrade();
+    about.connect_activate(move |_, _| {
+        if let Some(window) = window_for_about.upgrade() {
+            show_about(&window);
+        }
+    });
+    app.add_action(&about);
+
     // Closing the window while music is loaded (Preferences: "Play After the
     // Window Is Closed") only hides it: the music goes on, controlled from
     // GNOME Shell (MPRIS). Opening the app again, or Raise from Shell, shows it.
@@ -373,4 +383,46 @@ fn load_css() {
             gtk::STYLE_PROVIDER_PRIORITY_APPLICATION,
         );
     }
+}
+
+
+/// The About dialog: what the app is, who made it, what it builds on, and the
+/// versions a bug report needs.
+fn show_about(parent: &impl gtk::prelude::IsA<gtk::Widget>) {
+    let dialog = adw::AboutDialog::builder()
+        .application_name("Muse Player")
+        .application_icon(APP_ID)
+        .developer_name("Tomasz Bojanowski")
+        .developers(["Tomasz Bojanowski"])
+        .version(env!("CARGO_PKG_VERSION"))
+        .copyright("© 2026 Tomasz Bojanowski")
+        .license_type(gtk::License::Gpl30)
+        .comments(gettext("A music player for Navidrome and other Subsonic servers"))
+        .translator_credits(gettext("translator-credits"))
+        .debug_info(debug_info())
+        .debug_info_filename("muse-player-debug.txt")
+        .build();
+    dialog.add_acknowledgement_section(
+        Some(&gettext("Built With")),
+        &[
+            "Navidrome https://www.navidrome.org",
+            "AudioMuse-AI https://github.com/NeptuneHub/AudioMuse-AI",
+        ],
+    );
+    dialog.present(Some(parent));
+}
+
+/// Versions of the app and the libraries under it, for bug reports.
+fn debug_info() -> String {
+    format!(
+        "Muse Player {}\nGTK {}.{}.{}\nlibadwaita {}.{}.{}\n{}\n",
+        env!("CARGO_PKG_VERSION"),
+        gtk::major_version(),
+        gtk::minor_version(),
+        gtk::micro_version(),
+        adw::major_version(),
+        adw::minor_version(),
+        adw::micro_version(),
+        gstreamer::version_string(),
+    )
 }

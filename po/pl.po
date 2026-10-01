@@ -658,3 +658,19 @@ msgstr "Odtwarzanie przerwane"
 #: app/src/main_view.blp
 msgid "Quit"
 msgstr "Zakończ"
+
+#: app/src/main.rs
+msgid "About Muse Player"
+msgstr "O programie Muse Player"
+
+#: app/src/main.rs
+msgid "A music player for Navidrome and other Subsonic servers"
+msgstr "Odtwarzacz muzyki dla serwera Navidrome i innych serwerów Subsonic"
+
+#: app/src/main.rs
+msgid "Built With"
+msgstr "Wykorzystane projekty"
+
+#: app/src/main.rs
+msgid "translator-credits"
+msgstr "Tomasz Bojanowski <tomasz@bojanowski.me>"
