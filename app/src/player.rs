@@ -436,12 +436,20 @@ impl Player {
             .duration_since(std::time::UNIX_EPOCH)
             .map(|d| d.as_millis() as u64)
             .unwrap_or(0);
-        self.listen.replace(Some(Listen {
+        let previous = self.listen.replace(Some(Listen {
             id: song.id.clone(),
             started,
             played: 0,
             submitted: false,
         }));
+        // The same track again (Repeat Track, twice in the queue, Play after
+        // an error): nothing else tells an MPRIS client that the position is
+        // back at the start.
+        if previous.is_some_and(|listen| listen.id == song.id) {
+            if let Some(handler) = self.seek_handler.borrow().as_ref() {
+                handler(0.0);
+            }
+        }
         if self.report_support.get() == Some(true) {
             self.report("starting", Some(0));
         } else {

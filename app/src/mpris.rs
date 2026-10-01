@@ -50,7 +50,7 @@ const XML: &str = r#"<node>
     <property name="PlaybackStatus" type="s" access="read"/>
     <property name="Rate" type="d" access="read"/>
     <property name="Metadata" type="a{sv}" access="read"/>
-    <property name="Volume" type="d" access="read"/>
+    <property name="Volume" type="d" access="readwrite"/>
     <property name="Position" type="x" access="read"/>
     <property name="MinimumRate" type="d" access="read"/>
     <property name="MaximumRate" type="d" access="read"/>
@@ -108,6 +108,7 @@ fn register(connection: &gio::DBusConnection, app: glib::WeakRef<adw::Applicatio
                 invocation.return_value(None);
             })
             .property(|_, _, _, interface, property| get_property(interface, property))
+            .set_property(|_, _, _, _, property, value| set_property(property, &value))
             .build();
         if let Err(e) = result {
             eprintln!("MPRIS: could not register {name}: {e}");
@@ -246,9 +247,9 @@ fn get_property(interface: &str, property: &str) -> glib::Variant {
             Vec::<String>::new().to_variant()
         }
         (_, "PlaybackStatus") => status().to_variant(),
-        (_, "Rate") | (_, "MinimumRate") | (_, "MaximumRate") | (_, "Volume") => {
-            1.0f64.to_variant()
-        }
+        (_, "Rate") | (_, "MinimumRate") | (_, "MaximumRate") => 1.0f64.to_variant(),
+        // As on the app's own slider, from 0 to 1.
+        (_, "Volume") => player.volume().to_variant(),
         (_, "Metadata") => metadata(),
         (_, "Position") => {
             ((player.position_secs().unwrap_or(0.0) * 1e6) as i64).to_variant()
@@ -259,6 +260,20 @@ fn get_property(interface: &str, property: &str) -> glib::Variant {
         }
         (_, "CanControl") => true.to_variant(),
         _ => false.to_variant(),
+    }
+}
+
+/// Volume is the only property a client may set. The player announces the
+/// change itself (emit_changed), and the slider in the app follows it.
+fn set_property(property: &str, value: &glib::Variant) -> bool {
+    match (property, value.get::<f64>()) {
+        // Anything that is not a number (NaN, infinity) is refused; the
+        // player keeps the rest between 0 and 1.
+        ("Volume", Some(volume)) if volume.is_finite() => {
+            player::get().set_volume(volume);
+            true
+        }
+        _ => false,
     }
 }
 
@@ -278,6 +293,7 @@ fn emit_changed() {
         changed.insert_value("CanPlay", &loaded.to_variant());
         changed.insert_value("CanPause", &loaded.to_variant());
         changed.insert_value("CanSeek", &loaded.to_variant());
+        changed.insert_value("Volume", &player.volume().to_variant());
         let params = glib::Variant::tuple_from_iter([
             PLAYER.to_variant(),
             changed.end(),
