@@ -226,6 +226,12 @@ impl Player {
     }
 
     fn play_at(&self, index: usize) {
+        self.load(index, true);
+    }
+
+    /// Makes the track at `index` the current one and plays it; with `play`
+    /// false it is loaded but stays paused at its start.
+    fn load(&self, index: usize, play: bool) {
         // A new track: a seek meant for the previous one must not land here.
         self.pending_seek.set(None);
         // Nor may a gapless switch of the previous one move this track on.
@@ -259,10 +265,15 @@ impl Player {
         self.apply_replay_gain();
         self.apply_volume();
         self.playbin.set_property("uri", url.as_str());
-        match self.playbin.set_state(gst::State::Playing) {
+        let target = if play { gst::State::Playing } else { gst::State::Paused };
+        match self.playbin.set_state(target) {
             Ok(_) => {
-                self.set_state(State::Playing);
+                self.set_state(if play { State::Playing } else { State::Paused });
                 self.begin_listen();
+                if !play {
+                    // begin_listen told the server the track is starting.
+                    self.report("paused", Some(0));
+                }
                 self.prepare_next();
             }
             // Errors found later (server gone, broken file) arrive on the bus.
@@ -784,7 +795,8 @@ impl Player {
 
 impl Player {
     /// Removes the track at `index` from the queue (the queue panel). Removing
-    /// the playing track plays the next one, or ends the queue.
+    /// the current track moves on to the next one, or ends the queue; the next
+    /// one plays only if the removed one did, after a pause or Stop it waits.
     pub(crate) fn remove(&self, index: usize) {
         let queue = self.queue.borrow().clone();
         if index >= queue.len() {
@@ -796,8 +808,9 @@ impl Player {
         let position = self.position.get();
         self.queue.replace(songs.into());
         if index == position {
+            let waits = matches!(*self.state.borrow(), State::Paused | State::Ended);
             // The next track now sits at this index; past the end, the queue ends.
-            self.play_at(position);
+            self.load(position, !waits);
         } else {
             if index < position {
                 self.position.set(position - 1);
