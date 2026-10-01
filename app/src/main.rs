@@ -448,6 +448,8 @@ fn show_about(parent: &impl gtk::prelude::IsA<gtk::Widget>) {
         .developer_name("Tomasz Bojanowski")
         .developers(["Tomasz Bojanowski"])
         .version(env!("CARGO_PKG_VERSION"))
+        .website("https://github.com/TomaszBojanowski/vumi")
+        .issue_url("https://github.com/TomaszBojanowski/vumi/issues")
         .copyright("© 2026 Tomasz Bojanowski")
         .license_type(gtk::License::Gpl30)
         .comments(gettext("A music player for Navidrome and other Subsonic servers"))
