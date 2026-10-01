@@ -352,25 +352,39 @@ template $VumiMainView: Adw.NavigationPage {
                     StackPage {
                       name: "list";
 
-                      child: ScrolledWindow {
-                        hscrollbar-policy: never;
+                      // The section asks only for the width of one column
+                      // of cards, whatever it shows: two columns as its own
+                      // minimum would leave no room for the queue beside it.
+                      child: Adw.BreakpointBin {
+                        width-request: 366;
+                        height-request: 150;
 
-                        child: Adw.Clamp {
-                          maximum-size: 1200;
+                        child: ScrolledWindow {
+                          hscrollbar-policy: never;
 
-                          // Wide cards in two columns (one on narrow
-                          // windows), laid out in code.
-                          child: Grid playlists_grid {
-                            column-homogeneous: true;
-                            column-spacing: 12;
-                            row-spacing: 12;
-                            margin-top: 24;
-                            margin-bottom: 24;
-                            margin-start: 24;
-                            margin-end: 24;
-                            valign: start;
+                          child: Adw.Clamp {
+                            maximum-size: 1200;
+
+                            // Wide cards in one column, or in two where the
+                            // section is wide enough (the breakpoint below),
+                            // laid out in code.
+                            child: Grid playlists_grid {
+                              column-homogeneous: true;
+                              column-spacing: 12;
+                              row-spacing: 12;
+                              margin-top: 24;
+                              margin-bottom: 24;
+                              margin-start: 24;
+                              margin-end: 24;
+                              valign: start;
+                            };
                           };
                         };
+
+                        // Room for two columns of cards; the code listens to it.
+                        Adw.Breakpoint playlists_wide {
+                          condition ("min-width: 700sp")
+                        }
                       };
                     }
                   };

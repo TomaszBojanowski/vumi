@@ -99,6 +99,10 @@ mod imp {
         pub playlists_stack: gtk::TemplateChild<gtk::Stack>,
         #[template_child]
         pub playlists_grid: gtk::TemplateChild<gtk::Grid>,
+        #[template_child]
+        pub playlists_wide: gtk::TemplateChild<adw::Breakpoint>,
+        /// Whether the Playlists section has room for two columns of cards.
+        pub playlists_two_columns: Cell<bool>,
         /// The playlists as the server lists them.
         pub playlists: RefCell<Vec<subsonic::Playlist>>,
         /// The artists as the server lists them (with their pictures); empty
@@ -969,13 +973,23 @@ impl MainView {
         });
     }
 
-    /// The playlist cards go into two columns, or one on medium and narrow
-    /// windows (the breakpoint that also collapses the queue panel): the grid
-    /// is laid out again whenever that changes.
+    /// The playlist cards go into two columns where the section is wide
+    /// enough for them, else into one: the grid is laid out again whenever
+    /// that changes.
     fn setup_playlists(&self) {
+        // The number of columns follows the width of the section itself (its
+        // breakpoint), not the window or the queue next to it.
         let view = self.downgrade();
-        self.imp().queue_split.connect_collapsed_notify(move |_| {
+        self.imp().playlists_wide.connect_apply(move |_| {
             if let Some(view) = view.upgrade() {
+                view.imp().playlists_two_columns.set(true);
+                view.refresh_playlists();
+            }
+        });
+        let view = self.downgrade();
+        self.imp().playlists_wide.connect_unapply(move |_| {
+            if let Some(view) = view.upgrade() {
+                view.imp().playlists_two_columns.set(false);
                 view.refresh_playlists();
             }
         });
@@ -988,7 +1002,7 @@ impl MainView {
         let imp = self.imp();
         let playlists = imp.playlists.borrow().clone();
         let client = imp.client.borrow().clone();
-        let columns: usize = if imp.queue_split.is_collapsed() { 1 } else { 2 };
+        let columns: usize = if imp.playlists_two_columns.get() { 2 } else { 1 };
 
         while let Some(child) = imp.playlists_grid.first_child() {
             imp.playlists_grid.remove(&child);
