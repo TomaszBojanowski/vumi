@@ -39,6 +39,10 @@ mod imp {
         #[template_child]
         pub total: gtk::TemplateChild<gtk::Label>,
         #[template_child]
+        pub star_slot: gtk::TemplateChild<adw::Bin>,
+        /// The song whose star is in `star_slot`.
+        pub star_song: RefCell<Option<String>>,
+        #[template_child]
         pub queue_button: gtk::TemplateChild<gtk::Button>,
         #[template_child]
         pub previous: gtk::TemplateChild<gtk::Button>,
@@ -183,6 +187,18 @@ impl NowPlaying {
         imp.title.set_label(&song.title);
         imp.artist.set_label(song.artist.as_deref().unwrap_or(""));
         imp.album.set_label(song.album.as_deref().unwrap_or(""));
+
+        // A star for the song, made anew only when the song changes: a rebuild
+        // while it waits for the server would lose that wait.
+        if imp.star_song.borrow().as_deref() != Some(song.id.as_str()) {
+            imp.star_song.replace(Some(song.id.clone()));
+            let star = crate::favorites::star_button(
+                song.starred.is_some(),
+                player.client(),
+                crate::favorites::Favorite::Song(song.id.clone()),
+            );
+            adw::prelude::BinExt::set_child(&imp.star_slot.get(), Some(&star));
+        }
         imp.progress
             .adjustment()
             .set_upper(song.duration.unwrap_or(0).max(1) as f64);
