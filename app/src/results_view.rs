@@ -18,6 +18,10 @@ use crate::main_view::MainView;
 use crate::player;
 use crate::song_row::SongRow;
 
+/// What a view is asked to show: the albums, the songs and the client for
+/// covers, playing and the song menu.
+type Content = (Vec<Arc<subsonic::Album>>, Vec<subsonic::Song>, Option<subsonic::Client>);
+
 /// One item of the list: what stands above the songs, or a song.
 enum Entry {
     Header,
@@ -56,6 +60,11 @@ mod imp {
         pub songs: RefCell<Option<Rc<[subsonic::Song]>>>,
         /// For playing, and for what the song menu does.
         pub client: RefCell<Option<subsonic::Client>>,
+        /// Asked for while the view was not on screen: shown when it gets there.
+        pub pending: RefCell<Option<Content>>,
+        /// The albums on screen and the account they came from (the songs are
+        /// in `songs`): the same content again is not built again.
+        pub shown: RefCell<Option<(Vec<Arc<subsonic::Album>>, Option<String>)>>,
     }
 
     #[glib::object_subclass]
@@ -89,6 +98,14 @@ mod imp {
             });
             self.obj()
                 .connect_destroy(move |_| player::get().disconnect(listener));
+
+            // What was asked for while the view was hidden is built now.
+            self.obj().connect_map(|view| {
+                let pending = view.imp().pending.take();
+                if let Some(content) = pending {
+                    view.fill(content);
+                }
+            });
         }
     }
     impl WidgetImpl for ResultsView {}
@@ -242,17 +259,41 @@ impl ResultsView {
     }
 
     /// Shows albums and songs. A click on an album opens it; a click on a song
-    /// plays it, then the songs listed after it.
+    /// plays it, then the songs listed after it. A view that is not on screen
+    /// (Favorites at startup, say) only remembers them, and builds its cards
+    /// and rows when it is opened: many never open it, and it is asked to show
+    /// the same thing more than once while the library syncs.
     pub(crate) fn show(
         &self,
         albums: &[Arc<subsonic::Album>],
         songs: Vec<subsonic::Song>,
         client: Option<subsonic::Client>,
     ) {
+        let content = (albums.to_vec(), songs, client);
+        if self.is_mapped() {
+            self.fill(content);
+        } else {
+            self.imp().pending.replace(Some(content));
+        }
+    }
+
+    fn fill(&self, (albums, songs, client): Content) {
         let imp = self.imp();
 
+        // The same as on screen: nothing to build.
+        let account = client.as_ref().map(|client| client.server_key());
+        let same = imp.shown.borrow().as_ref().is_some_and(|(shown_albums, shown_account)| {
+            *shown_albums == albums
+                && *shown_account == account
+                && imp.songs.borrow().as_deref().is_some_and(|shown| *shown == *songs)
+        });
+        if same {
+            return;
+        }
+        imp.shown.replace(Some((albums.clone(), account)));
+
         imp.albums_box.remove_all();
-        for album in albums {
+        for album in &albums {
             let card = AlbumCard::new();
             card.set_album(album, client.clone());
             let button = gtk::Button::builder()

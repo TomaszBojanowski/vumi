@@ -132,7 +132,7 @@ pub struct AlbumWithSongs {
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 pub struct Song {
     pub id: String,
     pub title: String,
