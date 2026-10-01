@@ -264,6 +264,26 @@ fn build_ui(app: &adw::Application) {
     });
     app.add_action(&about);
 
+    // Playback from the keyboard, as in GNOME Music. Not plain Space: the
+    // search entry needs it.
+    let playback: [(&str, &str, fn()); 3] = [
+        ("play-pause", "<Control>space", || {
+            crate::player::get().toggle_pause();
+        }),
+        ("previous", "<Control>b", || {
+            crate::player::get().previous();
+        }),
+        ("next", "<Control>n", || {
+            crate::player::get().next();
+        }),
+    ];
+    for (name, accel, run) in playback {
+        let action = gtk::gio::SimpleAction::new(name, None);
+        action.connect_activate(move |_, _| run());
+        app.add_action(&action);
+        app.set_accels_for_action(&format!("app.{name}"), &[accel]);
+    }
+
     // Closing the window while music is loaded (Preferences: "Play After the
     // Window Is Closed") only hides it: the music goes on, controlled from
     // GNOME Shell (MPRIS). Opening the app again, or Raise from Shell, shows it.
