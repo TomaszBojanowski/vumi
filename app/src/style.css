@@ -124,8 +124,15 @@
 
 /* The grid is no wider than its clamp: the margins beside it take the grid's
    own background, so the section is one surface, as Albums is. */
-.artists-scroll {
+.artists-list {
   background-color: var(--view-bg-color);
+}
+
+/* The letters above the Artists grid: small, so the alphabet fits one line. */
+button.artists-letter {
+  min-width: 24px;
+  min-height: 24px;
+  padding: 2px 4px;
 }
 
 /* Bigger pill: a slightly larger title and larger round buttons,

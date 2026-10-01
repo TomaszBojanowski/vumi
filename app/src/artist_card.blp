@@ -9,10 +9,24 @@ template $VumiArtistCard: Box {
   margin-start: 12;
   margin-end: 12;
 
-  // The initials show until the picture is there, and for artists without one.
-  Adw.Avatar avatar {
-    size: 120;
-    show-initials: true;
+  Overlay {
+    // The initials show until the picture is there, and for artists without one.
+    child: Adw.Avatar avatar {
+      size: 120;
+      show-initials: true;
+    };
+
+    // On the first card of a letter only: where that letter begins.
+    [overlay]
+    Label letter {
+      halign: start;
+      valign: start;
+      visible: false;
+
+      styles [
+        "title-3",
+      ]
+    }
   }
 
   // Both boxes share the one cell. The invisible one always takes the room

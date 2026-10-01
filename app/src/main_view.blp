@@ -229,29 +229,52 @@ template $VumiMainView: Adw.NavigationPage {
                     StackPage {
                       name: "list";
 
-                      child: ScrolledWindow {
-                        hscrollbar-policy: never;
+                      child: Box {
+                        orientation: vertical;
 
                         styles [
-                          "artists-scroll",
+                          "artists-list",
                         ]
 
-                        // Scrollable itself, so the grid inside still knows
-                        // what is on screen.
-                        child: Adw.ClampScrollable {
+                        // A button per first letter; it scrolls the grid there.
+                        Adw.Clamp {
                           maximum-size: 1200;
 
-                          // Only visible cards exist; they are reused while scrolling.
-                          child: GridView artists_grid {
-                            min-columns: 2;
-                            max-columns: 12;
-                            single-click-activate: true;
+                          child: Adw.WrapBox artists_letters {
+                            child-spacing: 2;
+                            line-spacing: 2;
+                            margin-top: 6;
+                            margin-start: 24;
+                            margin-end: 24;
+                            accessible-role: group;
 
-                            styles [
-                              "artists-grid",
-                            ]
+                            accessibility {
+                              label: _("Jump to Letter");
+                            }
                           };
-                        };
+                        }
+
+                        ScrolledWindow {
+                          hscrollbar-policy: never;
+                          vexpand: true;
+
+                          // Scrollable itself, so the grid inside still knows
+                          // what is on screen.
+                          child: Adw.ClampScrollable {
+                            maximum-size: 1200;
+
+                            // Only visible cards exist; they are reused while scrolling.
+                            child: GridView artists_grid {
+                              min-columns: 2;
+                              max-columns: 12;
+                              single-click-activate: true;
+
+                              styles [
+                                "artists-grid",
+                              ]
+                            };
+                          };
+                        }
                       };
                     }
                   };

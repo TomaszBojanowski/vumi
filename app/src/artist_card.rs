@@ -5,6 +5,7 @@
 use adw::subclass::prelude::*;
 use gettextrs::ngettext;
 use gtk::glib;
+use gtk::prelude::*;
 use std::cell::RefCell;
 
 use crate::covers;
@@ -17,6 +18,8 @@ mod imp {
     pub struct ArtistCard {
         #[template_child]
         pub avatar: gtk::TemplateChild<adw::Avatar>,
+        #[template_child]
+        pub letter: gtk::TemplateChild<gtk::Label>,
         #[template_child]
         pub name: gtk::TemplateChild<gtk::Label>,
         #[template_child]
@@ -58,15 +61,19 @@ impl ArtistCard {
     }
 
     /// `picture` is the cover id of the artist's picture, if the server has
-    /// one; without a `client` (or a picture) the initials stay.
+    /// one; without a `client` (or a picture) the initials stay. `letter` is
+    /// given for the first artist under a letter, and shown in the corner.
     pub(crate) fn set_artist(
         &self,
         name: &str,
         albums: u32,
         picture: Option<String>,
+        letter: Option<&str>,
         client: Option<subsonic::Client>,
     ) {
         let imp = self.imp();
+        imp.letter.set_label(letter.unwrap_or(""));
+        imp.letter.set_visible(letter.is_some());
         imp.avatar.set_text(Some(name));
         imp.name.set_label(name);
         // Translators: {n} is a number of albums.

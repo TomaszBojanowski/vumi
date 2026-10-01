@@ -758,3 +758,7 @@ msgstr "Powtarzanie"
 #: app/src/now_playing.blp
 msgid "Volume"
 msgstr "Głośność"
+
+#: app/src/main_view.blp
+msgid "Jump to Letter"
+msgstr "Przejście do litery"

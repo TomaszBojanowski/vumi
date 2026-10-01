@@ -22,6 +22,37 @@ struct ArtistItem {
     albums: u32,
     /// The cover id of the artist's picture, if the server has one.
     picture: Option<String>,
+    /// The letter this artist is the first one under, if it is.
+    letter: Option<String>,
+}
+
+/// What artists are sorted by: the name in lower case, with accented letters
+/// as their base letters ("Óscar" → "oscar", "Åsa" → "asa", "Łukasz" →
+/// "lukasz"), so they stand among those rather than after "z".
+fn artist_sort_key(name: &str) -> String {
+    // Default is the canonical decomposition (NFD).
+    glib::normalize(name.to_lowercase(), glib::NormalizeMode::Default)
+        .chars()
+        // The accents, which the decomposition has split off the letters.
+        .filter(|c| !matches!(*c as u32, 0x0300..=0x036F | 0x1AB0..=0x1AFF | 0x1DC0..=0x1DFF | 0x20D0..=0x20FF))
+        // Letters of their own in Unicode, which no decomposition takes apart.
+        .map(|c| match c {
+            'ł' => 'l',
+            'ø' => 'o',
+            'đ' => 'd',
+            c => c,
+        })
+        .collect()
+}
+
+/// The letter an artist is listed under, from its sort key: the first of the
+/// name without its accent, or "#" for digits and symbols.
+fn artist_letter(key: &str) -> String {
+    key.chars()
+        .next()
+        .filter(|c| c.is_alphabetic())
+        .map(|c| c.to_uppercase().to_string())
+        .unwrap_or_else(|| "#".to_string())
 }
 
 mod imp {
@@ -58,6 +89,8 @@ mod imp {
         pub artists_stack: gtk::TemplateChild<gtk::Stack>,
         #[template_child]
         pub artists_grid: gtk::TemplateChild<gtk::GridView>,
+        #[template_child]
+        pub artists_letters: gtk::TemplateChild<adw::WrapBox>,
         /// The artists in the grid, in the order shown.
         pub artist_items: OnceCell<gio::ListStore>,
         #[template_child]
@@ -247,7 +280,13 @@ impl MainView {
             };
             let client = view.upgrade().and_then(|v| v.imp().client.borrow().clone());
             let artist = object.borrow::<ArtistItem>();
-            card.set_artist(&artist.name, artist.albums, artist.picture.clone(), client);
+            card.set_artist(
+                &artist.name,
+                artist.albums,
+                artist.picture.clone(),
+                artist.letter.as_deref(),
+                client,
+            );
         });
         // Scrolled out of sight: the card lets go of the picture. The cover
         // cache still has it for a while, should the artist come back.
@@ -747,6 +786,33 @@ impl MainView {
         });
     }
 
+    /// Scrolls the Artists grid so that the artist at `position` is in its
+    /// first row, and moves the keyboard focus to that card.
+    fn scroll_to_artist(&self, position: u32) {
+        let grid = &self.imp().artists_grid;
+        // scroll_to alone moves only as far as it must, which leaves an artist
+        // further down in the last row on screen. All rows are as tall, so the
+        // place of its row is known from the size of any one card.
+        let mut card = None;
+        let mut cell = grid.first_child();
+        while let Some(widget) = cell {
+            // The whole cell, with the padding the theme gives it.
+            card = widget
+                .compute_bounds(&grid.get())
+                .filter(|bounds| bounds.width() >= 1.0 && bounds.height() >= 1.0);
+            if card.is_some() {
+                break;
+            }
+            cell = widget.next_sibling();
+        }
+        if let (Some(card), Some(adjustment)) = (card, grid.vadjustment()) {
+            let columns = (grid.width() as f32 / card.width()).round().max(1.0) as u32;
+            let top = f64::from(position / columns) * f64::from(card.height());
+            adjustment.set_value(top.min(adjustment.upper() - adjustment.page_size()));
+        }
+        grid.scroll_to(position, gtk::ListScrollFlags::FOCUS, None);
+    }
+
     /// The Artists section: the artists by name, each a card in the grid
     /// (picture or initials, name, number of albums). From the server's list
     /// when it is there, else from the albums in memory.
@@ -782,7 +848,8 @@ impl MainView {
                     .collect()
             }
         };
-        artists.sort_by_cached_key(|(_, name, _, _)| name.to_lowercase());
+        // Names that differ only in accents or case keep one order of their own.
+        artists.sort_by_cached_key(|(_, name, _, _)| (artist_sort_key(name), name.to_lowercase()));
 
         // The same artists as now: nothing to rebuild.
         let shown: Vec<(String, u32, Option<String>)> = artists
@@ -795,12 +862,43 @@ impl MainView {
         imp.artists_shown.replace(shown);
 
         let count = artists.len();
-        let objects: Vec<glib::BoxedAnyObject> = artists
-            .into_iter()
-            .map(|(id, name, albums, picture)| {
-                glib::BoxedAnyObject::new(ArtistItem { id, name, albums, picture })
-            })
-            .collect();
+        // Where each letter begins: its button above the grid scrolls there,
+        // and the card there shows the letter.
+        while let Some(button) = imp.artists_letters.first_child() {
+            imp.artists_letters.remove(&button);
+        }
+        let mut current: Option<String> = None;
+        let mut listed = std::collections::HashSet::new();
+        let mut objects = Vec::with_capacity(count);
+        for (position, (id, name, albums, picture)) in artists.into_iter().enumerate() {
+            let letter = artist_letter(&artist_sort_key(&name));
+            let first = current.as_deref() != Some(letter.as_str());
+            // A letter can begin twice ("#": digits sort before the letters,
+            // some symbols after them); its button goes to the first place.
+            if first && listed.insert(letter.clone()) {
+                let button = gtk::Button::builder()
+                    .label(&letter)
+                    .css_classes(["flat", "artists-letter"])
+                    .build();
+                let view = self.downgrade();
+                button.connect_clicked(move |_| {
+                    if let Some(view) = view.upgrade() {
+                        view.scroll_to_artist(position as u32);
+                    }
+                });
+                imp.artists_letters.append(&button);
+            }
+            if first {
+                current = Some(letter.clone());
+            }
+            objects.push(glib::BoxedAnyObject::new(ArtistItem {
+                id,
+                name,
+                albums,
+                picture,
+                letter: first.then_some(letter),
+            }));
+        }
         if let Some(store) = imp.artist_items.get() {
             // One change notification for the whole list, not one per artist.
             store.splice(0, store.n_items(), &objects);
