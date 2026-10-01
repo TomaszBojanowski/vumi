@@ -722,3 +722,11 @@ msgstr "Jasny"
 #: app/src/preferences.blp
 msgid "Dark"
 msgstr "Ciemny"
+
+#: app/src/preferences.blp
+msgid "Cover Colors"
+msgstr "Kolory okładki"
+
+#: app/src/preferences.blp
+msgid "Tint the album page and the player with the colour of the cover"
+msgstr "Barwienie strony albumu i odtwarzacza kolorem okładki"

@@ -57,5 +57,9 @@
       <default>0</default>
       <summary>Style: 0 follows the system, 1 is always light, 2 is always dark</summary>
     </key>
+    <key name="cover-colors" type="b">
+      <default>true</default>
+      <summary>Tint the album page and the player cards with the cover colour</summary>
+    </key>
   </schema>
 </schemalist>

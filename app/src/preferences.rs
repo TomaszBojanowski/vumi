@@ -26,6 +26,8 @@ mod imp {
         #[template_child]
         pub color_scheme: gtk::TemplateChild<adw::ComboRow>,
         #[template_child]
+        pub cover_colors: gtk::TemplateChild<adw::SwitchRow>,
+        #[template_child]
         pub report_listens: gtk::TemplateChild<adw::SwitchRow>,
         #[template_child]
         pub sync_row: gtk::TemplateChild<adw::ButtonRow>,
@@ -79,6 +81,9 @@ mod imp {
                 .build();
             settings
                 .bind("color-scheme", &*self.color_scheme, "selected")
+                .build();
+            settings
+                .bind("cover-colors", &*self.cover_colors, "active")
                 .build();
         }
     }

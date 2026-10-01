@@ -121,8 +121,20 @@ pub(crate) fn apply(widget: &impl IsA<gtk::Widget>, (r, g, b): (u8, u8, u8)) {
     });
 }
 
-fn reload() {
-    let css = RULES.with(|rules| rules.borrow().values().cloned().collect::<Vec<_>>().join("\n"));
+/// "Cover Colors" in Preferences.
+fn enabled() -> bool {
+    use gtk::gio::prelude::*;
+    gtk::gio::Settings::new(crate::APP_ID).boolean("cover-colors")
+}
+
+/// Loads the rules, or none when cover colours are off. The rules are kept
+/// either way, so turning the option back on shows them again at once.
+pub(crate) fn reload() {
+    let css = if enabled() {
+        RULES.with(|rules| rules.borrow().values().cloned().collect::<Vec<_>>().join("\n"))
+    } else {
+        String::new()
+    };
     PROVIDER.with(|cell| {
         let provider = cell.get_or_init(|| {
             let provider = gtk::CssProvider::new();

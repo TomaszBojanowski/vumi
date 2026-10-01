@@ -156,6 +156,8 @@ fn build_ui(app: &adw::Application) {
         };
         apply(&settings);
         settings.connect_changed(Some("color-scheme"), move |settings, _| apply(settings));
+        // Cover Colors (Preferences): on and off at once, on every open page.
+        settings.connect_changed(Some("cover-colors"), |_, _| crate::tint::reload());
         // Kept for the whole run: the change signal goes with the object.
         std::mem::forget(settings);
     }
