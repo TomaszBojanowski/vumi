@@ -1030,7 +1030,7 @@ impl AlbumPage {
                     .and_then(|page| page.ancestor(adw::ToastOverlay::static_type()))
                     .and_downcast::<adw::ToastOverlay>()
                 {
-                    toasts.add_toast(adw::Toast::new(&gettext("No similar songs found")));
+                    toasts.add_toast(crate::plain_toast(&gettext("No similar songs found")));
                 }
                 return;
             }

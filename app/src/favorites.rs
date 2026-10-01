@@ -168,6 +168,6 @@ fn show_toast(widget: &impl IsA<gtk::Widget>, message: &str) {
         .ancestor(adw::ToastOverlay::static_type())
         .and_downcast::<adw::ToastOverlay>()
     {
-        overlay.add_toast(adw::Toast::new(message));
+        overlay.add_toast(crate::plain_toast(message));
     }
 }

@@ -119,7 +119,7 @@ impl Preferences {
         let dialog = self.downgrade();
         imp.sync_row.connect_activated(move |_| {
             if let Some(dialog) = dialog.upgrade() {
-                dialog.add_toast(adw::Toast::new(&gettext("Syncing the library…")));
+                dialog.add_toast(crate::plain_toast(&gettext("Syncing the library…")));
             }
         });
 
@@ -135,7 +135,7 @@ impl Preferences {
                 if let Some(dialog) = dialog.upgrade() {
                     dialog.update_cache_size();
                     if !matches!(result, Ok(Ok(()))) {
-                        dialog.add_toast(adw::Toast::new(&gettext(
+                        dialog.add_toast(crate::plain_toast(&gettext(
                             "Could not clear the cover cache",
                         )));
                     }

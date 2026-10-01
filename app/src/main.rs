@@ -169,7 +169,7 @@ fn build_ui(app: &adw::Application) {
     let toasts_weak = toasts.downgrade();
     player::get().set_error_handler(move |message| {
         if let Some(toasts) = toasts_weak.upgrade() {
-            toasts.add_toast(adw::Toast::new(message));
+            toasts.add_toast(plain_toast(message));
         }
     });
     toasts.set_child(Some(&nav));
@@ -416,6 +416,13 @@ fn error_message(e: &subsonic::Error) -> String {
         // Translators: {message} is the error text sent by the server.
         Server { message, .. } => gettext("Server error: {message}").replace("{message}", message),
     }
+}
+
+/// A toast that shows `text` as it is. A toast reads its title as Pango markup
+/// unless told otherwise, and then a "&" or "<" in a name from the server (a
+/// playlist, an error) keeps the whole message from showing.
+fn plain_toast(text: &str) -> adw::Toast {
+    adw::Toast::builder().use_markup(false).title(text).build()
 }
 
 /// When the process started, to measure how fast the library shows up.

@@ -345,6 +345,6 @@ fn toast(widget: &impl IsA<gtk::Widget>, text: &str) {
         .ancestor(adw::ToastOverlay::static_type())
         .and_downcast::<adw::ToastOverlay>()
     {
-        toasts.add_toast(adw::Toast::new(text));
+        toasts.add_toast(crate::plain_toast(text));
     }
 }
