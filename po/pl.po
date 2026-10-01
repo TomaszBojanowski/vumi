@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vumi\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-01 22:40+0200\n"
+"POT-Creation-Date: 2026-10-01 22:46+0200\n"
 "PO-Revision-Date: 2026-09-27 20:40+0200\n"
 "Last-Translator: Tomasz Bojanowski <tomasz@bojanowski.me>\n"
 "Language-Team: Polish\n"
@@ -70,50 +70,54 @@ msgid "translator-credits"
 msgstr "Tomasz Bojanowski <tomasz@bojanowski.me>"
 
 #: app/src/main.rs:469
+msgid "Buy Me a Coffee"
+msgstr "Postaw kawę"
+
+#: app/src/main.rs:471
 msgid "Built With"
 msgstr "Wykorzystane projekty"
 
-#: app/src/main.rs:499 app/src/preferences.blp:66
+#: app/src/main.rs:501 app/src/preferences.blp:66
 msgid "Playback"
 msgstr "Odtwarzanie"
 
-#: app/src/main.rs:501
+#: app/src/main.rs:503
 msgid "Play or Pause"
 msgstr "Odtworzenie lub wstrzymanie"
 
-#: app/src/main.rs:502
+#: app/src/main.rs:504
 msgid "Previous Track"
 msgstr "Poprzedni utwór"
 
-#: app/src/main.rs:503
+#: app/src/main.rs:505
 msgid "Next Track"
 msgstr "Następny utwór"
 
-#: app/src/main.rs:507 app/src/main_view.blp:132 app/src/preferences.blp:93
+#: app/src/main.rs:509 app/src/main_view.blp:132 app/src/preferences.blp:93
 msgid "Library"
 msgstr "Biblioteka"
 
-#: app/src/main.rs:509
+#: app/src/main.rs:511
 msgid "Search Library"
 msgstr "Wyszukiwanie w bibliotece"
 
-#: app/src/main.rs:510 app/src/main_view.blp:46 app/src/main_view.blp:529
+#: app/src/main.rs:512 app/src/main_view.blp:46 app/src/main_view.blp:529
 msgid "Sync Library"
 msgstr "Synchronizuj bibliotekę"
 
-#: app/src/main.rs:514 app/src/preferences.blp:9
+#: app/src/main.rs:516 app/src/preferences.blp:9
 msgid "General"
 msgstr "Ogólne"
 
-#: app/src/main.rs:516 app/src/main_view.blp:536
+#: app/src/main.rs:518 app/src/main_view.blp:536
 msgid "Preferences"
 msgstr "Preferencje"
 
-#: app/src/main.rs:517 app/src/main_view.blp:541
+#: app/src/main.rs:519 app/src/main_view.blp:541
 msgid "Keyboard Shortcuts"
 msgstr "Skróty klawiszowe"
 
-#: app/src/main.rs:518 app/src/main_view.blp:551
+#: app/src/main.rs:520 app/src/main_view.blp:551
 msgid "Quit"
 msgstr "Zakończ"
 

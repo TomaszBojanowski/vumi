@@ -465,6 +465,8 @@ fn show_about(parent: &impl gtk::prelude::IsA<gtk::Widget>) {
         .debug_info(debug_info())
         .debug_info_filename("vumi-debug.txt")
         .build();
+    // A way to support the author; it sits with the dialog's other links.
+    dialog.add_link(&gettext("Buy Me a Coffee"), "https://buymeacoffee.com/sojer2005");
     dialog.add_acknowledgement_section(
         Some(&gettext("Built With")),
         &[
