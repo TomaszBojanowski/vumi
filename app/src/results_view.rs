@@ -52,14 +52,17 @@ mod imp {
     impl ObjectImpl for ResultsView {
         fn constructed(&self) {
             self.parent_constructed();
-            // The playing song is marked, as on album pages. These views live as
-            // long as the app, so they keep listening.
+            // The playing song is marked, as on album pages. The search results
+            // and the Favorites live as long as the app, but a playlist page has
+            // a view of its own: it stops listening when the page is closed.
             let view = self.obj().downgrade();
-            player::get().connect_changed(move || {
+            let listener = player::get().connect_changed(move || {
                 if let Some(view) = view.upgrade() {
                     view.mark_playing();
                 }
             });
+            self.obj()
+                .connect_destroy(move |_| player::get().disconnect(listener));
         }
     }
     impl WidgetImpl for ResultsView {}
