@@ -367,6 +367,19 @@ impl Client {
         self.call(endpoint, &[(key, id.to_string())]).await?;
         Ok(())
     }
+
+    /// Tells the server about a song being played: `submission` = false marks
+    /// it as playing now, true records a finished listen (play count, history,
+    /// Last.fm or ListenBrainz if the server forwards them). `time` is when the
+    /// listen began, in milliseconds since the Unix epoch.
+    pub async fn scrobble(&self, id: &str, submission: bool, time: Option<u64>) -> Result<()> {
+        let mut params = vec![("id", id.to_string()), ("submission", submission.to_string())];
+        if let Some(time) = time {
+            params.push(("time", time.to_string()));
+        }
+        self.call("scrobble", &params).await?;
+        Ok(())
+    }
 }
 
 /// Extra album information the server gathers, e.g. from Last.fm.

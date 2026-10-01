@@ -35,6 +35,10 @@ pub(crate) struct Player {
     next_listener: Cell<u64>,
     /// Shows playback errors to the user (a toast in the window).
     error_handler: RefCell<Option<Box<dyn Fn(&str)>>>,
+    /// The listen in progress, for scrobbling.
+    listen: RefCell<Option<Listen>>,
+    /// Whether the once-a-second listen timer runs already.
+    listen_timer: std::cell::Cell<bool>,
     /// Told about every jump of the position (MPRIS sends Seeked).
     seek_handler: RefCell<Option<Box<dyn Fn(f64)>>>,
     /// Counts the user's commands (play, stop, changes to the queue). Requests
@@ -110,6 +114,8 @@ impl Player {
                 listeners: RefCell::new(Vec::new()),
                 next_listener: Cell::new(0),
                 error_handler: RefCell::new(None),
+                listen: RefCell::new(None),
+                listen_timer: std::cell::Cell::new(false),
                 seek_handler: RefCell::new(None),
                 command: Cell::new(0),
                 pending_seek: Cell::new(None),
@@ -233,6 +239,7 @@ impl Player {
         match self.playbin.set_state(gst::State::Playing) {
             Ok(_) => {
                 self.set_state(State::Playing);
+                self.begin_listen();
                 self.prepare_next();
             }
             // Errors found later (server gone, broken file) arrive on the bus.
@@ -362,6 +369,81 @@ pub(crate) fn shutdown() {
     });
 }
 
+/// One play of one song, as the server hears about it.
+struct Listen {
+    id: String,
+    /// When it began, in milliseconds since the Unix epoch.
+    started: u64,
+    /// Seconds actually played: pauses and seeks do not count.
+    played: u64,
+    submitted: bool,
+}
+
+impl Player {
+    /// A new track has begun: the server shows it as playing now, and the
+    /// timer starts counting towards a finished listen.
+    fn begin_listen(&self) {
+        let Some(song) = self.current() else {
+            return;
+        };
+        let started = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_millis() as u64)
+            .unwrap_or(0);
+        self.listen.replace(Some(Listen {
+            id: song.id.clone(),
+            started,
+            played: 0,
+            submitted: false,
+        }));
+        self.scrobble(song.id.clone(), false, None);
+
+        if !self.listen_timer.replace(true) {
+            gst::glib::timeout_add_seconds_local(1, || {
+                get().tick_listen();
+                gst::glib::ControlFlow::Continue
+            });
+        }
+    }
+
+    /// Once a second: counts the time played and submits the listen after half
+    /// the track or four minutes, whichever comes first (the Last.fm rule).
+    fn tick_listen(&self) {
+        if !self.is_playing() {
+            return;
+        }
+        let half = self
+            .playbin
+            .query_duration::<gst::ClockTime>()
+            .map(|d| d.seconds() / 2)
+            .unwrap_or(240);
+        let mut listen = self.listen.borrow_mut();
+        let Some(listen) = listen.as_mut() else {
+            return;
+        };
+        if listen.submitted {
+            return;
+        }
+        listen.played += 1;
+        if listen.played >= half.min(240) {
+            listen.submitted = true;
+            self.scrobble(listen.id.clone(), true, Some(listen.started));
+        }
+    }
+
+    /// Sends a scrobble in the background; a failure only goes to the log.
+    fn scrobble(&self, id: String, submission: bool, time: Option<u64>) {
+        let Some(client) = self.client.borrow().clone() else {
+            return;
+        };
+        crate::runtime().spawn(async move {
+            if let Err(e) = client.scrobble(&id, submission, time).await {
+                eprintln!("Could not scrobble {id}: {e}");
+            }
+        });
+    }
+}
+
 /// "Endless Radio" from the main menu.
 fn endless_radio() -> bool {
     use gtk::gio::prelude::*;
@@ -467,6 +549,7 @@ impl Player {
             Some(song) if song.id == id => {
                 self.position.set(from + 1);
                 self.set_state(State::Playing);
+                self.begin_listen();
                 self.prepare_next();
             }
             _ => self.play_at(from + 1),
