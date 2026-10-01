@@ -93,40 +93,59 @@ template $MusePlayerNowPlaying: Adw.Bin {
             ]
           }
 
-          Label quality {
-            halign: start;
-            margin-top: 6;
-            visible: false;
+        }
+      }
+
+      // Dragging it seeks; the player moves it while music plays. Lined up
+      // with the cover and the labels; the times sit right under it.
+      Box {
+        orientation: vertical;
+        spacing: 2;
+        margin-start: 12;
+        margin-end: 12;
+
+        Scale progress {
+          styles [
+            "pill-progress",
+          ]
+
+          adjustment: Adjustment {
+            lower: 0;
+            upper: 1;
+          };
+        }
+
+        Box {
+          Label elapsed {
+            hexpand: true;
+            xalign: 0;
+            opacity: 0.75;
 
             styles [
-              "quality-badge",
+              "caption",
+              "numeric",
+            ]
+          }
+
+          Label total {
+            xalign: 1;
+            opacity: 0.75;
+
+            styles [
+              "caption",
+              "numeric",
             ]
           }
         }
       }
 
-      // Dragging it seeks; the player moves it while music plays.
-      Scale progress {
-        margin-start: 6;
-        margin-end: 6;
-
-        styles [
-          "pill-progress",
-        ]
-
-        adjustment: Adjustment {
-          lower: 0;
-          upper: 1;
-        };
-      }
-
-      Box {
-        spacing: 4;
-        margin-start: 12;
+      // Playback controls in the middle, whatever sits at the sides.
+      CenterBox {
+        margin-start: 8;
         margin-end: 8;
         margin-bottom: 10;
 
-        Button queue_button {
+        start-widget: Button queue_button {
           icon-name: "view-list-symbolic";
           tooltip-text: _("Queue");
           valign: center;
@@ -135,51 +154,43 @@ template $MusePlayerNowPlaying: Adw.Bin {
             "flat",
             "circular",
           ]
-        }
+        };
 
-        Label time {
-          hexpand: true;
-          xalign: 0;
-          valign: center;
-          opacity: 0.75;
+        center-widget: Box {
+          spacing: 8;
 
-          styles [
-            "caption",
-            "numeric",
-          ]
-        }
+          Button previous {
+            icon-name: "media-skip-backward-symbolic";
+            tooltip-text: _("Previous");
+            valign: center;
 
-        Button previous {
-          icon-name: "media-skip-backward-symbolic";
-          tooltip-text: _("Previous");
-          valign: center;
+            styles [
+              "flat",
+              "circular",
+            ]
+          }
 
-          styles [
-            "flat",
-            "circular",
-          ]
-        }
+          Button play_pause {
+            icon-name: "media-playback-pause-symbolic";
+            valign: center;
 
-        Button play_pause {
-          icon-name: "media-playback-pause-symbolic";
-          valign: center;
+            styles [
+              "circular",
+              "pill-play",
+            ]
+          }
 
-          styles [
-            "circular",
-            "pill-play",
-          ]
-        }
+          Button next {
+            icon-name: "media-skip-forward-symbolic";
+            tooltip-text: _("Next");
+            valign: center;
 
-        Button next {
-          icon-name: "media-skip-forward-symbolic";
-          tooltip-text: _("Next");
-          valign: center;
-
-          styles [
-            "flat",
-            "circular",
-          ]
-        }
+            styles [
+              "flat",
+              "circular",
+            ]
+          }
+        };
       }
     };
   };

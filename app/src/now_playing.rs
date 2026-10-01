@@ -1,5 +1,5 @@
 //! Now-playing card at the bottom of the sidebar: cover, title, album,
-//! quality, progress and controls, tinted after the album cover.
+//! progress and controls, tinted after the album cover.
 //! Only while music plays does it refresh the progress, twice a second.
 
 use adw::subclass::prelude::*;
@@ -9,7 +9,6 @@ use gtk::prelude::*;
 use std::cell::{OnceCell, RefCell};
 use std::time::Duration;
 
-use crate::album_page::quality_text;
 use crate::main_view::MainView;
 use crate::{covers, player, tint};
 
@@ -36,9 +35,9 @@ mod imp {
         #[template_child]
         pub album: gtk::TemplateChild<gtk::Label>,
         #[template_child]
-        pub quality: gtk::TemplateChild<gtk::Label>,
+        pub elapsed: gtk::TemplateChild<gtk::Label>,
         #[template_child]
-        pub time: gtk::TemplateChild<gtk::Label>,
+        pub total: gtk::TemplateChild<gtk::Label>,
         #[template_child]
         pub queue_button: gtk::TemplateChild<gtk::Button>,
         #[template_child]
@@ -184,18 +183,6 @@ impl NowPlaying {
         imp.title.set_label(&song.title);
         imp.artist.set_label(song.artist.as_deref().unwrap_or(""));
         imp.album.set_label(song.album.as_deref().unwrap_or(""));
-        match quality_text(std::slice::from_ref(&song)) {
-            Some((text, hi_res)) => {
-                imp.quality.set_label(&text);
-                if hi_res {
-                    imp.quality.add_css_class("hi-res");
-                } else {
-                    imp.quality.remove_css_class("hi-res");
-                }
-                imp.quality.set_visible(true);
-            }
-            None => imp.quality.set_visible(false),
-        }
         imp.progress
             .adjustment()
             .set_upper(song.duration.unwrap_or(0).max(1) as f64);
@@ -298,8 +285,8 @@ impl NowPlaying {
         let position = player::get().position_secs().unwrap_or(0.0);
         imp.progress.set_value(position);
         let duration = imp.progress.adjustment().upper() as u64;
-        imp.time
-            .set_label(&format!("{} / {}", clock(position as u64), clock(duration)));
+        imp.elapsed.set_label(&clock(position as u64));
+        imp.total.set_label(&clock(duration));
     }
 }
 

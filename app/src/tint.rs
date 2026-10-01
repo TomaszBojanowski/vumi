@@ -168,7 +168,7 @@ impl Dynamic {
         // Two classes, so these win over the plain .now-playing-pill rules.
         let rule = [
             format!(".now-playing-pill.{c} {{ background-color: color-mix(in srgb, {color} 30%, var(--window-bg-color)); }}"),
-            format!(".now-playing-pill.{c} .pill-progress highlight {{ background-color: color-mix(in srgb, {color} 75%, white); }}"),
+            format!(".now-playing-pill.{c} .pill-progress highlight {{ background-color: color-mix(in srgb, {color} 30%, currentColor); }}"),
             format!(".now-playing-pill.{c} .pill-play {{ background-color: color-mix(in srgb, {color} 45%, transparent); }}"),
         ]
         .join("\n");
