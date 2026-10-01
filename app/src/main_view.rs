@@ -11,6 +11,7 @@ use std::time::Instant;
 
 use crate::album_card::AlbumCard;
 use crate::album_page::AlbumPage;
+use crate::artist_card::ArtistCard;
 use crate::artist_page::ArtistPage;
 use crate::{covers, error_message, library, runtime, since_start, APP_ID, APP_NAME};
 
@@ -748,36 +749,8 @@ impl MainView {
                 continue;
             };
 
-            let avatar = adw::Avatar::new(120, Some(name), true);
-            if let (Some(picture), Some(client)) = (picture.clone(), client.clone()) {
-                covers::load_for(&avatar, Some(client), picture, |avatar, texture| {
-                    if let Some(texture) = texture {
-                        avatar.set_custom_image(Some(&texture));
-                    }
-                });
-            }
-            let title = gtk::Label::builder()
-                .label(name.as_str())
-                .justify(gtk::Justification::Center)
-                .wrap(true)
-                .wrap_mode(gtk::pango::WrapMode::WordChar)
-                .lines(2)
-                .ellipsize(gtk::pango::EllipsizeMode::End)
-                .max_width_chars(16)
-                .css_classes(["heading"])
-                .build();
-            // Translators: {n} is a number of albums.
-            let subtitle = gtk::Label::builder()
-                .label(ngettext("{n} album", "{n} albums", *count).replace("{n}", &count.to_string()))
-                .css_classes(["caption", "dim-label"])
-                .build();
-            let card = gtk::Box::builder()
-                .orientation(gtk::Orientation::Vertical)
-                .spacing(6)
-                .build();
-            card.append(&avatar);
-            card.append(&title);
-            card.append(&subtitle);
+            let card = ArtistCard::new();
+            card.set_artist(name, *count, picture.clone(), client.clone());
             let button = gtk::Button::builder()
                 .child(&card)
                 .css_classes(["flat", "shelf-card"])

@@ -1,0 +1,33 @@
+using Gtk 4.0;
+using Adw 1;
+
+template $VumiArtistCard: Box {
+  orientation: vertical;
+  spacing: 6;
+
+  // The initials show until the picture is there, and for artists without one.
+  Adw.Avatar avatar {
+    size: 120;
+    show-initials: true;
+  }
+
+  Label name {
+    justify: center;
+    wrap: true;
+    wrap-mode: word_char;
+    lines: 2;
+    ellipsize: end;
+    max-width-chars: 16;
+
+    styles [
+      "heading",
+    ]
+  }
+
+  Label albums {
+    styles [
+      "caption",
+      "dim-label",
+    ]
+  }
+}

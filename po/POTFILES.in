@@ -10,6 +10,7 @@ app/src/album_page.rs
 app/src/album_page.blp
 app/src/favorites.rs
 app/src/about.rs
+app/src/artist_card.rs
 app/src/artist_page.rs
 app/src/artist_page.blp
 app/src/now_playing.rs
