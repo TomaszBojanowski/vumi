@@ -654,3 +654,7 @@ msgstr "Ta lista odtwarzania jest pusta"
 #: app/src/main.rs
 msgid "Playback Stopped"
 msgstr "Odtwarzanie przerwane"
+
+#: app/src/main_view.blp
+msgid "Quit"
+msgstr "Zakończ"

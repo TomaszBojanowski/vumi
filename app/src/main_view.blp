@@ -453,8 +453,27 @@ menu sort_menu {
 menu main_menu {
   section {
     item {
+      label: _("Endless Radio");
+      action: "app.endless-radio";
+    }
+  }
+
+  section {
+    item {
+      label: _("Sync Library");
+      action: "app.sync";
+    }
+  }
+
+  section {
+    item {
       label: _("Preferences");
       action: "app.preferences";
+    }
+
+    item {
+      label: _("Quit");
+      action: "app.quit";
     }
   }
 }

@@ -241,6 +241,18 @@ fn build_ui(app: &adw::Application) {
         }
     });
     app.add_action(&sync);
+    app.set_accels_for_action("app.sync", &["<Control>r"]);
+
+    // Quit for real: closing the window may only hide it while music plays.
+    let quit = gtk::gio::SimpleAction::new("quit", None);
+    let app_for_quit = app.downgrade();
+    quit.connect_activate(move |_, _| {
+        if let Some(app) = app_for_quit.upgrade() {
+            app.quit();
+        }
+    });
+    app.add_action(&quit);
+    app.set_accels_for_action("app.quit", &["<Control>q"]);
 
     // Closing the window while music is loaded (Preferences: "Play After the
     // Window Is Closed") only hides it: the music goes on, controlled from
