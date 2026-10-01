@@ -354,7 +354,11 @@ impl Player {
     }
 
     pub(crate) fn seek(&self, seconds: f64) {
-        let target = gst::ClockTime::from_mseconds((seconds.max(0.0) * 1000.0) as u64);
+        // A position no ClockTime can hold (a client may send anything over
+        // MPRIS) is not a place in any track.
+        let Ok(target) = gst::ClockTime::try_from_seconds_f64(seconds.max(0.0)) else {
+            return;
+        };
         let sought = self
             .playbin
             .seek_simple(gst::SeekFlags::FLUSH | gst::SeekFlags::KEY_UNIT, target);

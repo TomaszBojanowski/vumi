@@ -157,7 +157,13 @@ fn handle_method(
             // Offset in microseconds, from the current position.
             if let Some(offset) = params.child_value(0).get::<i64>() {
                 let target = player.position_secs().unwrap_or(0.0) + offset as f64 / 1e6;
-                player.seek(target);
+                // Past the end of the track: like Next (the MPRIS specification).
+                // Before its start, seek() goes to the start.
+                if track_length().is_some_and(|length| target > length) {
+                    player.next();
+                } else {
+                    player.seek(target);
+                }
             }
         }
         (_, "SetPosition") => {
@@ -171,11 +177,20 @@ fn handle_method(
             // Position in microseconds, from the start of the track.
             if let Some(position) = params.child_value(1).get::<i64>() {
                 let target = position as f64 / 1e6;
+                // Outside the track: ignored (the MPRIS specification).
+                if target < 0.0 || track_length().is_some_and(|length| target > length) {
+                    return;
+                }
                 player.seek(target);
             }
         }
         _ => {}
     }
+}
+
+/// The length of the current track in seconds, as Metadata gives it out.
+fn track_length() -> Option<f64> {
+    player::get().current()?.duration.map(|seconds| seconds as f64)
 }
 
 /// "Playing", "Paused" or "Stopped" (nothing loaded, ended, or failed).
