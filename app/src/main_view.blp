@@ -52,7 +52,8 @@ template $VumiMainView: Adw.NavigationPage {
           orientation: vertical;
 
           SearchEntry search_entry {
-            placeholder-text: _("Search Library");
+            // Also the name of the shortcut (main.rs), which reads differently.
+            placeholder-text: C_("placeholder", "Search Library");
             margin-top: 6;
             margin-bottom: 6;
             margin-start: 12;

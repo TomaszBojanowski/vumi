@@ -58,7 +58,8 @@ template $VumiWelcomePage: Adw.NavigationPage {
         }
 
         Button next_button {
-          label: _("Next");
+          // Not the player's "Next" (the next track).
+          label: C_("welcome", "Next");
           halign: center;
 
           styles [

@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vumi\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-01 22:13+0200\n"
+"POT-Creation-Date: 2026-10-01 22:40+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -88,15 +88,15 @@ msgstr ""
 msgid "Next Track"
 msgstr ""
 
-#: app/src/main.rs:507 app/src/main_view.blp:131 app/src/preferences.blp:93
+#: app/src/main.rs:507 app/src/main_view.blp:132 app/src/preferences.blp:93
 msgid "Library"
 msgstr ""
 
-#: app/src/main.rs:509 app/src/main_view.blp:55
+#: app/src/main.rs:509
 msgid "Search Library"
 msgstr ""
 
-#: app/src/main.rs:510 app/src/main_view.blp:46 app/src/main_view.blp:528
+#: app/src/main.rs:510 app/src/main_view.blp:46 app/src/main_view.blp:529
 msgid "Sync Library"
 msgstr ""
 
@@ -104,15 +104,15 @@ msgstr ""
 msgid "General"
 msgstr ""
 
-#: app/src/main.rs:516 app/src/main_view.blp:535
+#: app/src/main.rs:516 app/src/main_view.blp:536
 msgid "Preferences"
 msgstr ""
 
-#: app/src/main.rs:517 app/src/main_view.blp:540
+#: app/src/main.rs:517 app/src/main_view.blp:541
 msgid "Keyboard Shortcuts"
 msgstr ""
 
-#: app/src/main.rs:518 app/src/main_view.blp:550
+#: app/src/main.rs:518 app/src/main_view.blp:551
 msgid "Quit"
 msgstr ""
 
@@ -165,113 +165,118 @@ msgstr ""
 msgid "Main Menu"
 msgstr ""
 
-#: app/src/main_view.blp:94 app/src/main_view.blp:100 app/src/main_view.blp:106
+#: app/src/main_view.blp:56
+msgctxt "placeholder"
+msgid "Search Library"
+msgstr ""
+
+#: app/src/main_view.blp:95 app/src/main_view.blp:101 app/src/main_view.blp:107
 msgid "Start"
 msgstr ""
 
-#: app/src/main_view.blp:112 app/src/main_view.blp:144
-#: app/src/main_view.blp:213 app/src/main_view.blp:306
-#: app/src/main_view.blp:335 app/src/main_view.blp:411
+#: app/src/main_view.blp:113 app/src/main_view.blp:145
+#: app/src/main_view.blp:214 app/src/main_view.blp:307
+#: app/src/main_view.blp:336 app/src/main_view.blp:412
 msgid "Show sidebar"
 msgstr ""
 
-#: app/src/main_view.blp:128 app/src/main_view.blp:136
-#: app/src/main_view.blp:169 app/src/artist_page.blp:86
+#: app/src/main_view.blp:129 app/src/main_view.blp:137
+#: app/src/main_view.blp:170 app/src/artist_page.blp:86
 #: app/src/results_view.blp:31
 msgid "Albums"
 msgstr ""
 
-#: app/src/main_view.blp:152
+#: app/src/main_view.blp:153
 msgid "Sort"
 msgstr ""
 
-#: app/src/main_view.blp:160
+#: app/src/main_view.blp:161
 msgid "Retry"
 msgstr ""
 
-#: app/src/main_view.blp:199 app/src/main_view.blp:205
-#: app/src/main_view.blp:225
+#: app/src/main_view.blp:200 app/src/main_view.blp:206
+#: app/src/main_view.blp:226
 msgid "Artists"
 msgstr ""
 
-#: app/src/main_view.blp:252
+#: app/src/main_view.blp:253
 msgid "Jump to Letter"
 msgstr ""
 
-#: app/src/main_view.blp:290 app/src/main_view.blp:298
+#: app/src/main_view.blp:291 app/src/main_view.blp:299
 msgid "Favorites"
 msgstr ""
 
-#: app/src/main_view.blp:293
+#: app/src/main_view.blp:294
 msgid "Collections"
 msgstr ""
 
-#: app/src/main_view.blp:321 app/src/main_view.blp:327 app/src/song_menu.rs:234
+#: app/src/main_view.blp:322 app/src/main_view.blp:328 app/src/song_menu.rs:234
 msgid "Playlists"
 msgstr ""
 
-#: app/src/main_view.blp:347
+#: app/src/main_view.blp:348
 msgid "No Playlists"
 msgstr ""
 
-#: app/src/main_view.blp:348
+#: app/src/main_view.blp:349
 msgid "Playlists from the server appear here"
 msgstr ""
 
-#: app/src/main_view.blp:400 app/src/main_view.blp:419
+#: app/src/main_view.blp:401 app/src/main_view.blp:420
 msgid "Similar and Radio"
 msgstr ""
 
-#: app/src/main_view.blp:403
+#: app/src/main_view.blp:404
 msgid "Discover"
 msgstr ""
 
-#: app/src/main_view.blp:420
+#: app/src/main_view.blp:421
 msgid "Coming soon"
 msgstr ""
 
-#: app/src/main_view.blp:464
+#: app/src/main_view.blp:465
 msgid "Name"
 msgstr ""
 
-#: app/src/main_view.blp:470 app/src/song_menu.rs:310
+#: app/src/main_view.blp:471 app/src/song_menu.rs:310
 msgid "Artist"
 msgstr ""
 
-#: app/src/main_view.blp:476
+#: app/src/main_view.blp:477
 msgid "Year (Newest)"
 msgstr ""
 
-#: app/src/main_view.blp:482
+#: app/src/main_view.blp:483
 msgid "Year (Oldest)"
 msgstr ""
 
-#: app/src/main_view.blp:488 app/src/start_page.blp:232
+#: app/src/main_view.blp:489 app/src/start_page.blp:232
 msgid "Recently Added"
 msgstr ""
 
-#: app/src/main_view.blp:499 app/src/preferences.blp:69
+#: app/src/main_view.blp:500 app/src/preferences.blp:69
 msgid "Endless Radio"
 msgstr ""
 
-#: app/src/main_view.blp:504
+#: app/src/main_view.blp:505
 msgid "Repeat"
 msgstr ""
 
-#: app/src/main_view.blp:507 app/src/preferences.blp:84
+#: app/src/main_view.blp:508 app/src/preferences.blp:84
 msgid "Off"
 msgstr ""
 
-#: app/src/main_view.blp:513 app/src/now_playing.blp:160
+#: app/src/main_view.blp:514 app/src/now_playing.blp:160
 #: app/src/queue_page.blp:12
 msgid "Queue"
 msgstr ""
 
-#: app/src/main_view.blp:519 app/src/song_menu.rs:313
+#: app/src/main_view.blp:520 app/src/song_menu.rs:313
 msgid "Track"
 msgstr ""
 
-#: app/src/main_view.blp:545
+#: app/src/main_view.blp:546
 msgid "About Vumi"
 msgstr ""
 
@@ -309,8 +314,8 @@ msgstr ""
 msgid "Get Started"
 msgstr ""
 
-#: app/src/welcome_page.rs:70 app/src/welcome_page.blp:61
-#: app/src/now_playing.blp:195
+#: app/src/welcome_page.rs:70 app/src/welcome_page.blp:62
+msgctxt "welcome"
 msgid "Next"
 msgstr ""
 
@@ -464,6 +469,10 @@ msgstr ""
 
 #: app/src/now_playing.blp:174
 msgid "Previous"
+msgstr ""
+
+#: app/src/now_playing.blp:195
+msgid "Next"
 msgstr ""
 
 #: app/src/now_playing.blp:208
