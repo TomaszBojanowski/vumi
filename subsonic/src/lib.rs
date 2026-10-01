@@ -269,17 +269,28 @@ impl Client {
     }
 }
 
+/// Keeps the first item of every id, in the same order: paging by offset can
+/// return an item twice when the library changes between two pages.
+fn without_repeats<T>(items: Vec<T>, id: impl Fn(&T) -> &str) -> Vec<T> {
+    let mut seen = std::collections::HashSet::new();
+    items
+        .into_iter()
+        .filter(|item| seen.insert(id(item).to_owned()))
+        .collect()
+}
+
 impl Client {
     /// Every album on the server, fetched in pages of 500 (the Subsonic maximum).
     pub async fn all_albums(&self) -> Result<Vec<Album>> {
         const PAGE: u32 = 500;
         let mut all = Vec::new();
         loop {
+            // The offset counts what the server sent, repeats included.
             let page = self.album_list(PAGE, all.len() as u32).await?;
             let done = page.len() < PAGE as usize;
             all.extend(page);
             if done {
-                return Ok(all);
+                return Ok(without_repeats(all, |album| &album.id));
             }
         }
     }
@@ -324,7 +335,7 @@ impl Client {
             let done = page.len() < PAGE as usize;
             all.extend(page);
             if done {
-                return Ok(all);
+                return Ok(without_repeats(all, |song| &song.id));
             }
         }
     }
@@ -603,4 +614,26 @@ impl Client {
 #[derive(Debug, serde::Deserialize)]
 struct Extension {
     name: String,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::without_repeats;
+
+    fn ids(items: &[(&'static str, u32)]) -> Vec<(&'static str, u32)> {
+        without_repeats(items.to_vec(), |item| item.0)
+    }
+
+    #[test]
+    fn repeats_are_dropped_and_the_first_one_stays() {
+        let items = [("a", 1), ("b", 2), ("a", 3), ("c", 4), ("b", 5)];
+        assert_eq!(ids(&items), [("a", 1), ("b", 2), ("c", 4)]);
+    }
+
+    #[test]
+    fn a_list_without_repeats_is_unchanged() {
+        let items = [("c", 1), ("a", 2), ("b", 3)];
+        assert_eq!(ids(&items), items);
+        assert_eq!(ids(&[]), []);
+    }
 }
