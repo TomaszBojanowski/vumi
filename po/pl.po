@@ -526,7 +526,7 @@ msgstr[2] "{n} tygodni temu"
 #: app/src/dates.rs:37
 #, rust-format
 msgid "in {year}"
-msgstr "w {year}"
+msgstr "w {year} r."
 
 #: app/src/dates.rs:46
 msgid "in January"

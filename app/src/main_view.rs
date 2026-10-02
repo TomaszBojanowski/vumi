@@ -246,8 +246,9 @@ impl MainView {
         view.setup_favorites();
         view.setup_sorting();
         view.setup_search();
+        // An empty star, as on the star buttons of songs not yet starred.
         view.imp().favorites.set_empty(
-            "starred-symbolic",
+            "non-starred-symbolic",
             &gettext("No Favorites"),
             &gettext("Star albums and songs to see them here"),
         );
