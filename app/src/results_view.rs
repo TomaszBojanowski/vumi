@@ -150,10 +150,23 @@ impl ResultsView {
                 // Off screen: no song, so it is not marked as the playing one.
                 Some(row) => row.clear(),
                 // The header leaves, free for the item that shows it next.
+                // Unless that item has it already: when the model is replaced
+                // the new first item may be filled before this one is let go,
+                // and the header is then no longer this item's to give up.
                 None => {
-                    item.set_child(gtk::Widget::NONE);
-                    if let Some(view) = view.upgrade() {
-                        view.imp().header_item.replace(None);
+                    let Some(view) = view.upgrade() else {
+                        return;
+                    };
+                    let imp = view.imp();
+                    let holds = imp
+                        .header_item
+                        .borrow()
+                        .as_ref()
+                        .and_then(|held| held.upgrade())
+                        .is_some_and(|held| held == *item);
+                    if holds {
+                        item.set_child(gtk::Widget::NONE);
+                        imp.header_item.replace(None);
                     }
                 }
             }
@@ -326,6 +339,9 @@ impl ResultsView {
             // One change notification for the whole list, not one per song.
             entries.splice(0, entries.n_items(), &objects);
         }
+        // The rows of the old model are gone: forget them here, not only when
+        // the player next changes.
+        imp.rows.borrow_mut().retain(|row| row.upgrade().is_some());
 
         imp.stack
             .set_visible_child_name(if nothing { "empty" } else { "results" });

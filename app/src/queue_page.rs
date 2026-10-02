@@ -37,6 +37,10 @@ mod imp {
         /// The rows that exist, each with the list item it belongs to (which
         /// knows the place in the queue), to mark the playing track.
         pub rows: RefCell<Vec<(glib::WeakRef<SongRow>, glib::WeakRef<gtk::ListItem>)>>,
+        /// The queue as it was when a row was picked up to be dragged. A drop
+        /// counts only while the queue is still that one: the index a drag
+        /// carries means nothing in another queue.
+        pub dragged_from: RefCell<Option<Rc<[subsonic::Song]>>>,
     }
 
     #[glib::object_subclass]
@@ -186,8 +190,13 @@ impl QueuePage {
         // The icon must be set here, in prepare: by drag-begin GTK has already
         // chosen its default one (a copy of the row).
         let item_weak = item.downgrade();
+        let page = self.downgrade();
         source.connect_prepare(move |source, _, _| {
             let index = position_of(&item_weak)?;
+            page.upgrade()?
+                .imp()
+                .dragged_from
+                .replace(Some(player::get().queue()));
             let row = source.widget().and_downcast::<SongRow>()?;
             let title = row.song()?.title;
             let layout = row.create_pango_layout(Some(&title));
@@ -221,9 +230,15 @@ impl QueuePage {
         row.add_controller(source);
         let target = gtk::DropTarget::new(i32::static_type(), gdk::DragAction::MOVE);
         let item_weak = item.downgrade();
+        let page = self.downgrade();
         target.connect_drop(move |_, value, _, _| {
+            // The queue changed under the drag (another album, the radio, a
+            // track removed): the index it carries is of the old queue, and
+            // would move some other track now.
+            let dragged_from = page.upgrade().and_then(|page| page.imp().dragged_from.take());
+            let stale = !dragged_from.is_some_and(|queue| Rc::ptr_eq(&queue, &player::get().queue()));
             match (value.get::<i32>(), position_of(&item_weak)) {
-                (Ok(from), Some(index)) => {
+                (Ok(from), Some(index)) if !stale => {
                     player::get().move_track(from as usize, index);
                     true
                 }
