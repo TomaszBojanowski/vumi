@@ -9,9 +9,10 @@ use std::rc::Rc;
 use crate::main_view::MainView;
 use crate::player;
 
-/// Gives `row` a ⋮ menu (and the same menu on a right click) for the song at
-/// `index` in `songs`. The list is shared, not copied; the song is taken from
-/// it when the menu is used. `go_to_album` is false on the album's own page.
+/// Gives `row` a ⋮ menu for the song at `index` in `songs`; the menu is
+/// under that button only, by design (no right-click menu). The list is
+/// shared, not copied; the song is taken from it when the menu is used.
+/// `go_to_album` is false on the album's own page.
 pub(crate) fn attach(
     row: &adw::ActionRow,
     songs: &Rc<[subsonic::Song]>,
