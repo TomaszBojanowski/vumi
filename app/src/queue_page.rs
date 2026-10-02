@@ -27,6 +27,14 @@ mod imp {
         #[template_child]
         pub summary: gtk::TemplateChild<gtk::Label>,
         #[template_child]
+        pub actions: gtk::TemplateChild<gtk::Box>,
+        #[template_child]
+        pub shuffle_button: gtk::TemplateChild<gtk::Button>,
+        #[template_child]
+        pub save_button: gtk::TemplateChild<gtk::Button>,
+        #[template_child]
+        pub clear_button: gtk::TemplateChild<gtk::Button>,
+        #[template_child]
         pub stack: gtk::TemplateChild<gtk::Stack>,
         #[template_child]
         pub list: gtk::TemplateChild<gtk::ListView>,
@@ -63,6 +71,20 @@ mod imp {
         fn constructed(&self) {
             self.parent_constructed();
             self.obj().setup_list();
+            self.shuffle_button
+                .connect_clicked(|_| player::get().shuffle_rest());
+            let page = self.obj().downgrade();
+            self.save_button.connect_clicked(move |_| {
+                if let Some(page) = page.upgrade() {
+                    page.save_as_playlist();
+                }
+            });
+            let page = self.obj().downgrade();
+            self.clear_button.connect_clicked(move |_| {
+                if let Some(page) = page.upgrade() {
+                    page.clear();
+                }
+            });
             let page = self.obj().downgrade();
             player::get().connect_changed(move || {
                 if let Some(page) = page.upgrade() {
@@ -275,6 +297,13 @@ impl QueuePage {
         self.update_subtitle();
         imp.stack
             .set_visible_child_name(if queue.is_empty() { "empty" } else { "queue" });
+        // The buttons for the whole queue: each only while it would do something.
+        let player = player::get();
+        let after = queue.len().saturating_sub(player.position() + 1);
+        imp.actions.set_visible(!queue.is_empty());
+        imp.shuffle_button.set_sensitive(after > 1);
+        imp.save_button.set_sensitive(player.client().is_some());
+        imp.clear_button.set_sensitive(queue.len() > 1);
 
         // A closed panel shows nothing: the rows wait until it opens.
         if !self.is_mapped() {
@@ -290,6 +319,98 @@ impl QueuePage {
             imp.shown.replace(Some(queue));
         }
         self.place_rows();
+    }
+
+    /// Clear Queue: everything but the current track goes. A long queue takes
+    /// a while to put together, so that one is not thrown away on one click.
+    fn clear(&self) {
+        let removed = player::get().queue().len().saturating_sub(1) as u32;
+        if removed < CONFIRM_ABOVE {
+            player::get().clear_rest();
+            return;
+        }
+        // Translators: {n} is a number of tracks.
+        let body = ngettext(
+            "{n} track will be removed from the queue.",
+            "{n} tracks will be removed from the queue.",
+            removed,
+        )
+        .replace("{n}", &removed.to_string());
+        let dialog = adw::AlertDialog::new(Some(&gettext("Clear Queue?")), Some(&body));
+        dialog.add_responses(&[("cancel", &gettext("Cancel")), ("clear", &gettext("Clear"))]);
+        dialog.set_response_appearance("clear", adw::ResponseAppearance::Destructive);
+        dialog.set_default_response(Some("cancel"));
+        dialog.set_close_response("cancel");
+        dialog.connect_response(Some("clear"), |_, _| player::get().clear_rest());
+        dialog.present(Some(self));
+    }
+
+    /// Save as Playlist: asks for a name and makes a playlist on the server
+    /// with the tracks of the queue, in their order.
+    fn save_as_playlist(&self) {
+        let player = player::get();
+        let Some(client) = player.client() else {
+            return;
+        };
+        let ids: Vec<String> = player.queue().iter().map(|song| song.id.clone()).collect();
+        if ids.is_empty() {
+            return;
+        }
+
+        let entry = gtk::Entry::builder()
+            .placeholder_text(gettext("Name"))
+            .activates_default(true)
+            .build();
+        let dialog = adw::AlertDialog::new(Some(&gettext("New Playlist")), None);
+        dialog.set_extra_child(Some(&entry));
+        dialog.add_responses(&[("cancel", &gettext("Cancel")), ("save", &gettext("Save"))]);
+        dialog.set_response_appearance("save", adw::ResponseAppearance::Suggested);
+        dialog.set_default_response(Some("save"));
+        dialog.set_close_response("cancel");
+        // A playlist needs a name.
+        dialog.set_response_enabled("save", false);
+        let dialog_weak = dialog.downgrade();
+        entry.connect_changed(move |entry| {
+            if let Some(dialog) = dialog_weak.upgrade() {
+                dialog.set_response_enabled("save", !entry.text().trim().is_empty());
+            }
+        });
+
+        let page = self.downgrade();
+        dialog.connect_response(Some("save"), move |_, _| {
+            let name = entry.text().trim().to_string();
+            let (Some(page), false) = (page.upgrade(), name.is_empty()) else {
+                return;
+            };
+            let request = client.clone();
+            let ids = ids.clone();
+            glib::spawn_future_local(async move {
+                let result = crate::runtime()
+                    .spawn(async move {
+                        let ids: Vec<&str> = ids.iter().map(String::as_str).collect();
+                        request.create_playlist(&name, &ids).await
+                    })
+                    .await;
+                match result {
+                    Ok(Ok(playlist)) => {
+                        crate::song_menu::toast(
+                            &page,
+                            // Translators: {name} is the name of a playlist.
+                            &gettext("Saved as “{name}”").replace("{name}", &playlist.name),
+                        );
+                        // The new playlist shows in the Playlists section.
+                        if let Some(main) = page
+                            .ancestor(crate::main_view::MainView::static_type())
+                            .and_downcast::<crate::main_view::MainView>()
+                        {
+                            main.sync_playlists();
+                        }
+                    }
+                    _ => crate::song_menu::toast(&page, &gettext("Could not save the playlist")),
+                }
+            });
+        });
+        dialog.present(Some(self));
     }
 
     /// Under the header: how many tracks, how long they are together and how
@@ -396,6 +517,9 @@ impl QueuePage {
         row.set_playing(playing, !player.is_playing());
     }
 }
+
+/// Clear Queue asks first when it would remove more tracks than this.
+const CONFIRM_ABOVE: u32 = 20;
 
 /// A duration in few characters, a started minute counted as a whole one:
 /// "12 min", "1 h 5 min".

@@ -31,6 +31,43 @@ template $VumiQueuePage: Adw.Bin {
       ]
     }
 
+    // What can be done with the queue as a whole.
+    [top]
+    Box actions {
+      visible: false;
+      halign: center;
+      spacing: 6;
+      margin-bottom: 6;
+
+      Button shuffle_button {
+        icon-name: "media-playlist-shuffle-symbolic";
+        // Not "Shuffle" (play in a random order): this reorders the queue.
+        tooltip-text: C_("queue", "Shuffle Queue");
+
+        styles [
+          "flat",
+        ]
+      }
+
+      Button save_button {
+        icon-name: "document-save-as-symbolic";
+        tooltip-text: _("Save as Playlist");
+
+        styles [
+          "flat",
+        ]
+      }
+
+      Button clear_button {
+        icon-name: "user-trash-symbolic";
+        tooltip-text: _("Clear Queue");
+
+        styles [
+          "flat",
+        ]
+      }
+    }
+
     content: Stack stack {
       StackPage {
         name: "queue";

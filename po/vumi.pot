@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vumi\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-02 19:54+0200\n"
+"POT-Creation-Date: 2026-10-02 20:25+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -146,7 +146,7 @@ msgstr ""
 #. Translators: {n} is a number of tracks in the queue.
 #. Translators: {n} is a number of tracks.
 #: app/src/main_view.rs:1014 app/src/album_page.rs:354
-#: app/src/queue_page.rs:306 app/src/song_menu.rs:282
+#: app/src/queue_page.rs:427 app/src/song_menu.rs:282
 #: app/src/playlist_page.rs:125
 #, rust-format
 msgid "{n} track"
@@ -239,7 +239,7 @@ msgstr ""
 msgid "Coming soon"
 msgstr ""
 
-#: app/src/main_view.blp:465
+#: app/src/main_view.blp:465 app/src/queue_page.rs:361
 msgid "Name"
 msgstr ""
 
@@ -380,7 +380,7 @@ msgstr[0] ""
 msgstr[1] ""
 
 #. Translators: total length of a long album, e.g. "6 h 9 min".
-#: app/src/album_page.rs:498 app/src/queue_page.rs:405
+#: app/src/album_page.rs:498 app/src/queue_page.rs:533
 #, rust-format
 msgid "{hours} h {minutes} min"
 msgstr ""
@@ -609,7 +609,7 @@ msgstr ""
 msgid "Cover Cache"
 msgstr ""
 
-#: app/src/preferences.blp:164
+#: app/src/preferences.blp:164 app/src/queue_page.rs:340
 msgid "Clear"
 msgstr ""
 
@@ -643,30 +643,76 @@ msgstr ""
 msgid "Songs"
 msgstr ""
 
-#: app/src/queue_page.blp:41
+#: app/src/queue_page.blp:45
+msgctxt "queue"
+msgid "Shuffle Queue"
+msgstr ""
+
+#: app/src/queue_page.blp:54
+msgid "Save as Playlist"
+msgstr ""
+
+#: app/src/queue_page.blp:63
+msgid "Clear Queue"
+msgstr ""
+
+#: app/src/queue_page.blp:96
 msgid "Nothing Queued"
 msgstr ""
 
-#: app/src/queue_page.blp:42
+#: app/src/queue_page.blp:97
 msgid "Play an album, a song or the radio"
 msgstr ""
 
-#: app/src/queue_page.rs:172 app/src/song_menu.rs:51
+#: app/src/queue_page.rs:194 app/src/song_menu.rs:51
 msgid "More"
 msgstr ""
 
-#: app/src/queue_page.rs:197
+#: app/src/queue_page.rs:219
 msgid "Remove from Queue"
 msgstr ""
 
+#: app/src/queue_page.rs:334
+#, rust-format
+msgid "{n} track will be removed from the queue."
+msgid_plural "{n} tracks will be removed from the queue."
+msgstr[0] ""
+msgstr[1] ""
+
+#: app/src/queue_page.rs:339
+msgid "Clear Queue?"
+msgstr ""
+
+#: app/src/queue_page.rs:340 app/src/queue_page.rs:366
+msgid "Cancel"
+msgstr ""
+
+#: app/src/queue_page.rs:364 app/src/song_menu.rs:229
+msgid "New Playlist"
+msgstr ""
+
+#: app/src/queue_page.rs:366
+msgid "Save"
+msgstr ""
+
+#. Translators: {name} is the name of a playlist.
+#: app/src/queue_page.rs:399
+#, rust-format
+msgid "Saved as “{name}”"
+msgstr ""
+
+#: app/src/queue_page.rs:409
+msgid "Could not save the playlist"
+msgstr ""
+
 #. Translators: {time} is a short duration, e.g. "12 min" or "1 h 5 min".
-#: app/src/queue_page.rs:320
+#: app/src/queue_page.rs:441
 #, rust-format
 msgid "{time} left"
 msgstr ""
 
 #. Translators: a short duration in minutes, e.g. "12 min".
-#: app/src/queue_page.rs:402
+#: app/src/queue_page.rs:530
 #, rust-format
 msgid "{n} min"
 msgstr ""
@@ -709,10 +755,6 @@ msgstr ""
 
 #: app/src/song_menu.rs:213
 msgid "Add to Playlist"
-msgstr ""
-
-#: app/src/song_menu.rs:229
-msgid "New Playlist"
 msgstr ""
 
 #. Translators: {name} is the name of a playlist.

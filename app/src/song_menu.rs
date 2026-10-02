@@ -377,7 +377,7 @@ fn show_info(parent: &gtk::Widget, song: &subsonic::Song) {
 }
 
 /// A short note at the bottom of the window.
-fn toast(widget: &impl IsA<gtk::Widget>, text: &str) {
+pub(crate) fn toast(widget: &impl IsA<gtk::Widget>, text: &str) {
     if let Some(toasts) = widget
         .ancestor(adw::ToastOverlay::static_type())
         .and_downcast::<adw::ToastOverlay>()

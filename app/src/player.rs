@@ -911,6 +911,43 @@ impl Player {
         self.notify();
     }
 
+    /// Puts what comes after the current track into a random order (Shuffle
+    /// Queue). The track itself plays on; one already handed to GStreamer for
+    /// a gapless start stays next, as it will play whatever the queue says.
+    pub(crate) fn shuffle_rest(&self) {
+        let mut songs = self.queue.borrow().to_vec();
+        let mut from = (self.position.get() + 1).min(songs.len());
+        if let Some(id) = self.pending_switch() {
+            if songs.get(from).is_some_and(|song| song.id == id) {
+                from += 1;
+            }
+        }
+        if songs.len().saturating_sub(from) < 2 {
+            return;
+        }
+        self.new_command();
+        fastrand::shuffle(&mut songs[from..]);
+        self.queue.replace(songs.into());
+        self.prepare_next();
+        self.notify();
+    }
+
+    /// Empties the queue but for the current track, which plays on (Clear
+    /// Queue).
+    pub(crate) fn clear_rest(&self) {
+        let Some(current) = self.current() else {
+            return;
+        };
+        if self.queue.borrow().len() < 2 {
+            return;
+        }
+        self.new_command();
+        self.queue.replace(vec![current].into());
+        self.position.set(0);
+        self.prepare_next();
+        self.notify();
+    }
+
     /// Adds `song` at the end of the queue (Add to Queue). With nothing in
     /// progress, it simply plays; after an error the queue is still there, so
     /// the song joins it and nothing starts.
