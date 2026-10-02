@@ -424,12 +424,16 @@ template $VumiStartPage: Adw.Bin {
     }
 
     // Narrow: the random album card takes the width there is instead of its
-    // usual 380 px, and the covers shrink.
+    // usual 380 px, and the covers shrink. So does the gap after the cover:
+    // with the usual one the Polish "Play" button made the random album card
+    // 1 px wider than the narrowest window.
     Adw.Breakpoint {
       condition ("max-width: 620sp")
 
       setters {
         top_row.orientation: vertical;
+        continue_card.spacing: 12;
+        random_card.spacing: 12;
         continue_cover_frame.width-request: 80;
         continue_cover_frame.height-request: 80;
         random_card.width-request: -1;

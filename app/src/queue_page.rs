@@ -74,6 +74,10 @@ mod imp {
     impl ObjectImpl for QueuePage {
         fn constructed(&self) {
             self.parent_constructed();
+            // The page lays out its child itself (size_allocate below), and
+            // what does not fit in a panel cut short is not drawn.
+            self.obj().set_layout_manager(None::<gtk::LayoutManager>);
+            self.obj().set_overflow(gtk::Overflow::Hidden);
             self.obj().setup_list();
             self.shuffle_button
                 .connect_clicked(|_| player::get().shuffle_rest());
@@ -119,7 +123,26 @@ mod imp {
             self.obj().update();
         }
     }
-    impl WidgetImpl for QueuePage {}
+    impl WidgetImpl for QueuePage {
+        fn measure(&self, orientation: gtk::Orientation, for_size: i32) -> (i32, i32, i32, i32) {
+            match self.obj().child() {
+                Some(child) => child.measure(orientation, for_size),
+                None => (0, 0, -1, -1),
+            }
+        }
+
+        // Never narrower than the panel's minimum. A split view that is not
+        // collapsed gives its side panel only what the content leaves, and
+        // when the window jumps to a narrow size (or starts narrow) that is
+        // nothing for one frame, until the breakpoint collapses the view.
+        // GTK warns about every widget laid out below its minimum.
+        fn size_allocate(&self, width: i32, height: i32, baseline: i32) {
+            if let Some(child) = self.obj().child() {
+                let (minimum, ..) = child.measure(gtk::Orientation::Horizontal, -1);
+                child.allocate(width.max(minimum), height, baseline, None);
+            }
+        }
+    }
     impl BinImpl for QueuePage {}
 }
 
