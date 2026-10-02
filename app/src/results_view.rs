@@ -206,6 +206,8 @@ impl ResultsView {
         item.set_selectable(false);
         // The cards inside take the focus, not the row around them.
         item.set_focusable(false);
+        // The item may have held a song before.
+        item.set_accessible_label("");
         item.set_child(Some(&header));
         imp.header_item.replace(Some(item.downgrade()));
     }
@@ -240,6 +242,7 @@ impl ResultsView {
         item.set_activatable(true);
         item.set_selectable(false);
         item.set_focusable(true);
+        item.set_accessible_label(&crate::song_row::accessible_label(song));
 
         let subtitle = [song.artist.as_deref(), song.album.as_deref()]
             .into_iter()

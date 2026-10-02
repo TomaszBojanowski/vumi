@@ -158,6 +158,7 @@ impl QueuePage {
             row.set_song(&song, song.artist.as_deref().unwrap_or(""));
             // One line each, the full title in the tooltip: rows stay even.
             row.set_tooltip_text(Some(&song.title));
+            item.set_accessible_label(&crate::song_row::accessible_label(&song));
             page.place_row(&row, item);
         });
         factory.connect_unbind(|_, item| {

@@ -68,6 +68,16 @@ glib::wrapper! {
         @implements gtk::Accessible, gtk::Buildable, gtk::ConstraintTarget, gtk::Orientable;
 }
 
+/// What a screen reader says for the list item of `song`: "title, artist".
+/// The row is only the item's content, and its menu button would be read
+/// along with the text, so each list sets this on the item itself.
+pub(crate) fn accessible_label(song: &subsonic::Song) -> String {
+    match song.artist.as_deref().filter(|artist| !artist.is_empty()) {
+        Some(artist) => format!("{}, {}", song.title, artist),
+        None => song.title.clone(),
+    }
+}
+
 impl SongRow {
     pub(crate) fn new() -> Self {
         glib::Object::new()
