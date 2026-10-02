@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vumi\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-03 01:03+0200\n"
+"POT-Creation-Date: 2026-10-03 01:22+0200\n"
 "PO-Revision-Date: 2026-09-27 20:40+0200\n"
 "Last-Translator: Tomasz Bojanowski <tomasz@bojanowski.me>\n"
 "Language-Team: Polish\n"
@@ -121,44 +121,44 @@ msgstr "Skróty klawiszowe"
 msgid "Quit"
 msgstr "Zakończ"
 
-#: app/src/main_view.rs:251
+#: app/src/main_view.rs:252
 msgid "No Favorites"
 msgstr "Brak ulubionych"
 
-#: app/src/main_view.rs:252
-msgid "Star albums and songs to see them here"
-msgstr "Albumy i utwory oznaczone gwiazdką pojawią się tutaj"
+#: app/src/main_view.rs:253
+msgid "Star albums and songs to see them here."
+msgstr "Albumy i utwory oznaczone gwiazdką pojawią się tutaj."
 
-#: app/src/main_view.rs:433
+#: app/src/main_view.rs:434
 msgid "Connecting…"
 msgstr "Łączenie…"
 
 #. Translators: {server} is the server software (e.g. navidrome), {version} its version.
-#: app/src/main_view.rs:442
+#: app/src/main_view.rs:443
 #, rust-format
 msgid "Connected to {server} {version}"
 msgstr "Połączono z serwerem {server} {version}"
 
-#: app/src/main_view.rs:454
+#: app/src/main_view.rs:455
 msgid "Offline"
 msgstr "Brak połączenia"
 
-#: app/src/main_view.rs:1103
+#: app/src/main_view.rs:1104
 msgid "Recently Starred"
 msgstr "Ostatnio polubione"
 
-#: app/src/main_view.rs:1103 app/src/song_menu.rs:352
+#: app/src/main_view.rs:1104 app/src/song_menu.rs:352
 msgid "Title"
 msgstr "Tytuł"
 
-#: app/src/main_view.rs:1103 app/src/main_view.blp:484 app/src/song_menu.rs:353
+#: app/src/main_view.rs:1104 app/src/main_view.blp:484 app/src/song_menu.rs:353
 msgid "Artist"
 msgstr "Wykonawca"
 
 #. Translators: {n} is a number of tracks.
 #. Translators: {n} is a number of tracks in the queue.
 #. Translators: {n} is a number of tracks.
-#: app/src/main_view.rs:1235 app/src/album_page.rs:354
+#: app/src/main_view.rs:1236 app/src/album_page.rs:354
 #: app/src/favorites_header.rs:122 app/src/preferences.rs:383
 #: app/src/queue_page.rs:454 app/src/song_menu.rs:288
 #: app/src/playlist_page.rs:126
@@ -169,7 +169,7 @@ msgstr[0] "{n} utwór"
 msgstr[1] "{n} utwory"
 msgstr[2] "{n} utworów"
 
-#: app/src/main_view.rs:1302 app/src/album_page.rs:628
+#: app/src/main_view.rs:1303 app/src/album_page.rs:628
 #: app/src/album_page.rs:810 app/src/now_playing.rs:246
 #: app/src/mini_player.rs:101 app/src/start_page.blp:204
 #: app/src/playlist_page.blp:85

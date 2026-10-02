@@ -250,7 +250,7 @@ impl MainView {
         view.imp().favorites.set_empty(
             "non-starred-symbolic",
             &gettext("No Favorites"),
-            &gettext("Star albums and songs to see them here"),
+            &gettext("Star albums and songs to see them here."),
         );
         view
     }
