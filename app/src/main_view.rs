@@ -163,6 +163,13 @@ mod imp {
         pub favorites_tint: OnceCell<crate::tint::Dynamic>,
         /// The top of the Favorites page, put into its list.
         pub favorites_header: OnceCell<crate::favorites_header::FavoritesHeader>,
+        /// What the Favorites page shows, as read from the database (songs
+        /// most recently starred first), and the client it came with.
+        pub favorite_content: RefCell<(Vec<Arc<subsonic::Album>>, Vec<subsonic::Song>, Option<subsonic::Client>)>,
+        /// How the favourite songs are sorted: the switch on their heading.
+        pub favorites_sort: OnceCell<adw::ToggleGroup>,
+        /// The Favorites page is below its breakpoint.
+        pub favorites_is_narrow: Cell<bool>,
         /// How the grid is sorted (see sort_albums).
         pub sort: RefCell<String>,
         /// Albums shown in the grid; items are subsonic::Album wrapped for GTK.
@@ -1090,16 +1097,34 @@ impl MainView {
         let header = crate::favorites_header::FavoritesHeader::new();
         imp.favorites.set_header_top(Some(&header));
         imp.favorites.set_show_counts(true);
-        let weak = header.downgrade();
-        imp.favorites_narrow.connect_apply(move |_| {
-            if let Some(header) = weak.upgrade() {
-                header.set_compact(true);
+        // Recently starred, title or artist: the songs are sorted again
+        // right away (show_favorites).
+        let sort = adw::ToggleGroup::builder().valign(gtk::Align::Center).build();
+        for label in [gettext("Recently Starred"), gettext("Title"), gettext("Artist")] {
+            sort.add(adw::Toggle::builder().label(label).build());
+        }
+        sort.set_active(0);
+        let view = self.downgrade();
+        sort.connect_active_notify(move |_| {
+            if let Some(view) = view.upgrade() {
+                view.show_favorites();
             }
         });
-        let weak = header.downgrade();
+        imp.favorites.set_songs_end(Some(&sort));
+        let _ = imp.favorites_sort.set(sort);
+
+        // A narrow page: a smaller header, less room around the list, the
+        // sort switch under the heading, and no dates on the rows.
+        let view = self.downgrade();
+        imp.favorites_narrow.connect_apply(move |_| {
+            if let Some(view) = view.upgrade() {
+                view.set_favorites_narrow(true);
+            }
+        });
+        let view = self.downgrade();
         imp.favorites_narrow.connect_unapply(move |_| {
-            if let Some(header) = weak.upgrade() {
-                header.set_compact(false);
+            if let Some(view) = view.upgrade() {
+                view.set_favorites_narrow(false);
             }
         });
         // The page takes the colour of the header's first cover, fading
@@ -1119,6 +1144,54 @@ impl MainView {
             }
         });
         let _ = imp.favorites_header.set(header);
+    }
+
+    fn set_favorites_narrow(&self, narrow: bool) {
+        let imp = self.imp();
+        imp.favorites_is_narrow.set(narrow);
+        if let Some(header) = imp.favorites_header.get() {
+            header.set_compact(narrow);
+        }
+        imp.favorites.set_narrow(narrow);
+        self.set_favorite_dates();
+    }
+
+    /// The date each song was starred, next to its length: only while the
+    /// songs are sorted by it, and only where there is room for it.
+    fn set_favorite_dates(&self) {
+        let imp = self.imp();
+        let by_date = imp.favorites_sort.get().is_none_or(|sort| sort.active() == 0);
+        if by_date && !imp.favorites_is_narrow.get() {
+            imp.favorites.set_note(Some(|song: &subsonic::Song| {
+                song.starred.as_deref().map(crate::dates::starred_ago).unwrap_or_default()
+            }));
+        } else {
+            imp.favorites.set_note(None::<fn(&subsonic::Song) -> String>);
+        }
+    }
+
+    /// Shows the favourites as last read, the songs in the order the switch
+    /// asks for. The header gets the same order: Play Songs plays them as
+    /// listed.
+    fn show_favorites(&self) {
+        let imp = self.imp();
+        let (albums, mut songs, client) = imp.favorite_content.borrow().clone();
+        match imp.favorites_sort.get().map_or(0, |sort| sort.active()) {
+            // As read: most recently starred first.
+            0 => {}
+            1 => songs.sort_by_cached_key(|song| artist_sort_key(&song.title)),
+            _ => songs.sort_by_cached_key(|song| {
+                (
+                    artist_sort_key(song.artist.as_deref().unwrap_or("")),
+                    artist_sort_key(&song.title),
+                )
+            }),
+        }
+        if let Some(header) = imp.favorites_header.get() {
+            header.set_content(&albums, &songs, client.clone());
+        }
+        self.set_favorite_dates();
+        imp.favorites.show(&albums, songs, client);
     }
 
     /// The playlist cards go into two columns where the section is wide
@@ -1468,6 +1541,7 @@ impl MainView {
         self.refresh_grid();
         self.refresh_artists();
         self.refresh_start();
+        imp.favorite_content.replace(Default::default());
         if let Some(header) = imp.favorites_header.get() {
             header.set_content(&[], &[], None);
         }
@@ -1518,10 +1592,10 @@ impl MainView {
                     .filter_map(|id| current.iter().find(|a| a.id == *id).cloned())
                     .collect()
             };
-            if let Some(header) = view.imp().favorites_header.get() {
-                header.set_content(&albums, &found.songs, Some(client.clone()));
-            }
-            view.imp().favorites.show(&albums, found.songs, Some(client));
+            view.imp()
+                .favorite_content
+                .replace((albums, found.songs, Some(client)));
+            view.show_favorites();
         });
     }
 }

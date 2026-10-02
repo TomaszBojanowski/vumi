@@ -57,6 +57,11 @@ mod imp {
         #[template_child]
         pub songs_title: gtk::TemplateChild<gtk::Box>,
         #[template_child]
+        pub songs_row: gtk::TemplateChild<gtk::Box>,
+        /// A narrow view: less room around the list, and what stands at the
+        /// end of the "Songs" heading goes under it.
+        pub narrow: Cell<bool>,
+        #[template_child]
         pub songs_end: gtk::TemplateChild<adw::Bin>,
         /// A few words to show on each song's row before its length, if the
         /// page wants any (when the song was starred, say).
@@ -321,8 +326,6 @@ impl ResultsView {
 
     /// Puts `widget` at the end of the "Songs" heading (a sort switch, say).
     /// None takes it out again.
-    // Not called yet: the sort switch of the Favorites page comes with it.
-    #[allow(dead_code)]
     pub(crate) fn set_songs_end(&self, widget: Option<&impl IsA<gtk::Widget>>) {
         let end = &self.imp().songs_end;
         end.set_child(widget);
@@ -331,8 +334,6 @@ impl ResultsView {
 
     /// What to say about each song on its row, before its length; None for
     /// nothing. The rows on screen follow at once.
-    // Not called yet: the dates of the Favorites page come with its sorting.
-    #[allow(dead_code)]
     pub(crate) fn set_note(&self, note: Option<impl Fn(&subsonic::Song) -> String + 'static>) {
         let imp = self.imp();
         imp.note.replace(note.map(|note| Rc::new(note) as Note));
@@ -343,6 +344,32 @@ impl ResultsView {
                 _ => String::new(),
             };
             row.set_note(&text);
+        }
+    }
+
+    /// A narrow view (the Favorites page below its breakpoint): 12 px around
+    /// the list instead of 24 (style.css), so two album cards fit side by
+    /// side as in the album grid, and the widget at the end of the "Songs"
+    /// heading goes under it, as wide as the list.
+    pub(crate) fn set_narrow(&self, narrow: bool) {
+        let imp = self.imp();
+        if imp.narrow.replace(narrow) == narrow {
+            return;
+        }
+        if narrow {
+            self.add_css_class("narrow");
+        } else {
+            self.remove_css_class("narrow");
+        }
+        let end = imp.songs_end.get();
+        if narrow {
+            imp.songs_row.remove(&end);
+            end.set_halign(gtk::Align::Fill);
+            imp.songs_title.append(&end);
+        } else {
+            imp.songs_title.remove(&end);
+            end.set_halign(gtk::Align::End);
+            imp.songs_row.append(&end);
         }
     }
 

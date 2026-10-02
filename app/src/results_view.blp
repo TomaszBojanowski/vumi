@@ -63,33 +63,39 @@ Box header {
   }
 
   // The heading of the songs, and at its end what the page puts there
-  // (set_songs_end), if anything.
+  // (set_songs_end), if anything; in a narrow view that goes under the
+  // heading instead (set_narrow).
   Box songs_title {
-    spacing: 8;
+    orientation: vertical;
+    spacing: 12;
 
-    Label {
-      label: _("Songs");
-      xalign: 0;
+    Box songs_row {
+      spacing: 8;
 
-      styles [
-        "title-4",
-      ]
-    }
+      Label {
+        label: _("Songs");
+        xalign: 0;
 
-    Label songs_count {
-      visible: false;
+        styles [
+          "title-4",
+        ]
+      }
 
-      styles [
-        "section-count",
-        "dim-label",
-      ]
-    }
+      Label songs_count {
+        visible: false;
 
-    Adw.Bin songs_end {
-      halign: end;
-      hexpand: true;
-      valign: center;
-      visible: false;
+        styles [
+          "section-count",
+          "dim-label",
+        ]
+      }
+
+      Adw.Bin songs_end {
+        halign: end;
+        hexpand: true;
+        valign: center;
+        visible: false;
+      }
     }
   }
 }

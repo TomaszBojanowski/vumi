@@ -6,6 +6,7 @@ mod artist_page;
 mod background;
 mod cover_image;
 mod covers;
+mod dates;
 mod favorites;
 mod favorites_header;
 mod library;

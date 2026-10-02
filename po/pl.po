@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vumi\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-03 00:26+0200\n"
+"POT-Creation-Date: 2026-10-03 01:03+0200\n"
 "PO-Revision-Date: 2026-09-27 20:40+0200\n"
 "Last-Translator: Tomasz Bojanowski <tomasz@bojanowski.me>\n"
 "Language-Team: Polish\n"
@@ -29,124 +29,136 @@ msgstr "Szybki odtwarzacz muzyki z serwerów Navidrome i Subsonic"
 msgid "music;player;navidrome;subsonic;"
 msgstr "muzyka;odtwarzacz;navidrome;subsonic;music;player;"
 
-#: app/src/main.rs:352
+#: app/src/main.rs:353
 msgid "Playback Stopped"
 msgstr "Odtwarzanie przerwane"
 
-#: app/src/main.rs:408 app/src/login_page.rs:155 app/src/album_page.rs:212
+#: app/src/main.rs:409 app/src/login_page.rs:155 app/src/album_page.rs:212
 msgid "Something went wrong. Please try again."
 msgstr "Wystąpił nieoczekiwany błąd. Spróbuj ponownie."
 
-#: app/src/main.rs:417
+#: app/src/main.rs:418
 msgid "Wrong username or password."
 msgstr "Nieprawidłowa nazwa użytkownika lub hasło."
 
-#: app/src/main.rs:418
+#: app/src/main.rs:419
 msgid "Cannot reach the server. Check the address and your connection."
 msgstr ""
 "Nie uzyskano połączenia z serwerem. Sprawdź adres i połączenie sieciowe."
 
-#: app/src/main.rs:419
+#: app/src/main.rs:420
 msgid "Invalid server address. It should start with http:// or https://"
 msgstr ""
 "Nieprawidłowy adres serwera. Adres musi zaczynać się od http:// lub https://"
 
-#: app/src/main.rs:420
+#: app/src/main.rs:421
 msgid "The server answered, but it does not look like a Subsonic server."
 msgstr "Serwer odpowiedział, ale nie wygląda na serwer zgodny z Subsonic."
 
 #. Translators: {message} is the error text sent by the server.
-#: app/src/main.rs:422
+#: app/src/main.rs:423
 #, rust-format
 msgid "Server error: {message}"
 msgstr "Błąd serwera: {message}"
 
-#: app/src/main.rs:467
+#: app/src/main.rs:468
 msgid "A music player for Navidrome and other Subsonic servers"
 msgstr "Odtwarzacz muzyki dla serwera Navidrome i innych serwerów Subsonic"
 
-#: app/src/main.rs:468
+#: app/src/main.rs:469
 msgid "translator-credits"
 msgstr "Tomasz Bojanowski <tomasz@bojanowski.me>"
 
-#: app/src/main.rs:473
+#: app/src/main.rs:474
 msgid "Buy Me a Coffee"
 msgstr "Postaw kawę"
 
-#: app/src/main.rs:475
+#: app/src/main.rs:476
 msgid "Built With"
 msgstr "Wykorzystane projekty"
 
-#: app/src/main.rs:505 app/src/preferences.blp:191
+#: app/src/main.rs:506 app/src/preferences.blp:191
 msgid "Playback"
 msgstr "Odtwarzanie"
 
-#: app/src/main.rs:507
+#: app/src/main.rs:508
 msgid "Play or Pause"
 msgstr "Odtworzenie lub wstrzymanie"
 
-#: app/src/main.rs:508
+#: app/src/main.rs:509
 msgid "Previous Track"
 msgstr "Poprzedni utwór"
 
-#: app/src/main.rs:509
+#: app/src/main.rs:510
 msgid "Next Track"
 msgstr "Następny utwór"
 
-#: app/src/main.rs:513 app/src/main_view.blp:132 app/src/preferences.blp:143
+#: app/src/main.rs:514 app/src/main_view.blp:132 app/src/preferences.blp:143
 msgid "Library"
 msgstr "Biblioteka"
 
-#: app/src/main.rs:515
+#: app/src/main.rs:516
 msgid "Search Library"
 msgstr "Wyszukiwanie w bibliotece"
 
-#: app/src/main.rs:516 app/src/main_view.blp:46 app/src/main_view.blp:542
+#: app/src/main.rs:517 app/src/main_view.blp:46 app/src/main_view.blp:542
 msgid "Sync Library"
 msgstr "Synchronizuj bibliotekę"
 
-#: app/src/main.rs:520 app/src/preferences.blp:13
+#: app/src/main.rs:521 app/src/preferences.blp:13
 msgid "General"
 msgstr "Ogólne"
 
-#: app/src/main.rs:522 app/src/main_view.blp:549
+#: app/src/main.rs:523 app/src/main_view.blp:549
 msgid "Preferences"
 msgstr "Preferencje"
 
-#: app/src/main.rs:523 app/src/main_view.blp:554
+#: app/src/main.rs:524 app/src/main_view.blp:554
 msgid "Keyboard Shortcuts"
 msgstr "Skróty klawiszowe"
 
-#: app/src/main.rs:524 app/src/main_view.blp:564
+#: app/src/main.rs:525 app/src/main_view.blp:564
 msgid "Quit"
 msgstr "Zakończ"
 
-#: app/src/main_view.rs:244
+#: app/src/main_view.rs:251
 msgid "No Favorites"
 msgstr "Brak ulubionych"
 
-#: app/src/main_view.rs:245
+#: app/src/main_view.rs:252
 msgid "Star albums and songs to see them here"
 msgstr "Albumy i utwory oznaczone gwiazdką pojawią się tutaj"
 
-#: app/src/main_view.rs:426
+#: app/src/main_view.rs:433
 msgid "Connecting…"
 msgstr "Łączenie…"
 
 #. Translators: {server} is the server software (e.g. navidrome), {version} its version.
-#: app/src/main_view.rs:435
+#: app/src/main_view.rs:442
 #, rust-format
 msgid "Connected to {server} {version}"
 msgstr "Połączono z serwerem {server} {version}"
 
-#: app/src/main_view.rs:447
+#: app/src/main_view.rs:454
 msgid "Offline"
 msgstr "Brak połączenia"
+
+#: app/src/main_view.rs:1103
+msgid "Recently Starred"
+msgstr "Ostatnio polubione"
+
+#: app/src/main_view.rs:1103 app/src/song_menu.rs:352
+msgid "Title"
+msgstr "Tytuł"
+
+#: app/src/main_view.rs:1103 app/src/main_view.blp:484 app/src/song_menu.rs:353
+msgid "Artist"
+msgstr "Wykonawca"
 
 #. Translators: {n} is a number of tracks.
 #. Translators: {n} is a number of tracks in the queue.
 #. Translators: {n} is a number of tracks.
-#: app/src/main_view.rs:1161 app/src/album_page.rs:354
+#: app/src/main_view.rs:1235 app/src/album_page.rs:354
 #: app/src/favorites_header.rs:122 app/src/preferences.rs:383
 #: app/src/queue_page.rs:454 app/src/song_menu.rs:288
 #: app/src/playlist_page.rs:126
@@ -157,7 +169,7 @@ msgstr[0] "{n} utwór"
 msgstr[1] "{n} utwory"
 msgstr[2] "{n} utworów"
 
-#: app/src/main_view.rs:1228 app/src/album_page.rs:628
+#: app/src/main_view.rs:1302 app/src/album_page.rs:628
 #: app/src/album_page.rs:810 app/src/now_playing.rs:246
 #: app/src/mini_player.rs:101 app/src/start_page.blp:204
 #: app/src/playlist_page.blp:85
@@ -189,7 +201,7 @@ msgstr "Wyświetl panel boczny"
 
 #: app/src/main_view.blp:129 app/src/main_view.blp:137
 #: app/src/main_view.blp:170 app/src/artist_page.blp:86
-#: app/src/results_view.blp:25
+#: app/src/results_view.blp:28
 msgid "Albums"
 msgstr "Albumy"
 
@@ -246,10 +258,6 @@ msgstr "Wkrótce"
 #: app/src/main_view.blp:478 app/src/queue_page.rs:388
 msgid "Name"
 msgstr "Nazwa"
-
-#: app/src/main_view.blp:484 app/src/song_menu.rs:353
-msgid "Artist"
-msgstr "Wykonawca"
 
 #: app/src/main_view.blp:490
 msgid "Year (Newest)"
@@ -486,6 +494,88 @@ msgstr "Kolekcja"
 msgid "Play Songs"
 msgstr "Odtwórz utwory"
 
+#: app/src/dates.rs:23
+msgid "today"
+msgstr "dziś"
+
+#: app/src/dates.rs:24 app/src/preferences.rs:274
+msgid "yesterday"
+msgstr "wczoraj"
+
+#: app/src/dates.rs:25 app/src/preferences.rs:276
+#, rust-format
+msgid "{n} day ago"
+msgid_plural "{n} days ago"
+msgstr[0] "{n} dzień temu"
+msgstr[1] "{n} dni temu"
+msgstr[2] "{n} dni temu"
+
+#: app/src/dates.rs:26
+msgid "a week ago"
+msgstr "tydzień temu"
+
+#: app/src/dates.rs:29
+#, rust-format
+msgid "{n} week ago"
+msgid_plural "{n} weeks ago"
+msgstr[0] "{n} tydzień temu"
+msgstr[1] "{n} tygodnie temu"
+msgstr[2] "{n} tygodni temu"
+
+#. Translators: {year} is a year, e.g. "in 2024".
+#: app/src/dates.rs:37
+#, rust-format
+msgid "in {year}"
+msgstr "w {year}"
+
+#: app/src/dates.rs:46
+msgid "in January"
+msgstr "w styczniu"
+
+#: app/src/dates.rs:47
+msgid "in February"
+msgstr "w lutym"
+
+#: app/src/dates.rs:48
+msgid "in March"
+msgstr "w marcu"
+
+#: app/src/dates.rs:49
+msgid "in April"
+msgstr "w kwietniu"
+
+#: app/src/dates.rs:50
+msgid "in May"
+msgstr "w maju"
+
+#: app/src/dates.rs:51
+msgid "in June"
+msgstr "w czerwcu"
+
+#: app/src/dates.rs:52
+msgid "in July"
+msgstr "w lipcu"
+
+#: app/src/dates.rs:53
+msgid "in August"
+msgstr "w sierpniu"
+
+#: app/src/dates.rs:54
+msgid "in September"
+msgstr "we wrześniu"
+
+#: app/src/dates.rs:55
+msgid "in October"
+msgstr "w październiku"
+
+#: app/src/dates.rs:56
+msgid "in November"
+msgstr "w listopadzie"
+
+#: app/src/dates.rs:57
+msgid "in December"
+msgstr "w grudniu"
+
 #: app/src/about.rs:68
 msgid "Show less"
 msgstr "Wyświetl mniej"
@@ -689,18 +779,6 @@ msgstr[0] "{n} godzinę temu"
 msgstr[1] "{n} godziny temu"
 msgstr[2] "{n} godzin temu"
 
-#: app/src/preferences.rs:274
-msgid "yesterday"
-msgstr "wczoraj"
-
-#: app/src/preferences.rs:276
-#, rust-format
-msgid "{n} day ago"
-msgid_plural "{n} days ago"
-msgstr[0] "{n} dzień temu"
-msgstr[1] "{n} dni temu"
-msgstr[2] "{n} dni temu"
-
 #: app/src/preferences.rs:298
 msgid "Log Out?"
 msgstr "Wylogować?"
@@ -748,7 +826,7 @@ msgstr "Nie można wyczyścić pamięci podręcznej okładek"
 msgid "Music keeps playing after the window is closed"
 msgstr "Muzyka gra dalej po zamknięciu okna"
 
-#: app/src/results_view.blp:48
+#: app/src/results_view.blp:76
 msgid "Songs"
 msgstr "Utwory"
 
@@ -887,10 +965,6 @@ msgstr "Dodano do listy „{name}”"
 #: app/src/song_menu.rs:267 app/src/song_menu.rs:316
 msgid "Could not add to the playlist"
 msgstr "Nie można dodać do listy odtwarzania"
-
-#: app/src/song_menu.rs:352
-msgid "Title"
-msgstr "Tytuł"
 
 #: app/src/song_menu.rs:354
 msgid "Composer"

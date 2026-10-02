@@ -89,6 +89,13 @@ listview.song-list > row > box.song-row:drop(active) {
   box-shadow: inset 0 0 0 1px var(--accent-bg-color);
 }
 
+/* A narrow Favorites page: less room around its list, so two album cards
+   fit side by side (results_view.rs: set_narrow). */
+.narrow listview.song-list > row {
+  margin-left: 12px;
+  margin-right: 12px;
+}
+
 /* The queue panel is narrow: less room around its list. */
 listview.song-list.queue-list > row {
   margin-left: 12px;
