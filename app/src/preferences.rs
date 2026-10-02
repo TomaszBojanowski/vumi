@@ -24,11 +24,11 @@ mod imp {
         #[template_child]
         pub background_playback: gtk::TemplateChild<adw::SwitchRow>,
         #[template_child]
-        pub color_scheme: gtk::TemplateChild<adw::ComboRow>,
+        pub color_scheme: gtk::TemplateChild<adw::ToggleGroup>,
         #[template_child]
         pub cover_colors: gtk::TemplateChild<adw::SwitchRow>,
         #[template_child]
-        pub replay_gain: gtk::TemplateChild<adw::ComboRow>,
+        pub replay_gain: gtk::TemplateChild<adw::ToggleGroup>,
         #[template_child]
         pub report_listens: gtk::TemplateChild<adw::SwitchRow>,
         #[template_child]
@@ -82,13 +82,13 @@ mod imp {
                 .bind("report-listens", &*self.report_listens, "active")
                 .build();
             settings
-                .bind("color-scheme", &*self.color_scheme, "selected")
+                .bind("color-scheme", &*self.color_scheme, "active")
                 .build();
             settings
                 .bind("cover-colors", &*self.cover_colors, "active")
                 .build();
             settings
-                .bind("replay-gain", &*self.replay_gain, "selected")
+                .bind("replay-gain", &*self.replay_gain, "active")
                 .build();
         }
     }

@@ -44,16 +44,26 @@ template $VumiPreferences: Adw.PreferencesDialog {
     Adw.PreferencesGroup {
       title: _("Appearance");
 
-      Adw.ComboRow color_scheme {
+      // The toggles in the order of the "color-scheme" setting (0, 1, 2).
+      Adw.ActionRow {
         title: _("Style");
 
-        model: StringList {
-          strings [
-            _("Follow System"),
-            _("Light"),
-            _("Dark"),
-          ]
-        };
+        [suffix]
+        Adw.ToggleGroup color_scheme {
+          valign: center;
+
+          Adw.Toggle {
+            label: _("Follow System");
+          }
+
+          Adw.Toggle {
+            label: _("Light");
+          }
+
+          Adw.Toggle {
+            label: _("Dark");
+          }
+        }
       }
 
       Adw.SwitchRow cover_colors {
@@ -75,16 +85,63 @@ template $VumiPreferences: Adw.PreferencesDialog {
         subtitle: _("The music goes on; the controls stay in the system menu");
       }
 
-      Adw.ComboRow replay_gain {
+      // The toggles in the order of the "replay-gain" setting (0, 1, 2).
+      // They sit under the title, not beside it: three labels and a subtitle
+      // do not fit one line (the labels would be cut short).
+      Adw.PreferencesRow {
         title: _("Volume Normalization");
-        subtitle: _("From ReplayGain tags; off keeps the signal unchanged");
+        activatable: false;
 
-        model: StringList {
-          strings [
-            _("Off"),
-            _("Per Track"),
-            _("Per Album"),
-          ]
+        child: Box {
+          orientation: vertical;
+          spacing: 9;
+          margin-top: 9;
+          margin-bottom: 12;
+          margin-start: 12;
+          margin-end: 12;
+
+          Box {
+            orientation: vertical;
+            spacing: 3;
+
+            Label {
+              label: _("Volume Normalization");
+              xalign: 0;
+              wrap: true;
+              wrap-mode: word_char;
+
+              styles [
+                "title",
+              ]
+            }
+
+            Label {
+              label: _("From ReplayGain tags; off keeps the signal unchanged");
+              xalign: 0;
+              wrap: true;
+              wrap-mode: word_char;
+
+              styles [
+                "subtitle",
+              ]
+            }
+          }
+
+          Adw.ToggleGroup replay_gain {
+            homogeneous: true;
+
+            Adw.Toggle {
+              label: _("Off");
+            }
+
+            Adw.Toggle {
+              label: _("Per Track");
+            }
+
+            Adw.Toggle {
+              label: _("Per Album");
+            }
+          }
         };
       }
     }
