@@ -8,9 +8,27 @@ template $VumiQueuePage: Adw.Bin {
   child: Adw.ToolbarView {
     [top]
     Adw.HeaderBar {
-      title-widget: Adw.WindowTitle title {
+      title-widget: Adw.WindowTitle {
         title: _("Queue");
       };
+    }
+
+    // How many tracks, how long, how much is left: set from the code. On a
+    // line of its own, free to wrap: as the title's subtitle it would be cut
+    // short, the panel is narrow and the header has little room.
+    [top]
+    Label summary {
+      visible: false;
+      wrap: true;
+      justify: center;
+      margin-start: 12;
+      margin-end: 12;
+      margin-bottom: 6;
+
+      styles [
+        "caption",
+        "dim-label",
+      ]
     }
 
     content: Stack stack {

@@ -25,7 +25,7 @@ mod imp {
     #[template(file = "src/queue_page.blp")]
     pub struct QueuePage {
         #[template_child]
-        pub title: gtk::TemplateChild<adw::WindowTitle>,
+        pub summary: gtk::TemplateChild<gtk::Label>,
         #[template_child]
         pub stack: gtk::TemplateChild<gtk::Stack>,
         #[template_child]
@@ -71,6 +71,25 @@ mod imp {
             });
             // What changed while the panel was closed is shown as it opens.
             self.obj().connect_map(|page| page.update());
+            // The time left moves on while a track plays, and jumps with a
+            // seek. Minutes are shown, so a look every few seconds will do,
+            // and only while the panel is on screen.
+            let page = self.obj().downgrade();
+            player::get().connect_seeked(move |_| {
+                if let Some(page) = page.upgrade() {
+                    page.update_subtitle();
+                }
+            });
+            let page = self.obj().downgrade();
+            glib::timeout_add_seconds_local(10, move || match page.upgrade() {
+                Some(page) => {
+                    if page.is_mapped() && player::get().is_playing() {
+                        page.update_subtitle();
+                    }
+                    glib::ControlFlow::Continue
+                }
+                None => glib::ControlFlow::Break,
+            });
             self.obj().update();
         }
     }
@@ -253,12 +272,9 @@ impl QueuePage {
         let imp = self.imp();
         let queue = player::get().queue();
 
-        let count = queue.len() as u32;
-        // Translators: {n} is a number of tracks in the queue.
-        let subtitle = ngettext("{n} track", "{n} tracks", count).replace("{n}", &count.to_string());
-        imp.title.set_subtitle(if count > 0 { &subtitle } else { "" });
+        self.update_subtitle();
         imp.stack
-            .set_visible_child_name(if count > 0 { "queue" } else { "empty" });
+            .set_visible_child_name(if queue.is_empty() { "empty" } else { "queue" });
 
         // A closed panel shows nothing: the rows wait until it opens.
         if !self.is_mapped() {
@@ -274,6 +290,48 @@ impl QueuePage {
             imp.shown.replace(Some(queue));
         }
         self.place_rows();
+    }
+
+    /// Under the header: how many tracks, how long they are together and how
+    /// much of that is still to come, the rest of the current track included
+    /// ("122 tracks · 8 h 12 min · 7 h 40 min left"). Nothing is left to come
+    /// when nothing is in progress (the queue has ended, playback failed).
+    fn update_subtitle(&self) {
+        let player = player::get();
+        let queue = player.queue();
+        let mut parts = Vec::new();
+        if !queue.is_empty() {
+            let count = queue.len() as u32;
+            // Translators: {n} is a number of tracks in the queue.
+            parts.push(ngettext("{n} track", "{n} tracks", count).replace("{n}", &count.to_string()));
+            let seconds = |songs: &[subsonic::Song]| -> u32 {
+                songs.iter().filter_map(|song| song.duration).sum()
+            };
+            let total = seconds(&queue);
+            if total > 0 {
+                parts.push(crate::album_page::format_duration(total));
+            }
+            if player.is_active() {
+                let position = player.position().min(queue.len() - 1);
+                let played = player.position_secs().unwrap_or(0.0) as u32;
+                let left = seconds(&queue[position..]).saturating_sub(played);
+                if left > 0 {
+                    // Translators: {time} is a short duration, e.g. "12 min" or "1 h 5 min".
+                    parts.push(gettext("{time} left").replace("{time}", &short_duration(left)));
+                }
+            }
+        }
+        // In a narrow panel the line wraps: between the parts, never inside
+        // one (no-break spaces), and the dot stays with the part before it.
+        let parts: Vec<String> = parts.iter().map(|part| part.replace(' ', "\u{a0}")).collect();
+        let subtitle = parts.join("\u{a0}· ");
+        // Asked for often (a timer, every change of the player): the label
+        // is touched only when the text is another one.
+        let summary = &self.imp().summary;
+        if summary.label() != subtitle {
+            summary.set_label(&subtitle);
+            summary.set_visible(!subtitle.is_empty());
+        }
     }
 
     /// Brings the model in line with `queue`: one object per track. Only the
@@ -336,6 +394,21 @@ impl QueuePage {
         // A row without a track (off screen) is nobody's.
         let playing = row.song().is_some() && current == Some(item.position() as usize);
         row.set_playing(playing, !player.is_playing());
+    }
+}
+
+/// A duration in few characters, a started minute counted as a whole one:
+/// "12 min", "1 h 5 min".
+fn short_duration(seconds: u32) -> String {
+    let minutes = seconds.div_ceil(60);
+    if minutes < 60 {
+        // Translators: a short duration in minutes, e.g. "12 min".
+        gettext("{n} min").replace("{n}", &minutes.to_string())
+    } else {
+        // Translators: total length of a long album, e.g. "6 h 9 min".
+        gettext("{hours} h {minutes} min")
+            .replace("{hours}", &(minutes / 60).to_string())
+            .replace("{minutes}", &(minutes % 60).to_string())
     }
 }
 
