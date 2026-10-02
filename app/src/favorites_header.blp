@@ -1,0 +1,112 @@
+using Gtk 4.0;
+using Adw 1;
+
+translation-domain "vumi";
+
+// What stands at the top of the Favorites page: covers of the starred
+// albums, the name of the page, how much it holds, and Play All / Shuffle.
+template $VumiFavoritesHeader: Box {
+  orientation: vertical;
+  spacing: 18;
+
+  Box top_row {
+    spacing: 24;
+
+    // Up to four covers (favorites_header.rs); the star stays underneath
+    // until there is one.
+    Overlay collage_frame {
+      width-request: 200;
+      height-request: 200;
+      valign: center;
+      overflow: hidden;
+
+      styles [
+        "playlist-cover",
+        "collage",
+      ]
+
+      child: Image collage_icon {
+        icon-name: "starred-symbolic";
+        pixel-size: 64;
+
+        styles [
+          "dim-label",
+        ]
+      };
+
+      [overlay]
+      Grid collage {
+        row-homogeneous: true;
+        column-homogeneous: true;
+      }
+    }
+
+    // The buttons are the last thing here; in a narrow window they go under
+    // the whole row instead (favorites_header.rs), where they have the room.
+    Box text {
+      orientation: vertical;
+      spacing: 6;
+      valign: center;
+      hexpand: true;
+
+      Label {
+        label: _("Collection");
+        xalign: 0;
+
+        styles [
+          "collection-label",
+          "dim-label",
+        ]
+      }
+
+      Label title {
+        label: _("Favorites");
+        xalign: 0;
+        wrap: true;
+
+        styles [
+          "title-1",
+        ]
+      }
+
+      Label summary {
+        xalign: 0;
+        wrap: true;
+
+        styles [
+          "dim-label",
+        ]
+      }
+
+      Box buttons {
+        spacing: 12;
+        margin-top: 6;
+
+        Button play_button {
+          valign: center;
+
+          styles [
+            "pill",
+            "album-play",
+          ]
+
+          child: Adw.ButtonContent {
+            icon-name: "media-playback-start-symbolic";
+            label: _("Play All");
+          };
+        }
+
+        Button shuffle_button {
+          icon-name: "media-playlist-shuffle-symbolic";
+          tooltip-text: _("Shuffle");
+          valign: center;
+
+          styles [
+            "circular",
+            "album-action",
+          ]
+        }
+      }
+    }
+  }
+}

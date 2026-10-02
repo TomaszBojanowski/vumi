@@ -310,8 +310,19 @@ template $VumiMainView: Adw.NavigationPage {
                 }
               }
 
-              // Starred albums and songs, from the local database (main_view.rs).
-              content: $VumiResultsView favorites {};
+              // Starred albums and songs, from the local database
+              // (main_view.rs). The bin tells the page when it is narrow:
+              // its header gets smaller then.
+              content: Adw.BreakpointBin {
+                width-request: 300;
+                height-request: 200;
+
+                child: $VumiResultsView favorites {};
+
+                Adw.Breakpoint favorites_narrow {
+                  condition ("max-width: 520sp")
+                }
+              };
             };
               }
             };

@@ -280,8 +280,6 @@ impl ResultsView {
 
     /// Puts `widget` above everything else in the view (a page header); it
     /// scrolls away with the list. None takes it out again.
-    // Not called yet: the Favorites page comes in the next step.
-    #[allow(dead_code)]
     pub(crate) fn set_header_top(&self, widget: Option<&impl IsA<gtk::Widget>>) {
         let top = &self.imp().header_top;
         top.set_child(widget);
@@ -290,7 +288,7 @@ impl ResultsView {
 
     /// Puts `widget` at the end of the "Songs" heading (a sort switch, say).
     /// None takes it out again.
-    // Not called yet: the Favorites page comes in the next step.
+    // Not called yet: the sort switch of the Favorites page comes with it.
     #[allow(dead_code)]
     pub(crate) fn set_songs_end(&self, widget: Option<&impl IsA<gtk::Widget>>) {
         let end = &self.imp().songs_end;
@@ -300,7 +298,7 @@ impl ResultsView {
 
     /// What to say about each song on its row, before its length; None for
     /// nothing. The rows on screen follow at once.
-    // Not called yet: the Favorites page comes in the next step.
+    // Not called yet: the dates of the Favorites page come with its sorting.
     #[allow(dead_code)]
     pub(crate) fn set_note(&self, note: Option<impl Fn(&subsonic::Song) -> String + 'static>) {
         let imp = self.imp();

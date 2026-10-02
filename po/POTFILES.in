@@ -9,6 +9,8 @@ app/src/welcome_page.blp
 app/src/album_page.rs
 app/src/album_page.blp
 app/src/favorites.rs
+app/src/favorites_header.rs
+app/src/favorites_header.blp
 app/src/about.rs
 app/src/artist_card.rs
 app/src/artist_page.rs

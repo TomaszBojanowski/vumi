@@ -155,6 +155,10 @@ mod imp {
         pub start_page: gtk::TemplateChild<crate::start_page::StartPage>,
         #[template_child]
         pub favorites: gtk::TemplateChild<crate::results_view::ResultsView>,
+        #[template_child]
+        pub favorites_narrow: gtk::TemplateChild<adw::Breakpoint>,
+        /// The top of the Favorites page, put into its list.
+        pub favorites_header: OnceCell<crate::favorites_header::FavoritesHeader>,
         /// How the grid is sorted (see sort_albums).
         pub sort: RefCell<String>,
         /// Albums shown in the grid; items are subsonic::Album wrapped for GTK.
@@ -228,6 +232,7 @@ impl MainView {
         view.setup_artists_grid();
         view.setup_queue();
         view.setup_playlists();
+        view.setup_favorites();
         view.setup_sorting();
         view.setup_search();
         view.imp().favorites.set_empty(
@@ -1073,6 +1078,28 @@ impl MainView {
         });
     }
 
+    /// The Favorites page gets its header: the first thing in its list, so it
+    /// scrolls away with the albums and the songs. In a narrow page the
+    /// header is smaller.
+    fn setup_favorites(&self) {
+        let imp = self.imp();
+        let header = crate::favorites_header::FavoritesHeader::new();
+        imp.favorites.set_header_top(Some(&header));
+        let weak = header.downgrade();
+        imp.favorites_narrow.connect_apply(move |_| {
+            if let Some(header) = weak.upgrade() {
+                header.set_compact(true);
+            }
+        });
+        let weak = header.downgrade();
+        imp.favorites_narrow.connect_unapply(move |_| {
+            if let Some(header) = weak.upgrade() {
+                header.set_compact(false);
+            }
+        });
+        let _ = imp.favorites_header.set(header);
+    }
+
     /// The playlist cards go into two columns where the section is wide
     /// enough for them, else into one: the grid is laid out again whenever
     /// that changes.
@@ -1420,6 +1447,9 @@ impl MainView {
         self.refresh_grid();
         self.refresh_artists();
         self.refresh_start();
+        if let Some(header) = imp.favorites_header.get() {
+            header.set_content(&[], &[], None);
+        }
         imp.favorites.show(&[], Vec::new(), None);
         // Every section (Start, Albums, Favorites...) has a navigation view of
         // its own, so all of them go back to their first page.
@@ -1467,6 +1497,9 @@ impl MainView {
                     .filter_map(|id| current.iter().find(|a| a.id == *id).cloned())
                     .collect()
             };
+            if let Some(header) = view.imp().favorites_header.get() {
+                header.set_content(&albums, &found.songs, Some(client.clone()));
+            }
             view.imp().favorites.show(&albums, found.songs, Some(client));
         });
     }

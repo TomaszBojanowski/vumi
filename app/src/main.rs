@@ -7,6 +7,7 @@ mod background;
 mod cover_image;
 mod covers;
 mod favorites;
+mod favorites_header;
 mod library;
 mod login_page;
 mod main_view;
