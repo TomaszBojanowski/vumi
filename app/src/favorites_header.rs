@@ -1,6 +1,7 @@
 //! The top of the Favorites page: a collage of the starred albums' covers,
 //! the name of the page, a line that says how much it holds, and buttons
-//! that play the starred songs, in order or shuffled.
+//! that play the starred songs, in order or shuffled. The first cover also
+//! gives the page its colour (main_view.rs puts it behind the header).
 
 use adw::subclass::prelude::*;
 use gettextrs::ngettext;
@@ -46,6 +47,9 @@ mod imp {
         pub songs: RefCell<Option<Rc<[subsonic::Song]>>>,
         pub client: RefCell<Option<subsonic::Client>>,
         pub compact: Cell<bool>,
+        /// Told the colour of the first cover, for the page behind the
+        /// header; None when there is no cover.
+        pub color_handler: RefCell<Option<Box<dyn Fn(Option<(u8, u8, u8)>)>>>,
     }
 
     #[glib::object_subclass]
@@ -149,6 +153,9 @@ impl FavoritesHeader {
         if *imp.covers.borrow() == ids {
             return;
         }
+        if ids.is_empty() {
+            self.tell_color(None);
+        }
         while let Some(child) = imp.collage.first_child() {
             imp.collage.remove(&child);
         }
@@ -160,11 +167,33 @@ impl FavoritesHeader {
                 (index as i32 % 2, index as i32 / 2, 1)
             };
             imp.collage.attach(&cover, column, row, span, span);
-            covers::load_for(&cover, client.clone(), id.clone(), |cover, texture| {
+            let header = self.downgrade();
+            let id_shown = id.clone();
+            covers::load_for(&cover, client.clone(), id.clone(), move |cover, texture| {
                 cover.set_texture(texture.as_ref());
+                // The first cover gives the page its colour, unless the
+                // collage has changed again since.
+                let Some(header) = header.upgrade().filter(|_| index == 0) else {
+                    return;
+                };
+                if header.imp().covers.borrow().first() == Some(&id_shown) {
+                    header.tell_color(texture.as_ref().and_then(crate::tint::dominant_color));
+                }
             });
         }
         imp.covers.replace(ids);
+    }
+
+    /// Runs `f` with the colour of the first cover whenever it changes; None
+    /// when the collage has no cover.
+    pub(crate) fn connect_color(&self, f: impl Fn(Option<(u8, u8, u8)>) + 'static) {
+        self.imp().color_handler.replace(Some(Box::new(f)));
+    }
+
+    fn tell_color(&self, color: Option<(u8, u8, u8)>) {
+        if let Some(handler) = self.imp().color_handler.borrow().as_ref() {
+            handler(color);
+        }
     }
 
     /// A narrow window: the collage is smaller, to leave the text its room,

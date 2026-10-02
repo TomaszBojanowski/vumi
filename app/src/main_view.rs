@@ -157,6 +157,10 @@ mod imp {
         pub favorites: gtk::TemplateChild<crate::results_view::ResultsView>,
         #[template_child]
         pub favorites_narrow: gtk::TemplateChild<adw::Breakpoint>,
+        #[template_child]
+        pub favorites_toolbar: gtk::TemplateChild<adw::ToolbarView>,
+        /// The colour behind the header of the Favorites page.
+        pub favorites_tint: OnceCell<crate::tint::Dynamic>,
         /// The top of the Favorites page, put into its list.
         pub favorites_header: OnceCell<crate::favorites_header::FavoritesHeader>,
         /// How the grid is sorted (see sort_albums).
@@ -1095,6 +1099,22 @@ impl MainView {
         imp.favorites_narrow.connect_unapply(move |_| {
             if let Some(header) = weak.upgrade() {
                 header.set_compact(false);
+            }
+        });
+        // The page takes the colour of the header's first cover, fading
+        // into its own background below the header.
+        let tint = imp.favorites_tint.get_or_init(crate::tint::Dynamic::new);
+        imp.favorites_toolbar.add_css_class(tint.class());
+        let view = self.downgrade();
+        header.connect_color(move |color| {
+            let Some(view) = view.upgrade() else {
+                return;
+            };
+            if let Some(tint) = view.imp().favorites_tint.get() {
+                match color {
+                    Some(color) => tint.set_page(color),
+                    None => tint.clear(),
+                }
             }
         });
         let _ = imp.favorites_header.set(header);

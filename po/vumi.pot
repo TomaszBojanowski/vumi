@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vumi\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-03 00:09+0200\n"
+"POT-Creation-Date: 2026-10-03 00:26+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -100,7 +100,7 @@ msgstr ""
 msgid "Search Library"
 msgstr ""
 
-#: app/src/main.rs:516 app/src/main_view.blp:46 app/src/main_view.blp:540
+#: app/src/main.rs:516 app/src/main_view.blp:46 app/src/main_view.blp:542
 msgid "Sync Library"
 msgstr ""
 
@@ -108,45 +108,45 @@ msgstr ""
 msgid "General"
 msgstr ""
 
-#: app/src/main.rs:522 app/src/main_view.blp:547
+#: app/src/main.rs:522 app/src/main_view.blp:549
 msgid "Preferences"
 msgstr ""
 
-#: app/src/main.rs:523 app/src/main_view.blp:552
+#: app/src/main.rs:523 app/src/main_view.blp:554
 msgid "Keyboard Shortcuts"
 msgstr ""
 
-#: app/src/main.rs:524 app/src/main_view.blp:562
+#: app/src/main.rs:524 app/src/main_view.blp:564
 msgid "Quit"
 msgstr ""
 
-#: app/src/main_view.rs:240
+#: app/src/main_view.rs:244
 msgid "No Favorites"
 msgstr ""
 
-#: app/src/main_view.rs:241
+#: app/src/main_view.rs:245
 msgid "Star albums and songs to see them here"
 msgstr ""
 
-#: app/src/main_view.rs:422
+#: app/src/main_view.rs:426
 msgid "Connecting…"
 msgstr ""
 
 #. Translators: {server} is the server software (e.g. navidrome), {version} its version.
-#: app/src/main_view.rs:431
+#: app/src/main_view.rs:435
 #, rust-format
 msgid "Connected to {server} {version}"
 msgstr ""
 
-#: app/src/main_view.rs:443
+#: app/src/main_view.rs:447
 msgid "Offline"
 msgstr ""
 
 #. Translators: {n} is a number of tracks.
 #. Translators: {n} is a number of tracks in the queue.
 #. Translators: {n} is a number of tracks.
-#: app/src/main_view.rs:1141 app/src/album_page.rs:354
-#: app/src/favorites_header.rs:112 app/src/preferences.rs:383
+#: app/src/main_view.rs:1161 app/src/album_page.rs:354
+#: app/src/favorites_header.rs:122 app/src/preferences.rs:383
 #: app/src/queue_page.rs:454 app/src/song_menu.rs:288
 #: app/src/playlist_page.rs:126
 #, rust-format
@@ -155,7 +155,7 @@ msgid_plural "{n} tracks"
 msgstr[0] ""
 msgstr[1] ""
 
-#: app/src/main_view.rs:1208 app/src/album_page.rs:628
+#: app/src/main_view.rs:1228 app/src/album_page.rs:628
 #: app/src/album_page.rs:810 app/src/now_playing.rs:246
 #: app/src/mini_player.rs:101 app/src/start_page.blp:204
 #: app/src/playlist_page.blp:85
@@ -180,8 +180,8 @@ msgid "Start"
 msgstr ""
 
 #: app/src/main_view.blp:113 app/src/main_view.blp:145
-#: app/src/main_view.blp:214 app/src/main_view.blp:307
-#: app/src/main_view.blp:347 app/src/main_view.blp:423
+#: app/src/main_view.blp:214 app/src/main_view.blp:309
+#: app/src/main_view.blp:349 app/src/main_view.blp:425
 msgid "Show sidebar"
 msgstr ""
 
@@ -209,7 +209,7 @@ msgid "Jump to Letter"
 msgstr ""
 
 #: app/src/main_view.blp:291 app/src/main_view.blp:299
-#: app/src/favorites_header.blp:57
+#: app/src/favorites_header.blp:63
 msgid "Favorites"
 msgstr ""
 
@@ -217,72 +217,72 @@ msgstr ""
 msgid "Collections"
 msgstr ""
 
-#: app/src/main_view.blp:333 app/src/main_view.blp:339 app/src/song_menu.rs:277
+#: app/src/main_view.blp:335 app/src/main_view.blp:341 app/src/song_menu.rs:277
 msgid "Playlists"
 msgstr ""
 
-#: app/src/main_view.blp:359
+#: app/src/main_view.blp:361
 msgid "No Playlists"
 msgstr ""
 
-#: app/src/main_view.blp:360
+#: app/src/main_view.blp:362
 msgid "Playlists from the server appear here"
 msgstr ""
 
-#: app/src/main_view.blp:412 app/src/main_view.blp:431
+#: app/src/main_view.blp:414 app/src/main_view.blp:433
 msgid "Similar and Radio"
 msgstr ""
 
-#: app/src/main_view.blp:415
+#: app/src/main_view.blp:417
 msgid "Discover"
 msgstr ""
 
-#: app/src/main_view.blp:432
+#: app/src/main_view.blp:434
 msgid "Coming soon"
 msgstr ""
 
-#: app/src/main_view.blp:476 app/src/queue_page.rs:388
+#: app/src/main_view.blp:478 app/src/queue_page.rs:388
 msgid "Name"
 msgstr ""
 
-#: app/src/main_view.blp:482 app/src/song_menu.rs:353
+#: app/src/main_view.blp:484 app/src/song_menu.rs:353
 msgid "Artist"
 msgstr ""
 
-#: app/src/main_view.blp:488
+#: app/src/main_view.blp:490
 msgid "Year (Newest)"
 msgstr ""
 
-#: app/src/main_view.blp:494
+#: app/src/main_view.blp:496
 msgid "Year (Oldest)"
 msgstr ""
 
-#: app/src/main_view.blp:500 app/src/start_page.blp:232
+#: app/src/main_view.blp:502 app/src/start_page.blp:232
 msgid "Recently Added"
 msgstr ""
 
-#: app/src/main_view.blp:511 app/src/preferences.blp:194
+#: app/src/main_view.blp:513 app/src/preferences.blp:194
 msgid "Endless Radio"
 msgstr ""
 
-#: app/src/main_view.blp:516
+#: app/src/main_view.blp:518
 msgid "Repeat"
 msgstr ""
 
-#: app/src/main_view.blp:519 app/src/preferences.blp:249
+#: app/src/main_view.blp:521 app/src/preferences.blp:249
 msgid "Off"
 msgstr ""
 
-#: app/src/main_view.blp:525 app/src/now_playing.blp:160
+#: app/src/main_view.blp:527 app/src/now_playing.blp:160
 #: app/src/queue_page.blp:12
 msgid "Queue"
 msgstr ""
 
-#: app/src/main_view.blp:531 app/src/song_menu.rs:356
+#: app/src/main_view.blp:533 app/src/song_menu.rs:356
 msgid "Track"
 msgstr ""
 
-#: app/src/main_view.blp:557
+#: app/src/main_view.blp:559
 msgid "About Vumi"
 msgstr ""
 
@@ -430,7 +430,7 @@ msgstr ""
 msgid "Radio"
 msgstr ""
 
-#: app/src/album_page.rs:817 app/src/favorites_header.blp:95
+#: app/src/album_page.rs:817 app/src/favorites_header.blp:101
 #: app/src/playlist_page.blp:96
 msgid "Shuffle"
 msgstr ""
@@ -459,7 +459,7 @@ msgstr ""
 msgid "Add to favorites"
 msgstr ""
 
-#: app/src/favorites_header.rs:107 app/src/artist_card.rs:81
+#: app/src/favorites_header.rs:117 app/src/artist_card.rs:81
 #: app/src/artist_page.rs:126 app/src/preferences.rs:373
 #, rust-format
 msgid "{n} album"
@@ -467,12 +467,12 @@ msgid_plural "{n} albums"
 msgstr[0] ""
 msgstr[1] ""
 
-#: app/src/favorites_header.blp:47
+#: app/src/favorites_header.blp:53
 msgid "Collection"
 msgstr ""
 
-#: app/src/favorites_header.blp:89
-msgid "Play All"
+#: app/src/favorites_header.blp:95
+msgid "Play Songs"
 msgstr ""
 
 #: app/src/about.rs:68

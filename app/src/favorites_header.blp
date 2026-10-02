@@ -4,7 +4,7 @@ using Adw 1;
 translation-domain "vumi";
 
 // What stands at the top of the Favorites page: covers of the starred
-// albums, the name of the page, how much it holds, and Play All / Shuffle.
+// albums, the name of the page, how much it holds, and Play Songs / Shuffle.
 template $VumiFavoritesHeader: Box {
   orientation: vertical;
   spacing: 18;
@@ -92,7 +92,7 @@ template $VumiFavoritesHeader: Box {
 
           child: Adw.ButtonContent {
             icon-name: "media-playback-start-symbolic";
-            label: _("Play All");
+            label: _("Play Songs");
           };
         }
 

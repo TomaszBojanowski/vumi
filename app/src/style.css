@@ -439,7 +439,7 @@ picture.letterbox {
   border-radius: 12px;
 }
 
-/* Play All: the album page's Play as a pill with its name. */
+/* Play Songs (Favorites): the album page's Play as a pill with its name. */
 button.pill.album-play {
   min-height: 40px;
   padding: 0 24px 0 20px;

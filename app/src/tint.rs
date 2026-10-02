@@ -96,21 +96,7 @@ pub(crate) fn apply(widget: &impl IsA<gtk::Widget>, (r, g, b): (u8, u8, u8)) {
     let id = next_id();
     let class = format!("album-tint-{id}");
 
-    RULES.with(|rules| {
-        rules.borrow_mut().insert(
-            id,
-            format!(
-                // Light style: a softer tint, or dark covers drown the title.
-                ".{class} {{ background-image: linear-gradient(to bottom, \
-                 rgba({r}, {g}, {b}, 0.35), rgba({r}, {g}, {b}, 0.15) 240px, \
-                 transparent 440px); }} \
-                 @media (prefers-color-scheme: dark) {{ \
-                 .{class} {{ background-image: linear-gradient(to bottom, \
-                 rgba({r}, {g}, {b}, 0.6), rgba({r}, {g}, {b}, 0.3) 240px, \
-                 transparent 440px); }} }}"
-            ),
-        )
-    });
+    RULES.with(|rules| rules.borrow_mut().insert(id, page_rule(&class, (r, g, b))));
     reload();
     widget.add_css_class(&class);
 
@@ -119,6 +105,21 @@ pub(crate) fn apply(widget: &impl IsA<gtk::Widget>, (r, g, b): (u8, u8, u8)) {
         RULES.with(|rules| rules.borrow_mut().remove(&id));
         reload();
     });
+}
+
+/// The colour from the top of a page down, fading into the page's own
+/// background (album pages, Favorites).
+fn page_rule(class: &str, (r, g, b): (u8, u8, u8)) -> String {
+    format!(
+        // Light style: a softer tint, or dark covers drown the title.
+        ".{class} {{ background-image: linear-gradient(to bottom, \
+         rgba({r}, {g}, {b}, 0.35), rgba({r}, {g}, {b}, 0.15) 240px, \
+         transparent 440px); }} \
+         @media (prefers-color-scheme: dark) {{ \
+         .{class} {{ background-image: linear-gradient(to bottom, \
+         rgba({r}, {g}, {b}, 0.6), rgba({r}, {g}, {b}, 0.3) 240px, \
+         transparent 440px); }} }}"
+    )
 }
 
 /// "Cover Colors" in Preferences.
@@ -151,9 +152,10 @@ pub(crate) fn reload() {
     });
 }
 
-/// A style class whose colour can change over time (the now-playing pill).
+/// A style class whose colour can change over time (the now-playing pill,
+/// the Last Played card, the Favorites page).
 /// Unlike apply(), the same widget keeps one class and its rule is rewritten.
-pub(crate) struct Dynamic {
+pub struct Dynamic {
     id: u64,
     class: String,
 }
@@ -196,6 +198,14 @@ impl Dynamic {
             ".{c} {{ background-image: linear-gradient(120deg, \
              rgba({r}, {g}, {b}, 0.55), rgba({r}, {g}, {b}, 0.1)); }}"
         );
+        RULES.with(|rules| rules.borrow_mut().insert(self.id, rule));
+        reload();
+    }
+
+    /// The colour behind the top of a page, as on album pages (apply), for a
+    /// page whose colour changes (Favorites).
+    pub(crate) fn set_page(&self, color: (u8, u8, u8)) {
+        let rule = page_rule(&self.class, color);
         RULES.with(|rules| rules.borrow_mut().insert(self.id, rule));
         reload();
     }

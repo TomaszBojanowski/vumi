@@ -298,7 +298,9 @@ template $VumiMainView: Adw.NavigationPage {
               Adw.NavigationPage {
                 title: _("Favorites");
 
-                child: Adw.ToolbarView {
+                // Takes the colour of the first cover in the header, as an
+                // album page takes its cover's (main_view.rs).
+                child: Adw.ToolbarView favorites_toolbar {
               [top]
               Adw.HeaderBar {
                 [start]
