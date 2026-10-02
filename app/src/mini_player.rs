@@ -111,11 +111,11 @@ impl MiniPlayer {
                     covers::load_for(self, player.client(), id, move |mini, texture| {
                         let imp = mini.imp();
                         if imp.cover_id.borrow().as_deref() == Some(key.as_str()) {
-                            imp.cover.set_paintable(texture.as_ref());
+                            covers::show(&imp.cover, texture.as_ref());
                         }
                     });
                 }
-                _ => imp.cover.set_paintable(None::<&gtk::gdk::Paintable>),
+                _ => covers::show(&imp.cover, None),
             }
         }
     }

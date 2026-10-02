@@ -494,12 +494,12 @@ impl StartPage {
         let new_album = *imp.continue_album.borrow() != album.id;
         imp.continue_album.replace(album.id.clone());
         if new_album {
-            imp.continue_cover.set_paintable(None::<&gtk::gdk::Paintable>);
+            crate::covers::show(&imp.continue_cover, None);
             self.tint_hero(None);
         }
         if let Some(cover) = album.cover_art.clone().filter(|_| new_album) {
             crate::covers::load_for(self, Some(client.clone()), cover, |page, texture| {
-                page.imp().continue_cover.set_paintable(texture.as_ref());
+                crate::covers::show(&page.imp().continue_cover, texture.as_ref());
                 page.tint_hero(texture.as_ref());
             });
         }
@@ -691,7 +691,7 @@ impl StartPage {
             &imp.random_cover.get(),
             imp.client.borrow().clone(),
             cover,
-            |picture, texture| picture.set_paintable(texture.as_ref()),
+            |picture, texture| crate::covers::show(picture, texture.as_ref()),
         );
     }
 
@@ -713,13 +713,13 @@ impl StartPage {
         imp.random_title.set_label(&album.name);
         imp.random_subtitle
             .set_label(album.artist.as_deref().unwrap_or_default());
-        imp.random_cover.set_paintable(None::<&gtk::gdk::Paintable>);
+        crate::covers::show(&imp.random_cover, None);
         if let Some(cover) = album.cover_art.clone() {
             crate::covers::load_for(
                 &imp.random_cover.get(),
                 imp.client.borrow().clone(),
                 cover,
-                |picture, texture| picture.set_paintable(texture.as_ref()),
+                |picture, texture| crate::covers::show(picture, texture.as_ref()),
             );
         }
         imp.random_album.replace(Some(album));

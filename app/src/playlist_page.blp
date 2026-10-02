@@ -24,7 +24,9 @@ template $VumiPlaylistPage: Adw.NavigationPage {
         margin-start: 24;
         margin-end: 24;
 
-        Adw.Bin {
+        // The list icon stays underneath; the cover goes over it once
+        // loaded, made as small as it is on screen (cover_image.rs).
+        Overlay {
           valign: start;
           overflow: hidden;
 
@@ -32,10 +34,13 @@ template $VumiPlaylistPage: Adw.NavigationPage {
             "playlist-cover",
           ]
 
-          child: Image cover {
+          child: Image {
             pixel-size: 120;
             icon-name: "view-list-symbolic";
           };
+
+          [overlay]
+          $VumiCoverImage cover {}
         }
 
         Box {

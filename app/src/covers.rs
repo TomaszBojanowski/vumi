@@ -1,16 +1,41 @@
-//! Album covers: fetched from the server at display size, cached on disk,
+//! Album covers: fetched from the server at a size that suits the screen
+//! (see SIZE), cached on disk,
 //! decoded off the main thread. Only a few downloads run at once.
 
 use gtk::prelude::*;
 use gtk::{gdk, glib};
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::{Mutex, OnceLock};
 use tokio::sync::Semaphore;
 
 use crate::runtime;
 
-/// Pixel size requested from the server: twice the 160 px card, sharp on HiDPI screens.
-const SIZE: u32 = 320;
+/// Pixel size requested from the server (the longer side). The largest covers
+/// are about 256 px in the app's own units (the player card is 252, a card in
+/// the album grid up to about 250), so 320 px has a pixel for every device
+/// pixel up to a screen scale of 1.25; a screen with a larger scale gets
+/// 640 px. Each size has its own files in the cache.
+static SIZE: AtomicU32 = AtomicU32::new(320);
+
+/// The size to ask for now.
+fn size() -> u32 {
+    SIZE.load(Ordering::Relaxed)
+}
+
+/// Picks the size by the largest scale among the screens. Main thread only.
+fn update_size() {
+    let Some(display) = gdk::Display::default() else {
+        return;
+    };
+    let scale = display
+        .monitors()
+        .iter::<gdk::Monitor>()
+        .flatten()
+        .map(|monitor| monitor.scale())
+        .fold(1.0, f64::max);
+    SIZE.store(if 256.0 * scale > 320.0 { 640 } else { 320 }, Ordering::Relaxed);
+}
 
 /// At most this many covers are downloaded at the same time.
 const MAX_DOWNLOADS: usize = 6;
@@ -41,7 +66,7 @@ pub(crate) fn set_server(key: String) {
 /// A stable, collision-free file name: MD5 of server, cover id and size.
 /// (Rust's own hasher may change between compiler versions; MD5 never does.)
 fn cache_path(server: &str, id: &str) -> PathBuf {
-    let digest = md5::compute(format!("{server}\n{id}\n{SIZE}"));
+    let digest = md5::compute(format!("{server}\n{id}\n{}", size()));
     cache_dir().join(format!("{digest:x}.img"))
 }
 
@@ -53,7 +78,8 @@ pub(crate) async fn load(client: Option<subsonic::Client>, id: String) -> Option
         .map(|s| s.clone())
         .unwrap_or_default();
 
-    let key = format!("{server}\n{id}");
+    let size = size();
+    let key = format!("{server}\n{id}\n{size}");
     if let Some(texture) = memory_get(&key) {
         return Some(texture);
     }
@@ -76,7 +102,7 @@ pub(crate) async fn load(client: Option<subsonic::Client>, id: String) -> Option
             let client = client?;
 
             let _permit = downloads().acquire().await.ok()?;
-            let bytes = match client.cover_art(&id, SIZE).await {
+            let bytes = match client.cover_art(&id, size).await {
                 Ok(bytes) => bytes,
                 Err(e) => {
                     eprintln!("Could not fetch cover {id}: {e}");
@@ -185,6 +211,7 @@ pub(crate) fn load_for<W>(
 ) where
     W: gtk::glib::object::IsA<gtk::glib::Object>,
 {
+    update_size();
     let owner = gtk::glib::object::ObjectExt::downgrade(owner);
     gtk::glib::spawn_future_local(async move {
         let texture = load(client, id).await;
@@ -194,17 +221,18 @@ pub(crate) fn load_for<W>(
     });
 }
 
-/// A square `size` px version of `texture`, for widgets that must not ask for
-/// the texture's own size (an image in a card, say): its intrinsic size is
-/// exactly `size`, whatever the texture's.
-pub(crate) fn thumbnail(texture: &gdk::Texture, size: f32) -> Option<gdk::Paintable> {
-    let snapshot = gtk::Snapshot::new();
-    snapshot.append_scaled_texture(
-        texture,
-        gtk::gsk::ScalingFilter::Trilinear,
-        &gtk::graphene::Rect::new(0.0, 0.0, size, size),
-    );
-    snapshot.to_paintable(Some(&gtk::graphene::Size::new(size, size)))
+/// Shows `texture` in `picture`, a cover in its square frame. The picture
+/// draws the texture itself, at the screen's own resolution, and whole
+/// (`content-fit: contain` in the templates): a cover that is not square is
+/// never cropped, and the rest of the frame is then a neutral dark
+/// (style.css: picture.letterbox).
+pub(crate) fn show(picture: &gtk::Picture, texture: Option<&gdk::Texture>) {
+    picture.set_paintable(texture);
+    if texture.is_some_and(|texture| texture.width() != texture.height()) {
+        picture.add_css_class("letterbox");
+    } else {
+        picture.remove_css_class("letterbox");
+    }
 }
 
 /// Where the cover `id` is cached on disk, if it is. MPRIS hands this path to

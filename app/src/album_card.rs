@@ -32,6 +32,8 @@ mod imp {
         type ParentType = gtk::Box;
 
         fn class_init(klass: &mut Self::Class) {
+            // The template uses it.
+            crate::cover_image::Square::static_type();
             klass.bind_template();
         }
 
@@ -70,7 +72,7 @@ impl AlbumCard {
         }
 
         // Drop the previous album's cover right away, so it never shows under a new title.
-        imp.cover.set_paintable(None::<&gtk::gdk::Paintable>);
+        covers::show(&imp.cover, None);
         imp.cover_id.replace(album.cover_art.clone());
         if album.cover_art.is_none() {
             eprintln!("Album {:?} has no cover id", album.name);
@@ -85,7 +87,7 @@ impl AlbumCard {
             // The card may have been reused for another album in the meantime.
             let imp = card.imp();
             if imp.cover_id.borrow().as_deref() == Some(id.as_str()) {
-                imp.cover.set_paintable(texture.as_ref());
+                covers::show(&imp.cover, texture.as_ref());
             }
         });
     }

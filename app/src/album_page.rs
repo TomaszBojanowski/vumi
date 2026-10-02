@@ -162,7 +162,7 @@ impl AlbumPage {
 
     fn load_cover(&self, client: Option<subsonic::Client>, id: String) {
         covers::load_for(self, client, id, |page, texture| {
-            page.imp().cover.set_paintable(texture.as_ref());
+            covers::show(&page.imp().cover, texture.as_ref());
             if let Some(color) = texture.as_ref().and_then(tint::dominant_color) {
                 page.after_shown(move |page| page.show_tint(color));
             }

@@ -418,3 +418,10 @@ button.syncing > image {
 .logout-button > label {
   color: var(--destructive-color);
 }
+
+/* A cover that is not square is shown whole in its square frame (never
+   cropped); what it leaves of the frame is a neutral dark, in either style.
+   The class is put on by covers::show. */
+picture.letterbox {
+  background-color: #242424;
+}

@@ -18,7 +18,7 @@ mod imp {
     #[template(file = "src/playlist_page.blp")]
     pub struct PlaylistPage {
         #[template_child]
-        pub cover: gtk::TemplateChild<gtk::Image>,
+        pub cover: gtk::TemplateChild<crate::cover_image::CoverImage>,
         #[template_child]
         pub name: gtk::TemplateChild<gtk::Label>,
         #[template_child]
@@ -48,6 +48,7 @@ mod imp {
         fn class_init(klass: &mut Self::Class) {
             // The results view is used in this template, so its type must exist.
             ResultsView::static_type();
+            crate::cover_image::CoverImage::static_type();
             klass.bind_template();
         }
 
@@ -136,9 +137,9 @@ impl PlaylistPage {
         }
 
         if let Some(cover) = playlist.cover_art.clone() {
-            covers::load_for(&imp.cover.get(), Some(client.clone()), cover, |image, texture| {
-                if let Some(thumb) = texture.as_ref().and_then(|t| covers::thumbnail(t, 120.0)) {
-                    image.set_paintable(Some(&thumb));
+            covers::load_for(&imp.cover.get(), Some(client.clone()), cover, |cover, texture| {
+                if texture.is_some() {
+                    cover.set_texture(texture.as_ref());
                 }
             });
         }

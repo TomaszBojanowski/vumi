@@ -1115,23 +1115,25 @@ impl MainView {
                 parts.push(crate::album_page::format_duration(seconds));
             }
 
-            // The cover as a 96 px thumbnail (covers::thumbnail): an image with
-            // the texture itself would ask for the texture's 320 px, and the
-            // flow box would then fit only one card per row.
-            let cover = gtk::Image::builder()
-                .pixel_size(96)
-                .icon_name("audio-x-generic-symbolic")
-                .build();
-            let cover_frame = adw::Bin::builder()
-                .child(&cover)
+            // The cover lies over a 96 px icon, which gives the frame its
+            // size, and is made as small as it is on screen (cover_image.rs).
+            let cover = crate::cover_image::CoverImage::new();
+            let cover_frame = gtk::Overlay::builder()
+                .child(
+                    &gtk::Image::builder()
+                        .pixel_size(96)
+                        .icon_name("audio-x-generic-symbolic")
+                        .build(),
+                )
                 .valign(gtk::Align::Start)
                 .overflow(gtk::Overflow::Hidden)
                 .css_classes(["playlist-cover"])
                 .build();
+            cover_frame.add_overlay(&cover);
             if let Some(id) = playlist.cover_art.clone() {
-                covers::load_for(&cover, client.clone(), id, |image, texture| {
-                    if let Some(thumb) = texture.as_ref().and_then(|t| covers::thumbnail(t, 96.0)) {
-                        image.set_paintable(Some(&thumb));
+                covers::load_for(&cover, client.clone(), id, |cover, texture| {
+                    if texture.is_some() {
+                        cover.set_texture(texture.as_ref());
                     }
                 });
             }

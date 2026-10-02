@@ -263,7 +263,7 @@ impl NowPlaying {
                     self.load_cover(player.client(), id, key);
                 }
                 _ => {
-                    imp.cover.set_paintable(None::<&gtk::gdk::Paintable>);
+                    covers::show(&imp.cover, None);
                     if let Some(tint) = imp.tint.get() {
                         tint.clear();
                     }
@@ -291,7 +291,7 @@ impl NowPlaying {
             if imp.cover_id.borrow().as_deref() != Some(key.as_str()) {
                 return;
             }
-            imp.cover.set_paintable(texture.as_ref());
+            covers::show(&imp.cover, texture.as_ref());
             if let Some(tint) = imp.tint.get() {
                 match texture.as_ref().and_then(tint::dominant_color) {
                     Some(color) => tint.set_solid(color),
