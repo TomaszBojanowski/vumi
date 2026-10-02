@@ -1194,6 +1194,18 @@ impl MainView {
             }
         });
 
+        // Typing anywhere in the main view starts a search: keys that nothing
+        // else wants go to the field, which then takes the focus (and slides
+        // the sidebar in on narrow windows), so the rest is typed into it.
+        // Shortcuts are not text, and a field with the focus keeps its keys.
+        imp.search_entry.set_key_capture_widget(Some(self));
+        let view = self.downgrade();
+        imp.search_entry.connect_search_started(move |_| {
+            if let Some(view) = view.upgrade() {
+                view.focus_search();
+            }
+        });
+
         let entry = imp.search_entry.downgrade();
         imp.library_nav.connect_popped(move |_, page| {
             if page.is::<crate::search_page::SearchPage>() {
