@@ -2,8 +2,9 @@
 //! marked; a click jumps to a track. A list view over a model: rows exist only
 //! for the tracks on screen (and a few hundred around them) and are reused
 //! while scrolling. The model changes only when the queue itself does (a new
-//! album, radio, a track added or moved), not on every track change, and only
-//! while the panel is on screen: opening it brings it up to date.
+//! album, radio, a track added or moved), not on every track change, and then
+//! only where the queue changed: a track added at the end is one new row. And
+//! only while the panel is on screen: opening it brings it up to date.
 
 use adw::prelude::*;
 use adw::subclass::prelude::*;
@@ -111,17 +112,7 @@ impl QueuePage {
             row.set_song(&song, song.artist.as_deref().unwrap_or(""));
             // One line each, the full title in the tooltip: rows stay even.
             row.set_tooltip_text(Some(&song.title));
-            // The tracks look like one card: the first and the last row
-            // round its corners (style.css).
-            let last = page.imp().tracks.get().map_or(0, |tracks| tracks.n_items());
-            for (class, on) in [("first", item.position() == 0), ("last", item.position() + 1 == last)] {
-                if on {
-                    row.add_css_class(class);
-                } else {
-                    row.remove_css_class(class);
-                }
-            }
-            page.mark_row(&row, item);
+            page.place_row(&row, item);
         });
         factory.connect_unbind(|_, item| {
             let row = item
@@ -255,32 +246,64 @@ impl QueuePage {
             self.fill(&queue);
             imp.shown.replace(Some(queue));
         }
-        self.mark_playing();
+        self.place_rows();
     }
 
-    /// One object per track; the list view makes rows for those in sight.
+    /// Brings the model in line with `queue`: one object per track. Only the
+    /// part that differs from what is shown is replaced (what the two have in
+    /// common at the start and at the end stays), so the rows of the tracks
+    /// that did not change stay too, and the list keeps its place.
     fn fill(&self, queue: &Rc<[subsonic::Song]>) {
-        let objects: Vec<glib::BoxedAnyObject> =
-            queue.iter().cloned().map(glib::BoxedAnyObject::new).collect();
-        if let Some(tracks) = self.imp().tracks.get() {
-            // One change notification for the whole list, not one per track.
-            tracks.splice(0, tracks.n_items(), &objects);
+        let imp = self.imp();
+        let Some(tracks) = imp.tracks.get() else {
+            return;
+        };
+        let shown = imp.shown.borrow();
+        let old: &[subsonic::Song] = shown.as_deref().unwrap_or(&[]);
+        let start = old.iter().zip(queue.iter()).take_while(|(a, b)| a == b).count();
+        let end = old[start..]
+            .iter()
+            .rev()
+            .zip(queue[start..].iter().rev())
+            .take_while(|(a, b)| a == b)
+            .count();
+        let removed = old.len() - start - end;
+        let added: Vec<glib::BoxedAnyObject> = queue[start..queue.len() - end]
+            .iter()
+            .cloned()
+            .map(glib::BoxedAnyObject::new)
+            .collect();
+        if removed > 0 || !added.is_empty() {
+            // One change notification for the whole stretch, not one per track.
+            tracks.splice(start as u32, removed as u32, &added);
         }
     }
 
-    /// Bars and the highlight on the playing track. Only rows that exist need
-    /// it; a row that comes into view is marked as it is filled.
-    fn mark_playing(&self) {
+    /// What depends on a row's place in the queue, for every row that exists:
+    /// the rounded ends of the card and the mark on the playing track. A row
+    /// keeps its track when others are added or removed around it, but its
+    /// place changes; a row that comes into view is placed as it is filled.
+    fn place_rows(&self) {
         let mut rows = self.imp().rows.borrow_mut();
         rows.retain(|(row, item)| row.upgrade().is_some() && item.upgrade().is_some());
         for (row, item) in rows.iter() {
             if let (Some(row), Some(item)) = (row.upgrade(), item.upgrade()) {
-                self.mark_row(&row, &item);
+                self.place_row(&row, &item);
             }
         }
     }
 
-    fn mark_row(&self, row: &SongRow, item: &gtk::ListItem) {
+    fn place_row(&self, row: &SongRow, item: &gtk::ListItem) {
+        // The tracks look like one card: the first and the last row round
+        // its corners (style.css).
+        let last = self.imp().tracks.get().map_or(0, |tracks| tracks.n_items());
+        for (class, on) in [("first", item.position() == 0), ("last", item.position() + 1 == last)] {
+            if on {
+                row.add_css_class(class);
+            } else {
+                row.remove_css_class(class);
+            }
+        }
         let player = player::get();
         let current = player.is_active().then(|| player.position());
         // A row without a track (off screen) is nobody's.
