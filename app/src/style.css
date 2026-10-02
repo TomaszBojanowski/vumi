@@ -444,3 +444,16 @@ button.pill.album-play {
   min-height: 40px;
   padding: 0 24px 0 20px;
 }
+
+/* The number next to a section heading ("Albums 2"): as large as the
+   heading, but plain. */
+.section-count {
+  font-size: 118%;
+}
+
+/* Album cards in a flow box (Favorites, search): the covers line up with
+   the heading above, the cells around them reach out past it. */
+flowbox.album-cells {
+  margin-left: -9px;
+  margin-right: -9px;
+}

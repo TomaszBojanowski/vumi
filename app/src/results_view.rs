@@ -9,7 +9,7 @@
 use adw::prelude::*;
 use adw::subclass::prelude::*;
 use gtk::{gio, glib};
-use std::cell::{OnceCell, RefCell};
+use std::cell::{Cell, OnceCell, RefCell};
 use std::rc::Rc;
 use std::sync::Arc;
 
@@ -46,6 +46,12 @@ mod imp {
         pub albums_section: gtk::TemplateChild<gtk::Box>,
         #[template_child]
         pub albums_box: gtk::TemplateChild<gtk::FlowBox>,
+        #[template_child]
+        pub albums_count: gtk::TemplateChild<gtk::Label>,
+        #[template_child]
+        pub songs_count: gtk::TemplateChild<gtk::Label>,
+        /// Whether the headings say how many albums and songs there are.
+        pub show_counts: Cell<bool>,
         #[template_child]
         pub header_top: gtk::TemplateChild<adw::Bin>,
         #[template_child]
@@ -198,6 +204,24 @@ impl ResultsView {
             }
         });
 
+        // A click (or Enter) on an album card opens the album.
+        let view = self.downgrade();
+        imp.albums_box.connect_child_activated(move |_, child| {
+            let Some(view) = view.upgrade() else {
+                return;
+            };
+            let album = view
+                .imp()
+                .shown
+                .borrow()
+                .as_ref()
+                .and_then(|(albums, _)| albums.get(child.index() as usize).cloned());
+            let main = child.ancestor(MainView::static_type()).and_downcast::<MainView>();
+            if let (Some(album), Some(main)) = (album, main) {
+                main.open_album_from(child, &album.id, (*album).clone());
+            }
+        });
+
         imp.songs_list
             .set_model(Some(&gtk::NoSelection::new(Some(entries.clone()))));
         imp.songs_list.set_factory(Some(&factory));
@@ -278,6 +302,15 @@ impl ResultsView {
         self.mark_row(&row);
     }
 
+    /// Whether the "Albums" and "Songs" headings say how many there are
+    /// (the Favorites page).
+    pub(crate) fn set_show_counts(&self, show: bool) {
+        let imp = self.imp();
+        imp.show_counts.set(show);
+        imp.albums_count.set_visible(show);
+        imp.songs_count.set_visible(show);
+    }
+
     /// Puts `widget` above everything else in the view (a page header); it
     /// scrolls away with the list. None takes it out again.
     pub(crate) fn set_header_top(&self, widget: Option<&impl IsA<gtk::Widget>>) {
@@ -355,30 +388,19 @@ impl ResultsView {
         }
         imp.shown.replace(Some((albums.clone(), account)));
 
+        // A card straight in its cell, as in the album grid: the cell is
+        // what lights up and takes the focus; a click or Enter on it opens
+        // the album (setup_list).
         imp.albums_box.remove_all();
         for album in &albums {
             let card = AlbumCard::new();
             card.set_album(album, client.clone());
-            // At its own width, not that of the flow box's cell: the cover
-            // is a square as wide as the card, and would grow with it.
-            let button = gtk::Button::builder()
-                .child(&card)
-                .halign(gtk::Align::Start)
-                .css_classes(["flat", "shelf-card"])
-                .build();
-            let album = Arc::clone(album);
-            button.connect_clicked(move |button| {
-                if let Some(main) = button
-                    .ancestor(MainView::static_type())
-                    .and_downcast::<MainView>()
-                {
-                    main.open_album_from(button, &album.id, (*album).clone());
-                }
-            });
-            imp.albums_box.append(&button);
+            imp.albums_box.append(&card);
         }
         imp.albums_section.set_visible(!albums.is_empty());
         imp.songs_title.set_visible(!songs.is_empty());
+        imp.albums_count.set_label(&albums.len().to_string());
+        imp.songs_count.set_label(&songs.len().to_string());
 
         let nothing = albums.is_empty() && songs.is_empty();
         let mut objects = Vec::with_capacity(songs.len() + 1);

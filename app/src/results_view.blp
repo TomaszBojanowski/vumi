@@ -21,40 +21,73 @@ Box header {
     orientation: vertical;
     spacing: 12;
 
-    Label {
-      label: _("Albums");
-      xalign: 0;
+    Box {
+      spacing: 8;
 
-      styles [
-        "title-4",
-      ]
+      Label {
+        label: _("Albums");
+        xalign: 0;
+
+        styles [
+          "title-4",
+        ]
+      }
+
+      // How many, where the page wants it said (set_show_counts).
+      Label albums_count {
+        visible: false;
+
+        styles [
+          "section-count",
+          "dim-label",
+        ]
+      }
     }
 
+    // The cards as in the album grid: each in a cell of its own that
+    // lights up under the pointer and takes the keyboard focus, packed
+    // from the start of the line (a few albums do not spread over it).
+    // A cover stands 9 px inside its cell (the cell's padding and the
+    // card's margin): the box starts that much earlier (style.css), so the
+    // covers line up with the heading.
     FlowBox albums_box {
       selection-mode: none;
       homogeneous: true;
-      max-children-per-line: 6;
-      column-spacing: 12;
-      row-spacing: 12;
+      halign: start;
+      max-children-per-line: 12;
+
+      styles [
+        "album-cells",
+      ]
     }
   }
 
   // The heading of the songs, and at its end what the page puts there
   // (set_songs_end), if anything.
   Box songs_title {
-    spacing: 12;
+    spacing: 8;
 
     Label {
       label: _("Songs");
       xalign: 0;
-      hexpand: true;
 
       styles [
         "title-4",
       ]
     }
 
+    Label songs_count {
+      visible: false;
+
+      styles [
+        "section-count",
+        "dim-label",
+      ]
+    }
+
     Adw.Bin songs_end {
+      halign: end;
+      hexpand: true;
       valign: center;
       visible: false;
     }

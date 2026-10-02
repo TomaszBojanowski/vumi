@@ -1089,6 +1089,7 @@ impl MainView {
         let imp = self.imp();
         let header = crate::favorites_header::FavoritesHeader::new();
         imp.favorites.set_header_top(Some(&header));
+        imp.favorites.set_show_counts(true);
         let weak = header.downgrade();
         imp.favorites_narrow.connect_apply(move |_| {
             if let Some(header) = weak.upgrade() {
