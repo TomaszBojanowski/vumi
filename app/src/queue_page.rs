@@ -46,6 +46,9 @@ mod imp {
         /// The rows that exist, each with the list item it belongs to (which
         /// knows the place in the queue), to mark the playing track.
         pub rows: RefCell<Vec<(glib::WeakRef<SongRow>, glib::WeakRef<gtk::ListItem>)>>,
+        /// What the rows were last placed for: the place of the current track
+        /// (none while nothing is loaded) and whether it plays.
+        pub placed: Cell<Option<(Option<usize>, bool)>>,
         /// The queue as it was when a row was picked up to be dragged. A drop
         /// counts only while the queue is still that one: the index a drag
         /// carries means nothing in another queue.
@@ -312,7 +315,14 @@ impl QueuePage {
             self.fill(&queue);
             imp.shown.replace(Some(queue));
         }
-        self.place_rows();
+        // The player reports every change, the volume too: the rows are gone
+        // through only when the queue, the current track or the play state
+        // is another one.
+        let state = (player.is_active().then(|| player.position()), player.is_playing());
+        if !same || imp.placed.get() != Some(state) {
+            imp.placed.set(Some(state));
+            self.place_rows();
+        }
     }
 
     /// Clear Queue: everything but the current track goes. A long queue takes
