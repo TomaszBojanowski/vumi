@@ -22,6 +22,9 @@ use crate::song_row::SongRow;
 /// covers, playing and the song menu.
 type Content = (Vec<Arc<subsonic::Album>>, Vec<subsonic::Song>, Option<subsonic::Client>);
 
+/// What a page says about a song on its row; empty for nothing.
+type Note = Rc<dyn Fn(&subsonic::Song) -> String>;
+
 /// One item of the list: what stands above the songs, or a song.
 enum Entry {
     Header,
@@ -44,7 +47,14 @@ mod imp {
         #[template_child]
         pub albums_box: gtk::TemplateChild<gtk::FlowBox>,
         #[template_child]
-        pub songs_title: gtk::TemplateChild<gtk::Label>,
+        pub header_top: gtk::TemplateChild<adw::Bin>,
+        #[template_child]
+        pub songs_title: gtk::TemplateChild<gtk::Box>,
+        #[template_child]
+        pub songs_end: gtk::TemplateChild<adw::Bin>,
+        /// A few words to show on each song's row before its length, if the
+        /// page wants any (when the song was starred, say).
+        pub note: RefCell<Option<Note>>,
         #[template_child]
         pub songs_list: gtk::TemplateChild<gtk::ListView>,
         #[template_child]
@@ -250,6 +260,8 @@ impl ResultsView {
             .collect::<Vec<_>>()
             .join(" · ");
         row.set_song(song, &subtitle);
+        let note = imp.note.borrow().as_ref().map(|note| note(song));
+        row.set_note(note.as_deref().unwrap_or(""));
 
         // The songs look like one card: the first and the last row round
         // its corners (style.css). The classes go on the song row itself: the
@@ -264,6 +276,43 @@ impl ResultsView {
             }
         }
         self.mark_row(&row);
+    }
+
+    /// Puts `widget` above everything else in the view (a page header); it
+    /// scrolls away with the list. None takes it out again.
+    // Not called yet: the Favorites page comes in the next step.
+    #[allow(dead_code)]
+    pub(crate) fn set_header_top(&self, widget: Option<&impl IsA<gtk::Widget>>) {
+        let top = &self.imp().header_top;
+        top.set_child(widget);
+        top.set_visible(widget.is_some());
+    }
+
+    /// Puts `widget` at the end of the "Songs" heading (a sort switch, say).
+    /// None takes it out again.
+    // Not called yet: the Favorites page comes in the next step.
+    #[allow(dead_code)]
+    pub(crate) fn set_songs_end(&self, widget: Option<&impl IsA<gtk::Widget>>) {
+        let end = &self.imp().songs_end;
+        end.set_child(widget);
+        end.set_visible(widget.is_some());
+    }
+
+    /// What to say about each song on its row, before its length; None for
+    /// nothing. The rows on screen follow at once.
+    // Not called yet: the Favorites page comes in the next step.
+    #[allow(dead_code)]
+    pub(crate) fn set_note(&self, note: Option<impl Fn(&subsonic::Song) -> String + 'static>) {
+        let imp = self.imp();
+        imp.note.replace(note.map(|note| Rc::new(note) as Note));
+        let note = imp.note.borrow().clone();
+        for row in imp.rows.borrow().iter().filter_map(|row| row.upgrade()) {
+            let text = match (&note, row.song()) {
+                (Some(note), Some(song)) => note(&song),
+                _ => String::new(),
+            };
+            row.set_note(&text);
+        }
     }
 
     /// What the empty page says (search and favourites differ).
@@ -312,8 +361,11 @@ impl ResultsView {
         for album in &albums {
             let card = AlbumCard::new();
             card.set_album(album, client.clone());
+            // At its own width, not that of the flow box's cell: the cover
+            // is a square as wide as the card, and would grow with it.
             let button = gtk::Button::builder()
                 .child(&card)
+                .halign(gtk::Align::Start)
                 .css_classes(["flat", "shelf-card"])
                 .build();
             let album = Arc::clone(album);

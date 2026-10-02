@@ -1,6 +1,6 @@
 //! One song in a list (search results, Favorites, playlists, the queue): bars
-//! that show while it plays, the title, a line below it, the length and
-//! whatever the list adds at the end (the ⋮ menu). It is the content of a list
+//! that show while it plays, the title, a line below it, a note where the
+//! list has one, the length and whatever the list adds at the end (the ⋮ menu). It is the content of a list
 //! view's row, not the row itself, and carries the look of the row
 //! (style.css). A list view reuses its rows while scrolling, so set_song() is
 //! called many times on the same row.
@@ -24,6 +24,8 @@ mod imp {
         pub subtitle: gtk::TemplateChild<gtk::Label>,
         #[template_child]
         pub suffixes: gtk::TemplateChild<gtk::Box>,
+        #[template_child]
+        pub note: gtk::TemplateChild<gtk::Label>,
         #[template_child]
         pub duration: gtk::TemplateChild<gtk::Label>,
         /// The bars before the title, see-through unless the song plays, so
@@ -96,6 +98,14 @@ impl SongRow {
             None => imp.duration.set_label(""),
         }
         imp.duration.set_visible(song.duration.is_some());
+    }
+
+    /// A few words before the length (empty: none). The row is reused, so
+    /// the list sets this for every song it shows.
+    pub(crate) fn set_note(&self, note: &str) {
+        let label = &self.imp().note;
+        label.set_label(note);
+        label.set_visible(!note.is_empty());
     }
 
     /// How many lines the title may take before it is cut short with an

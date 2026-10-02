@@ -7,12 +7,13 @@
 //! covers. The cover is shown whole and centred, never cropped; what a cover
 //! that is not square leaves of the frame is a neutral dark.
 //!
-//! `Square` is a frame as tall as it is wide, whatever width it is given.
+//! `Square` is a square frame: of its child's own size, or (set_grows) as
+//! wide as it is given and as tall as that.
 
 use adw::prelude::*;
 use adw::subclass::prelude::*;
 use gtk::{gdk, glib, graphene};
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 
 /// Behind a cover that is not square: the same in the light and dark style
 /// (style.css has it for pictures: picture.letterbox).
@@ -105,7 +106,11 @@ mod imp {
     }
 
     #[derive(Default)]
-    pub struct Square;
+    pub struct Square {
+        /// As wide as the place it gets (the album grid stretches its cards),
+        /// not of the child's own size.
+        pub grows: Cell<bool>,
+    }
 
     #[glib::object_subclass]
     impl ObjectSubclass for Square {
@@ -125,7 +130,11 @@ mod imp {
 
     impl WidgetImpl for Square {
         fn request_mode(&self) -> gtk::SizeRequestMode {
-            gtk::SizeRequestMode::HeightForWidth
+            if self.grows.get() {
+                gtk::SizeRequestMode::HeightForWidth
+            } else {
+                gtk::SizeRequestMode::ConstantSize
+            }
         }
 
         fn measure(&self, orientation: gtk::Orientation, for_size: i32) -> (i32, i32, i32, i32) {
@@ -134,7 +143,7 @@ mod imp {
             };
             let (minimum, natural, _, _) = child.measure(gtk::Orientation::Horizontal, -1);
             match orientation {
-                gtk::Orientation::Vertical if for_size >= 0 => {
+                gtk::Orientation::Vertical if self.grows.get() && for_size >= 0 => {
                     // As tall as the width it gets.
                     let side = for_size.max(minimum);
                     (side, side, -1, -1)
@@ -145,7 +154,17 @@ mod imp {
 
         fn size_allocate(&self, width: i32, height: i32, baseline: i32) {
             if let Some(child) = self.obj().child() {
-                child.allocate(width, height, baseline, None);
+                // A square in any case: where the frame got more room one way
+                // (a card in a wide cell), the child stays at the start.
+                let side = width.min(height);
+                let x = if self.obj().direction() == gtk::TextDirection::Rtl {
+                    width - side
+                } else {
+                    0
+                };
+                let transform = gtk::gsk::Transform::new()
+                    .translate(&graphene::Point::new(x as f32, 0.0));
+                child.allocate(side, side, baseline, Some(transform));
             }
         }
     }
@@ -163,6 +182,15 @@ glib::wrapper! {
     pub struct Square(ObjectSubclass<imp::Square>)
         @extends adw::Bin, gtk::Widget,
         @implements gtk::Accessible, gtk::Buildable, gtk::ConstraintTarget;
+}
+
+impl Square {
+    /// Whether the square takes the width it is given (and that height),
+    /// instead of its child's own size.
+    pub(crate) fn set_grows(&self, grows: bool) {
+        self.imp().grows.set(grows);
+        self.queue_resize();
+    }
 }
 
 impl CoverImage {

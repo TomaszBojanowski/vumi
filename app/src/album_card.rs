@@ -15,6 +15,8 @@ mod imp {
     #[template(file = "src/album_card.blp")]
     pub struct AlbumCard {
         #[template_child]
+        pub cover_frame: gtk::TemplateChild<crate::cover_image::Square>,
+        #[template_child]
         pub cover: gtk::TemplateChild<gtk::Picture>,
         #[template_child]
         pub title: gtk::TemplateChild<gtk::Label>,
@@ -56,6 +58,12 @@ glib::wrapper! {
 impl AlbumCard {
     pub(crate) fn new() -> Self {
         glib::Object::new()
+    }
+
+    /// In the album grid the card is as wide as its cell, and the cover with
+    /// it. Elsewhere (shelves, flow boxes) the cover keeps its 160 px.
+    pub(crate) fn set_cover_grows(&self, grows: bool) {
+        self.imp().cover_frame.set_grows(grows);
     }
 
     /// `client` is None until the app is connected; cached covers load anyway.

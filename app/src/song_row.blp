@@ -55,6 +55,17 @@ template $VumiSongRow: Box {
       "suffixes",
     ]
 
+    // A few words about the song in this list (when it was starred, say),
+    // set by the list; hidden while there are none.
+    Label note {
+      visible: false;
+      margin-end: 12;
+
+      styles [
+        "dim-label",
+      ]
+    }
+
     Label duration {
       styles [
         "dim-label",

@@ -249,6 +249,8 @@ impl MainView {
         factory.connect_setup(move |_, item| {
             if let Some(item) = item.downcast_ref::<gtk::ListItem>() {
                 let card = AlbumCard::new();
+                // The grid makes its cards as wide as its cells.
+                card.set_cover_grows(true);
                 if let Some(view) = view.upgrade() {
                     view.imp().cards.borrow_mut().push(card.downgrade());
                 }

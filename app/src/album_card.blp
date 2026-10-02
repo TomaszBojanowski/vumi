@@ -8,10 +8,10 @@ template $VumiAlbumCard: Box {
   margin-start: 6;
   margin-end: 6;
 
-  // A square, however wide the grid makes the card: the cover is shown
-  // whole, never cropped. The note icon stays underneath; the cover covers
-  // it once loaded.
-  $VumiSquare {
+  // A square, 160 px or as wide as the album grid makes the card
+  // (set_cover_grows): the cover is shown whole, never cropped. The note icon
+  // stays underneath; the cover covers it once loaded.
+  $VumiSquare cover_frame {
     child: Overlay {
       width-request: 160;
       height-request: 160;
