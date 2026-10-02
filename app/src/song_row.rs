@@ -1,9 +1,9 @@
-//! One song in a list (search results, Favorites, playlists): bars that show
-//! while it plays, the title, a line below it, the length and whatever the
-//! list adds at the end (the ⋮ menu). It is the content of a list view's
-//! row, not the row itself, and carries the look of the row (style.css). A
-//! list view reuses its rows while scrolling, so set_song() is called many
-//! times on the same row.
+//! One song in a list (search results, Favorites, playlists, the queue): bars
+//! that show while it plays, the title, a line below it, the length and
+//! whatever the list adds at the end (the ⋮ menu). It is the content of a list
+//! view's row, not the row itself, and carries the look of the row
+//! (style.css). A list view reuses its rows while scrolling, so set_song() is
+//! called many times on the same row.
 
 use adw::subclass::prelude::*;
 use gtk::glib;
@@ -86,6 +86,18 @@ impl SongRow {
             None => imp.duration.set_label(""),
         }
         imp.duration.set_visible(song.duration.is_some());
+    }
+
+    /// How many lines the title may take before it is cut short with an
+    /// ellipsis; 0 (the default) lets it wrap as far as it needs.
+    pub(crate) fn set_title_lines(&self, lines: i32) {
+        let title = &self.imp().title;
+        title.set_lines(lines);
+        title.set_ellipsize(if lines > 0 {
+            gtk::pango::EllipsizeMode::End
+        } else {
+            gtk::pango::EllipsizeMode::None
+        });
     }
 
     /// The song the row shows now, if any.

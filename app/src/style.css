@@ -83,6 +83,26 @@ listview.song-list > row.activatable:active > box.song-row {
   background-image: image(color-mix(in srgb, currentColor 8%, transparent));
 }
 
+/* A row a dragged track is over (the queue). The theme draws this frame
+   with a box shadow, which the card pieces above would otherwise replace. */
+listview.song-list > row > box.song-row:drop(active) {
+  box-shadow: inset 0 0 0 1px var(--accent-bg-color);
+}
+
+/* The queue panel is narrow: less room around its list. */
+listview.song-list.queue-list > row {
+  margin-left: 12px;
+  margin-right: 12px;
+}
+
+listview.song-list.queue-list > row > box.song-row.first {
+  margin-top: 12px;
+}
+
+listview.song-list.queue-list > row > box.song-row.last {
+  margin-bottom: 12px;
+}
+
 /* The song that is playing: as "row.playing" below, on an album page. */
 listview.song-list > row > box.song-row.playing {
   background-color: color-mix(in srgb, var(--window-fg-color) 7%, var(--card-bg-color));

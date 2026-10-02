@@ -20,15 +20,14 @@ template $VumiQueuePage: Adw.Bin {
         child: ScrolledWindow {
           hscrollbar-policy: never;
 
-          child: ListBox list {
-            selection-mode: none;
-            margin-top: 12;
-            margin-bottom: 12;
-            margin-start: 12;
-            margin-end: 12;
+          // Only rows on screen exist; they are reused while scrolling. The
+          // rows are styled to look like a boxed list (style.css).
+          child: ListView list {
+            single-click-activate: true;
 
             styles [
-              "boxed-list",
+              "song-list",
+              "queue-list",
             ]
           };
         };
