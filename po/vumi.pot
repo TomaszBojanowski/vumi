@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vumi\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-02 21:02+0200\n"
+"POT-Creation-Date: 2026-10-02 22:23+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -30,123 +30,123 @@ msgstr ""
 msgid "music;player;navidrome;subsonic;"
 msgstr ""
 
-#: app/src/main.rs:349
+#: app/src/main.rs:350
 msgid "Playback Stopped"
 msgstr ""
 
-#: app/src/main.rs:405 app/src/login_page.rs:155 app/src/album_page.rs:212
+#: app/src/main.rs:406 app/src/login_page.rs:155 app/src/album_page.rs:212
 msgid "Something went wrong. Please try again."
 msgstr ""
 
-#: app/src/main.rs:414
+#: app/src/main.rs:415
 msgid "Wrong username or password."
 msgstr ""
 
-#: app/src/main.rs:415
+#: app/src/main.rs:416
 msgid "Cannot reach the server. Check the address and your connection."
 msgstr ""
 
-#: app/src/main.rs:416
+#: app/src/main.rs:417
 msgid "Invalid server address. It should start with http:// or https://"
 msgstr ""
 
-#: app/src/main.rs:417
+#: app/src/main.rs:418
 msgid "The server answered, but it does not look like a Subsonic server."
 msgstr ""
 
 #. Translators: {message} is the error text sent by the server.
-#: app/src/main.rs:419
+#: app/src/main.rs:420
 #, rust-format
 msgid "Server error: {message}"
 msgstr ""
 
-#: app/src/main.rs:464
+#: app/src/main.rs:465
 msgid "A music player for Navidrome and other Subsonic servers"
 msgstr ""
 
-#: app/src/main.rs:465
+#: app/src/main.rs:466
 msgid "translator-credits"
 msgstr ""
 
-#: app/src/main.rs:470
+#: app/src/main.rs:471
 msgid "Buy Me a Coffee"
 msgstr ""
 
-#: app/src/main.rs:472
+#: app/src/main.rs:473
 msgid "Built With"
 msgstr ""
 
-#: app/src/main.rs:502 app/src/preferences.blp:76
+#: app/src/main.rs:503 app/src/preferences.blp:139
 msgid "Playback"
 msgstr ""
 
-#: app/src/main.rs:504
+#: app/src/main.rs:505
 msgid "Play or Pause"
 msgstr ""
 
-#: app/src/main.rs:505
+#: app/src/main.rs:506
 msgid "Previous Track"
 msgstr ""
 
-#: app/src/main.rs:506
+#: app/src/main.rs:507
 msgid "Next Track"
 msgstr ""
 
-#: app/src/main.rs:510 app/src/main_view.blp:132 app/src/preferences.blp:150
+#: app/src/main.rs:511 app/src/main_view.blp:132 app/src/preferences.blp:213
 msgid "Library"
 msgstr ""
 
-#: app/src/main.rs:512
+#: app/src/main.rs:513
 msgid "Search Library"
 msgstr ""
 
-#: app/src/main.rs:513 app/src/main_view.blp:46 app/src/main_view.blp:529
+#: app/src/main.rs:514 app/src/main_view.blp:46 app/src/main_view.blp:529
 msgid "Sync Library"
 msgstr ""
 
-#: app/src/main.rs:517 app/src/preferences.blp:9
+#: app/src/main.rs:518 app/src/preferences.blp:9
 msgid "General"
 msgstr ""
 
-#: app/src/main.rs:519 app/src/main_view.blp:536
+#: app/src/main.rs:520 app/src/main_view.blp:536
 msgid "Preferences"
 msgstr ""
 
-#: app/src/main.rs:520 app/src/main_view.blp:541
+#: app/src/main.rs:521 app/src/main_view.blp:541
 msgid "Keyboard Shortcuts"
 msgstr ""
 
-#: app/src/main.rs:521 app/src/main_view.blp:551
+#: app/src/main.rs:522 app/src/main_view.blp:551
 msgid "Quit"
 msgstr ""
 
-#: app/src/main_view.rs:193
+#: app/src/main_view.rs:229
 msgid "No Favorites"
 msgstr ""
 
-#: app/src/main_view.rs:194
+#: app/src/main_view.rs:230
 msgid "Star albums and songs to see them here"
 msgstr ""
 
-#: app/src/main_view.rs:372
+#: app/src/main_view.rs:409
 msgid "Connecting…"
 msgstr ""
 
 #. Translators: {server} is the server software (e.g. navidrome), {version} its version.
-#: app/src/main_view.rs:380
+#: app/src/main_view.rs:418
 #, rust-format
 msgid "Connected to {server} {version}"
 msgstr ""
 
-#: app/src/main_view.rs:391
+#: app/src/main_view.rs:430
 msgid "Offline"
 msgstr ""
 
 #. Translators: {n} is a number of tracks.
 #. Translators: {n} is a number of tracks in the queue.
 #. Translators: {n} is a number of tracks.
-#: app/src/main_view.rs:1030 app/src/album_page.rs:354
-#: app/src/queue_page.rs:420 app/src/song_menu.rs:288
+#: app/src/main_view.rs:1101 app/src/album_page.rs:354
+#: app/src/queue_page.rs:454 app/src/song_menu.rs:288
 #: app/src/playlist_page.rs:125
 #, rust-format
 msgid "{n} track"
@@ -154,7 +154,7 @@ msgid_plural "{n} tracks"
 msgstr[0] ""
 msgstr[1] ""
 
-#: app/src/main_view.rs:1095 app/src/album_page.rs:628
+#: app/src/main_view.rs:1166 app/src/album_page.rs:628
 #: app/src/album_page.rs:810 app/src/now_playing.rs:246
 #: app/src/mini_player.rs:101 app/src/start_page.blp:204
 #: app/src/playlist_page.blp:80
@@ -239,7 +239,7 @@ msgstr ""
 msgid "Coming soon"
 msgstr ""
 
-#: app/src/main_view.blp:465 app/src/queue_page.rs:354
+#: app/src/main_view.blp:465 app/src/queue_page.rs:388
 msgid "Name"
 msgstr ""
 
@@ -259,7 +259,7 @@ msgstr ""
 msgid "Recently Added"
 msgstr ""
 
-#: app/src/main_view.blp:500 app/src/preferences.blp:79
+#: app/src/main_view.blp:500 app/src/preferences.blp:142
 msgid "Endless Radio"
 msgstr ""
 
@@ -267,7 +267,7 @@ msgstr ""
 msgid "Repeat"
 msgstr ""
 
-#: app/src/main_view.blp:508 app/src/preferences.blp:134
+#: app/src/main_view.blp:508 app/src/preferences.blp:197
 msgid "Off"
 msgstr ""
 
@@ -380,7 +380,7 @@ msgstr[0] ""
 msgstr[1] ""
 
 #. Translators: total length of a long album, e.g. "6 h 9 min".
-#: app/src/album_page.rs:498 app/src/queue_page.rs:611
+#: app/src/album_page.rs:498 app/src/queue_page.rs:645
 #, rust-format
 msgid "{hours} h {minutes} min"
 msgstr ""
@@ -533,105 +533,119 @@ msgstr ""
 msgid "Account"
 msgstr ""
 
-#: app/src/preferences.blp:16
+#: app/src/preferences.blp:18 app/src/preferences.blp:31
 msgid "Server"
 msgstr ""
 
-#: app/src/preferences.blp:25
+#: app/src/preferences.blp:88
 msgid "User"
 msgstr ""
 
-#: app/src/preferences.blp:35
+#: app/src/preferences.blp:98
 msgid "Log Out"
 msgstr ""
 
-#: app/src/preferences.blp:45
+#: app/src/preferences.blp:108
 msgid "Appearance"
 msgstr ""
 
-#: app/src/preferences.blp:49
+#: app/src/preferences.blp:112
 msgid "Style"
 msgstr ""
 
-#: app/src/preferences.blp:56
+#: app/src/preferences.blp:119
 msgid "Follow System"
 msgstr ""
 
-#: app/src/preferences.blp:60
+#: app/src/preferences.blp:123
 msgid "Light"
 msgstr ""
 
-#: app/src/preferences.blp:64
+#: app/src/preferences.blp:127
 msgid "Dark"
 msgstr ""
 
-#: app/src/preferences.blp:70
+#: app/src/preferences.blp:133
 msgid "Cover Colors"
 msgstr ""
 
-#: app/src/preferences.blp:71
+#: app/src/preferences.blp:134
 msgid "Tint the album page and the player with the colour of the cover"
 msgstr ""
 
-#: app/src/preferences.blp:80
+#: app/src/preferences.blp:143
 msgid "When the queue ends, keep playing songs similar to the last one"
 msgstr ""
 
-#: app/src/preferences.blp:84
+#: app/src/preferences.blp:147
 msgid "Play After the Window Is Closed"
 msgstr ""
 
-#: app/src/preferences.blp:85
+#: app/src/preferences.blp:148
 msgid "The music goes on; the controls stay in the system menu"
 msgstr ""
 
-#: app/src/preferences.blp:92 app/src/preferences.blp:108
+#: app/src/preferences.blp:155 app/src/preferences.blp:171
 msgid "Volume Normalization"
 msgstr ""
 
-#: app/src/preferences.blp:119
+#: app/src/preferences.blp:182
 msgid "From ReplayGain tags; off keeps the signal unchanged"
 msgstr ""
 
-#: app/src/preferences.blp:138
+#: app/src/preferences.blp:201
 msgid "Per Track"
 msgstr ""
 
-#: app/src/preferences.blp:142
+#: app/src/preferences.blp:205
 msgid "Per Album"
 msgstr ""
 
-#: app/src/preferences.blp:154
+#: app/src/preferences.blp:217
 msgid "Sync Now"
 msgstr ""
 
-#: app/src/preferences.blp:160
+#: app/src/preferences.blp:223
 msgid "Cover Cache"
 msgstr ""
 
-#: app/src/preferences.blp:164 app/src/queue_page.rs:333
+#: app/src/preferences.blp:227 app/src/queue_page.rs:367
 msgid "Clear"
 msgstr ""
 
-#: app/src/preferences.blp:171
+#: app/src/preferences.blp:234
 msgid "Privacy"
 msgstr ""
 
-#: app/src/preferences.blp:174
+#: app/src/preferences.blp:237
 msgid "Share Listening Activity"
 msgstr ""
 
-#: app/src/preferences.blp:175
+#: app/src/preferences.blp:238
 msgid ""
 "The server sees what is playing and counts plays; it may pass them on to "
 "Last.fm or ListenBrainz"
 msgstr ""
 
-#: app/src/preferences.rs:122
+#: app/src/preferences.rs:176
+msgid "Checking the connection…"
+msgstr ""
+
+#. Translators: {server} is the server software (e.g. Navidrome), {version} its version.
+#: app/src/preferences.rs:179
+#, rust-format
+msgid "Connected · {server} {version}"
+msgstr ""
+
+#: app/src/preferences.rs:192
+msgid "Connected"
+msgstr ""
+
+#: app/src/preferences.rs:223
 msgid "Syncing the library…"
 msgstr ""
 
-#: app/src/preferences.rs:139
+#: app/src/preferences.rs:240
 msgid "Could not clear the cover cache"
 msgstr ""
 
@@ -664,90 +678,90 @@ msgstr ""
 msgid "Play an album, a song or the radio"
 msgstr ""
 
-#: app/src/queue_page.rs:196 app/src/song_menu.rs:51
+#: app/src/queue_page.rs:223 app/src/song_menu.rs:51
 msgid "More"
 msgstr ""
 
-#: app/src/queue_page.rs:327
+#: app/src/queue_page.rs:361
 #, rust-format
 msgid "{n} track will be removed from the queue."
 msgid_plural "{n} tracks will be removed from the queue."
 msgstr[0] ""
 msgstr[1] ""
 
-#: app/src/queue_page.rs:332
+#: app/src/queue_page.rs:366
 msgid "Clear Queue?"
 msgstr ""
 
-#: app/src/queue_page.rs:333 app/src/queue_page.rs:359
+#: app/src/queue_page.rs:367 app/src/queue_page.rs:393
 msgid "Cancel"
 msgstr ""
 
-#: app/src/queue_page.rs:357 app/src/song_menu.rs:235
+#: app/src/queue_page.rs:391 app/src/song_menu.rs:235
 msgid "New Playlist"
 msgstr ""
 
-#: app/src/queue_page.rs:359
+#: app/src/queue_page.rs:393
 msgid "Save"
 msgstr ""
 
 #. Translators: {name} is the name of a playlist.
-#: app/src/queue_page.rs:392
+#: app/src/queue_page.rs:426
 #, rust-format
 msgid "Saved as “{name}”"
 msgstr ""
 
-#: app/src/queue_page.rs:402
+#: app/src/queue_page.rs:436
 msgid "Could not save the playlist"
 msgstr ""
 
 #. Translators: {time} is a short duration, e.g. "12 min" or "1 h 5 min".
-#: app/src/queue_page.rs:434
+#: app/src/queue_page.rs:468
 #, rust-format
 msgid "{time} left"
 msgstr ""
 
 #. Translators: in the queue, moves the track to right after the current
 #. one (elsewhere "Play Next" adds a track to the queue).
-#: app/src/queue_page.rs:576
+#: app/src/queue_page.rs:610
 msgctxt "queue"
 msgid "Play Next"
 msgstr ""
 
-#: app/src/queue_page.rs:577
+#: app/src/queue_page.rs:611
 msgid "Remove from Queue"
 msgstr ""
 
-#: app/src/queue_page.rs:580 app/src/song_menu.rs:159
+#: app/src/queue_page.rs:614 app/src/song_menu.rs:159
 msgid "Add to Playlist…"
 msgstr ""
 
-#: app/src/queue_page.rs:582
+#: app/src/queue_page.rs:616
 msgid "Remove from Favorites"
 msgstr ""
 
-#: app/src/queue_page.rs:584
+#: app/src/queue_page.rs:618
 msgid "Add to Favorites"
 msgstr ""
 
-#: app/src/queue_page.rs:589 app/src/song_menu.rs:167
+#: app/src/queue_page.rs:623 app/src/song_menu.rs:167
 msgid "Go to Album"
 msgstr ""
 
-#: app/src/queue_page.rs:590 app/src/song_menu.rs:169
+#: app/src/queue_page.rs:624 app/src/song_menu.rs:169
 msgid "Go to Artist"
 msgstr ""
 
-#: app/src/queue_page.rs:591 app/src/song_menu.rs:172 app/src/song_menu.rs:377
+#: app/src/queue_page.rs:625 app/src/song_menu.rs:172 app/src/song_menu.rs:377
 msgid "Song Information"
 msgstr ""
 
-#: app/src/queue_page.rs:594 app/src/song_menu.rs:162
+#: app/src/queue_page.rs:628 app/src/song_menu.rs:162
 msgid "Play Similar"
 msgstr ""
 
 #. Translators: a short duration in minutes, e.g. "12 min".
-#: app/src/queue_page.rs:608
+#: app/src/queue_page.rs:642
 #, rust-format
 msgid "{n} min"
 msgstr ""

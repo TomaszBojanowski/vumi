@@ -213,10 +213,11 @@ fn build_ui(app: &adw::Application) {
     // Preferences (Ctrl+,): a dialog over the window.
     let preferences = gtk::gio::SimpleAction::new("preferences", None);
     let window_weak = window.downgrade();
+    let main_weak = main.downgrade();
     preferences.connect_activate(move |_, _| {
-        if let Some(window) = window_weak.upgrade() {
+        if let (Some(window), Some(main)) = (window_weak.upgrade(), main_weak.upgrade()) {
             adw::prelude::AdwDialogExt::present(
-                &crate::preferences::Preferences::new(),
+                &crate::preferences::Preferences::new(&main),
                 Some(&window),
             );
         }

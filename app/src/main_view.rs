@@ -55,6 +55,33 @@ fn artist_letter(key: &str) -> String {
         .unwrap_or_else(|| "#".to_string())
 }
 
+/// What the last attempt to reach the server came to.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub enum Connection {
+    /// No account in use.
+    #[default]
+    None,
+    /// Asked, no answer yet.
+    Connecting,
+    /// The server answered: its software (e.g. "navidrome") and version,
+    /// where it says them.
+    Connected {
+        server: Option<String>,
+        version: Option<String>,
+    },
+    /// No usable answer; the message says why.
+    Offline(String),
+}
+
+impl Connection {
+    pub(crate) fn from_response(r: &subsonic::Response) -> Self {
+        Self::Connected {
+            server: r.server_type.clone(),
+            version: r.server_version.clone(),
+        }
+    }
+}
+
 mod imp {
     use super::*;
 
@@ -136,6 +163,8 @@ mod imp {
         pub current: RefCell<Vec<Arc<subsonic::Album>>>,
         /// The connected client, used by cards to fetch their covers.
         pub client: RefCell<Option<subsonic::Client>>,
+        /// What the last attempt to reach the server came to.
+        pub connection: RefCell<Connection>,
         /// Every card the grid created (only as many as fit on screen, plus a few).
         pub cards: RefCell<Vec<glib::WeakRef<AlbumCard>>>,
         /// Whether the startup time was already reported.
@@ -167,7 +196,14 @@ mod imp {
         }
     }
 
-    impl ObjectImpl for MainView {}
+    impl ObjectImpl for MainView {
+        fn signals() -> &'static [glib::subclass::Signal] {
+            static SIGNALS: std::sync::OnceLock<Vec<glib::subclass::Signal>> =
+                std::sync::OnceLock::new();
+            // "connection-changed": connection() gives another answer now.
+            SIGNALS.get_or_init(|| vec![glib::subclass::Signal::builder("connection-changed").build()])
+        }
+    }
     impl WidgetImpl for MainView {}
     impl NavigationPageImpl for MainView {}
 }
@@ -367,6 +403,7 @@ impl MainView {
     }
 
     pub(crate) fn show_connecting(&self) {
+        self.set_connection(Connection::Connecting);
         self.imp()
             .status
             .set_description(Some(&gettext("Connecting…")));
@@ -375,6 +412,7 @@ impl MainView {
     /// Called after a successful ping; syncs the album list in the background.
     pub(crate) fn show_connected(&self, r: &subsonic::Response, client: subsonic::Client) {
         let imp = self.imp();
+        self.set_connection(Connection::from_response(r));
         imp.banner.set_revealed(false);
         // Translators: {server} is the server software (e.g. navidrome), {version} its version.
         let text = gettext("Connected to {server} {version}")
@@ -386,9 +424,42 @@ impl MainView {
 
     pub(crate) fn show_offline(&self, message: &str) {
         let imp = self.imp();
+        self.set_connection(Connection::Offline(message.to_string()));
         imp.banner.set_title(message);
         imp.banner.set_revealed(true);
         imp.status.set_description(Some(&gettext("Offline")));
+    }
+
+    /// What is known about the connection now (Preferences shows it).
+    pub(crate) fn connection(&self) -> Connection {
+        self.imp().connection.borrow().clone()
+    }
+
+    /// Remembers the state and tells whoever listens ("connection-changed").
+    fn set_connection(&self, connection: Connection) {
+        if *self.imp().connection.borrow() == connection {
+            return;
+        }
+        self.imp().connection.replace(connection);
+        self.emit_by_name::<()>("connection-changed", &[]);
+    }
+
+    /// Runs `f` whenever connection() changes, until the handler is disconnected.
+    pub(crate) fn connect_connection_changed<F: Fn(&Self) + 'static>(
+        &self,
+        f: F,
+    ) -> glib::SignalHandlerId {
+        self.connect_local("connection-changed", false, move |values| {
+            if let Ok(view) = values[0].get::<Self>() {
+                f(&view);
+            }
+            None
+        })
+    }
+
+    /// The client of the account in use, once the server has answered.
+    pub(crate) fn client(&self) -> Option<subsonic::Client> {
+        self.imp().client.borrow().clone()
     }
 
     /// Runs `f` when the user presses Retry in the offline banner.
@@ -1320,6 +1391,7 @@ impl MainView {
         let imp = self.imp();
         imp.sync_generation.set(imp.sync_generation.get() + 1);
         imp.client.replace(None);
+        self.set_connection(Connection::None);
         imp.server.replace(String::new());
         imp.synced.set(false);
         imp.artists.replace(Vec::new());

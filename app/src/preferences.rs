@@ -6,6 +6,9 @@ use gettextrs::gettext;
 use gtk::gio;
 use gtk::glib;
 use adw::prelude::*;
+use std::cell::RefCell;
+
+use crate::main_view::{Connection, MainView};
 
 mod imp {
     use super::*;
@@ -14,7 +17,16 @@ mod imp {
     #[template(file = "src/preferences.blp")]
     pub struct Preferences {
         #[template_child]
-        pub server_row: gtk::TemplateChild<adw::ActionRow>,
+        pub server_address: gtk::TemplateChild<gtk::Label>,
+        #[template_child]
+        pub server_status: gtk::TemplateChild<gtk::Label>,
+        #[template_child]
+        pub server_dot: gtk::TemplateChild<gtk::Box>,
+        #[template_child]
+        pub server_warning: gtk::TemplateChild<gtk::Image>,
+        /// The main view and the handler that listens to its connection
+        /// state, taken off again when the dialog closes.
+        pub listening: RefCell<Option<(glib::WeakRef<MainView>, glib::SignalHandlerId)>>,
         #[template_child]
         pub user_row: gtk::TemplateChild<adw::ActionRow>,
         #[template_child]
@@ -60,8 +72,6 @@ mod imp {
             self.parent_constructed();
             // The bindings keep the settings object alive for as long as needed.
             let settings = gio::Settings::new(crate::APP_ID);
-            self.server_row
-                .set_subtitle(&settings.string("server-url"));
             self.user_row.set_subtitle(&settings.string("username"));
             self.obj().setup_library();
 
@@ -105,8 +115,99 @@ glib::wrapper! {
 }
 
 impl Preferences {
-    pub(crate) fn new() -> Self {
-        glib::Object::new()
+    pub(crate) fn new(main: &MainView) -> Self {
+        let dialog: Self = glib::Object::new();
+        dialog.setup_connection(main);
+        dialog
+    }
+}
+
+impl Preferences {
+    /// The Server row: the address and, under it, whether the server answers.
+    /// What the main view knows shows at once; the server is then asked
+    /// again, so the dialog does not repeat an answer from hours ago.
+    fn setup_connection(&self, main: &MainView) {
+        self.show_connection(&main.connection());
+
+        // The main view may learn something new while the dialog is open (it
+        // was still connecting, or Retry was pressed): it says so, and the
+        // dialog listens for as long as it is open.
+        let dialog = self.downgrade();
+        let handler = main.connect_connection_changed(move |main| {
+            if let Some(dialog) = dialog.upgrade() {
+                dialog.show_connection(&main.connection());
+            }
+        });
+        self.imp()
+            .listening
+            .replace(Some((main.downgrade(), handler)));
+        self.connect_closed(|dialog| {
+            if let Some((main, handler)) = dialog.imp().listening.take() {
+                if let Some(main) = main.upgrade() {
+                    main.disconnect(handler);
+                }
+            }
+        });
+
+        let Some(client) = main.client() else {
+            return;
+        };
+        let dialog = self.downgrade();
+        glib::spawn_future_local(async move {
+            let result = crate::runtime()
+                .spawn(async move { client.ping().await })
+                .await;
+            let Some(dialog) = dialog.upgrade() else {
+                return;
+            };
+            match result {
+                Ok(Ok(response)) => dialog.show_connection(&Connection::from_response(&response)),
+                Ok(Err(e)) => {
+                    dialog.show_connection(&Connection::Offline(crate::error_message(&e)))
+                }
+                Err(_) => {}
+            }
+        });
+    }
+
+    fn show_connection(&self, connection: &Connection) {
+        let imp = self.imp();
+        let status = match connection {
+            Connection::None | Connection::Connecting => gettext("Checking the connection…"),
+            Connection::Connected { server: Some(server), version } => {
+                // Translators: {server} is the server software (e.g. Navidrome), {version} its version.
+                gettext("Connected · {server} {version}")
+                    .replace("{server}", &capitalized(server))
+                    // The number alone: Navidrome adds a build id, "0.64.2 (10114574)".
+                    .replace(
+                        "{version}",
+                        version
+                            .as_deref()
+                            .and_then(|version| version.split_whitespace().next())
+                            .unwrap_or(""),
+                    )
+                    .trim_end()
+                    .to_string()
+            }
+            Connection::Connected { server: None, .. } => gettext("Connected"),
+            Connection::Offline(message) => message.clone(),
+        };
+        imp.server_address
+            .set_label(&gio::Settings::new(crate::APP_ID).string("server-url"));
+        imp.server_status.set_label(&status);
+        imp.server_dot
+            .set_visible(matches!(connection, Connection::Connected { .. }));
+        imp.server_warning
+            .set_visible(matches!(connection, Connection::Offline(_)));
+    }
+}
+
+/// "navidrome" as "Navidrome": servers name themselves in lower case.
+fn capitalized(name: &str) -> String {
+    let mut chars = name.chars();
+    match chars.next() {
+        Some(first) => first.to_uppercase().chain(chars).collect(),
+        None => String::new(),
     }
 }
 

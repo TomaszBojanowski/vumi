@@ -12,13 +12,76 @@ template $VumiPreferences: Adw.PreferencesDialog {
     Adw.PreferencesGroup {
       title: _("Account");
 
-      Adw.ActionRow server_row {
+      // The address, and under it whether the server answers (preferences.rs):
+      // a "property" row built by hand, for the line with the mark below.
+      Adw.PreferencesRow {
         title: _("Server");
-        subtitle-selectable: true;
+        activatable: false;
 
-        styles [
-          "property",
-        ]
+        child: Box {
+          orientation: vertical;
+          spacing: 3;
+          valign: center;
+          margin-top: 6;
+          margin-bottom: 6;
+          margin-start: 12;
+          margin-end: 12;
+
+          Label {
+            label: _("Server");
+            xalign: 0;
+
+            styles [
+              "subtitle",
+            ]
+          }
+
+          Label server_address {
+            xalign: 0;
+            selectable: true;
+            wrap: true;
+            wrap-mode: word_char;
+          }
+
+          // A green dot or a warning sign, then the words: the colour is
+          // not the only cue.
+          Box {
+            spacing: 6;
+
+            Box server_dot {
+              valign: center;
+              visible: false;
+
+              styles [
+                "connection-dot",
+                "success",
+              ]
+            }
+
+            Image server_warning {
+              icon-name: "dialog-warning-symbolic";
+              pixel-size: 12;
+              valign: start;
+              margin-top: 2;
+              visible: false;
+
+              styles [
+                "warning",
+              ]
+            }
+
+            Label server_status {
+              xalign: 0;
+              hexpand: true;
+              wrap: true;
+              wrap-mode: word_char;
+
+              styles [
+                "subtitle",
+              ]
+            }
+          }
+        };
       }
 
       Adw.ActionRow user_row {

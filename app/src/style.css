@@ -402,3 +402,12 @@ button.syncing > image {
 .volume-popover scale.vertical {
   padding: 0 4px;
 }
+
+/* Preferences, the Server row: the dot before "Connected". Its colour comes
+   from the "success" class. */
+.connection-dot {
+  min-width: 8px;
+  min-height: 8px;
+  border-radius: 50%;
+  background-color: currentColor;
+}
