@@ -3,8 +3,12 @@ using Adw 1;
 
 translation-domain "vumi";
 
-// The Preferences dialog (Ctrl+,). Playback for now; account and library next.
+// The Preferences dialog (Ctrl+,).
 template $VumiPreferences: Adw.PreferencesDialog {
+  // A dialog with a breakpoint (at the end) has to name its smallest size.
+  width-request: 360;
+  height-request: 294;
+
   Adw.PreferencesPage {
     title: _("General");
     icon-name: "preferences-system-symbolic";
@@ -12,95 +16,143 @@ template $VumiPreferences: Adw.PreferencesDialog {
     Adw.PreferencesGroup {
       title: _("Account");
 
-      // The address, and under it whether the server answers (preferences.rs):
-      // a "property" row built by hand, for the line with the mark below.
+      // Who is logged in and where, and whether the server answers
+      // (preferences.rs). Log Out asks first.
       Adw.PreferencesRow {
-        title: _("Server");
+        title: _("Account");
         activatable: false;
 
         child: Box {
-          orientation: vertical;
-          spacing: 3;
-          valign: center;
-          margin-top: 6;
-          margin-bottom: 6;
+          spacing: 12;
+          margin-top: 12;
+          margin-bottom: 12;
           margin-start: 12;
           margin-end: 12;
 
-          Label {
-            label: _("Server");
-            xalign: 0;
+          Box {
+            orientation: vertical;
+            hexpand: true;
+            valign: center;
+
+            Box {
+              spacing: 12;
+
+              Adw.Avatar avatar {
+                size: 44;
+                show-initials: true;
+                valign: center;
+              }
+
+              Box {
+                orientation: vertical;
+                spacing: 2;
+                hexpand: true;
+                valign: center;
+
+                Label user_name {
+                  xalign: 0;
+                  wrap: true;
+                  wrap-mode: word_char;
+
+                  styles [
+                    "heading",
+                  ]
+                }
+
+                Label server_address {
+                  xalign: 0;
+                  selectable: true;
+                  wrap: true;
+                  wrap-mode: word_char;
+
+                  styles [
+                    "subtitle",
+                  ]
+                }
+
+                // A green dot or a warning sign, then the words: the colour is
+                // not the only cue.
+                Box {
+                  spacing: 6;
+
+                  Box server_dot {
+                    valign: center;
+                    visible: false;
+
+                    styles [
+                      "connection-dot",
+                      "success",
+                    ]
+                  }
+
+                  Image server_warning {
+                    icon-name: "dialog-warning-symbolic";
+                    pixel-size: 12;
+                    valign: start;
+                    margin-top: 2;
+                    visible: false;
+
+                    styles [
+                      "warning",
+                    ]
+                  }
+
+                  Label server_status {
+                    xalign: 0;
+                    hexpand: true;
+                    wrap: true;
+                    wrap-mode: word_char;
+
+                    styles [
+                      "subtitle",
+                    ]
+                  }
+                }
+              }
+            }
+
+            // Narrow dialogs: Log Out goes under the text, in line with it
+            // (the breakpoint at the end of this file).
+            Button logout_below {
+              label: _("Log Out");
+              halign: start;
+              margin-top: 10;
+              margin-start: 56;
+              visible: false;
+
+              styles [
+                "logout-button",
+              ]
+            }
+          }
+
+          Button logout_side {
+            label: _("Log Out");
+            valign: center;
 
             styles [
-              "subtitle",
+              "logout-button",
             ]
-          }
-
-          Label server_address {
-            xalign: 0;
-            selectable: true;
-            wrap: true;
-            wrap-mode: word_char;
-          }
-
-          // A green dot or a warning sign, then the words: the colour is
-          // not the only cue.
-          Box {
-            spacing: 6;
-
-            Box server_dot {
-              valign: center;
-              visible: false;
-
-              styles [
-                "connection-dot",
-                "success",
-              ]
-            }
-
-            Image server_warning {
-              icon-name: "dialog-warning-symbolic";
-              pixel-size: 12;
-              valign: start;
-              margin-top: 2;
-              visible: false;
-
-              styles [
-                "warning",
-              ]
-            }
-
-            Label server_status {
-              xalign: 0;
-              hexpand: true;
-              wrap: true;
-              wrap-mode: word_char;
-
-              styles [
-                "subtitle",
-              ]
-            }
           }
         };
       }
 
-      Adw.ActionRow user_row {
-        title: _("User");
-        subtitle-selectable: true;
+      // What the local library holds and when it was last synced
+      // (preferences.rs); the button does what Ctrl+R does.
+      Adw.ActionRow library_row {
+        title: _("Library");
+        subtitle-lines: 0;
 
-        styles [
-          "property",
-        ]
-      }
+        [suffix]
+        Button sync_button {
+          icon-name: "view-refresh-symbolic";
+          tooltip-text: _("Sync Now");
+          valign: center;
 
-      // Runs app.logout (main.rs) and closes the dialog.
-      Adw.ButtonRow logout_row {
-        title: _("Log Out");
-        action-name: "app.logout";
-
-        styles [
-          "destructive-action",
-        ]
+          styles [
+            "circular",
+          ]
+        }
       }
     }
 
@@ -210,14 +262,7 @@ template $VumiPreferences: Adw.PreferencesDialog {
     }
 
     Adw.PreferencesGroup {
-      title: _("Library");
-
-      // Runs app.sync (main.rs): albums, then songs, as after connecting.
-      Adw.ButtonRow sync_row {
-        title: _("Sync Now");
-        start-icon-name: "view-refresh-symbolic";
-        action-name: "app.sync";
-      }
+      title: _("Local Data");
 
       Adw.ActionRow covers_row {
         title: _("Cover Cache");
@@ -237,6 +282,16 @@ template $VumiPreferences: Adw.PreferencesDialog {
         title: _("Share Listening Activity");
         subtitle: _("The server sees what is playing and counts plays; it may pass them on to Last.fm or ListenBrainz");
       }
+    }
+  }
+
+  // Narrow: no room for Log Out beside the account, so it goes below.
+  Adw.Breakpoint {
+    condition ("max-width: 450sp")
+
+    setters {
+      logout_side.visible: false;
+      logout_below.visible: true;
     }
   }
 }

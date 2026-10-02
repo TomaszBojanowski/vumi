@@ -411,3 +411,10 @@ button.syncing > image {
   border-radius: 50%;
   background-color: currentColor;
 }
+
+/* Preferences, Log Out in the account row: an ordinary button that reads as
+   destructive by its text. Only the label is coloured: the button's own
+   colour would tint its background too. */
+.logout-button > label {
+  color: var(--destructive-color);
+}

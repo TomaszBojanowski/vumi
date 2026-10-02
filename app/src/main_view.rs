@@ -201,7 +201,13 @@ mod imp {
             static SIGNALS: std::sync::OnceLock<Vec<glib::subclass::Signal>> =
                 std::sync::OnceLock::new();
             // "connection-changed": connection() gives another answer now.
-            SIGNALS.get_or_init(|| vec![glib::subclass::Signal::builder("connection-changed").build()])
+            // "library-changed": a sync started or ended, or the artists came.
+            SIGNALS.get_or_init(|| {
+                vec![
+                    glib::subclass::Signal::builder("connection-changed").build(),
+                    glib::subclass::Signal::builder("library-changed").build(),
+                ]
+            })
         }
     }
     impl WidgetImpl for MainView {}
@@ -783,7 +789,11 @@ impl MainView {
             }
             let count = songs.len();
             let saved = runtime()
-                .spawn_blocking(move || library::save_songs(&server, &songs))
+                // The songs come last: with them stored, the sync is done.
+                .spawn_blocking(move || {
+                    library::save_songs(&server, &songs)?;
+                    library::mark_synced(&server)
+                })
                 .await;
             match saved {
                 Ok(Ok(())) => {
@@ -874,6 +884,7 @@ impl MainView {
             };
             view.imp().artists.replace(artists);
             view.refresh_artists();
+            view.emit_by_name::<()>("library-changed", &[]);
         });
     }
 
@@ -1471,6 +1482,36 @@ impl MainView {
         }
         // Stays sensitive: an insensitive button would dim the spinner; a second
         // click is ignored by sync_now anyway.
+        self.emit_by_name::<()>("library-changed", &[]);
+    }
+
+    /// True while albums and then songs are being synced.
+    pub(crate) fn is_syncing(&self) -> bool {
+        self.imp().syncing.get()
+    }
+
+    /// The account ("user@url") whose library is on screen, or empty.
+    pub(crate) fn server_key(&self) -> String {
+        self.imp().server.borrow().clone()
+    }
+
+    /// How many artists the server listed; 0 until they are fetched.
+    pub(crate) fn artist_count(&self) -> usize {
+        self.imp().artists.borrow().len()
+    }
+
+    /// Runs `f` when a sync starts or ends and when the artists arrive,
+    /// until the handler is disconnected.
+    pub(crate) fn connect_library_changed<F: Fn(&Self) + 'static>(
+        &self,
+        f: F,
+    ) -> glib::SignalHandlerId {
+        self.connect_local("library-changed", false, move |values| {
+            if let Ok(view) = values[0].get::<Self>() {
+                f(&view);
+            }
+            None
+        })
     }
 }
 

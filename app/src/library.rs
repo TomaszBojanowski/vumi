@@ -128,7 +128,56 @@ fn migrate(conn: &mut Connection) -> rusqlite::Result<()> {
         )?;
         tx.commit()?;
     }
+    if version < 7 {
+        // Version 7: when each account was last synced (Preferences). A
+        // table of its own: nothing that reads albums or songs sees it.
+        let tx = conn.transaction()?;
+        tx.execute_batch(
+            "CREATE TABLE sync_state (
+                 server    TEXT NOT NULL PRIMARY KEY,
+                 synced_at INTEGER NOT NULL
+             );
+             PRAGMA user_version = 7;",
+        )?;
+        tx.commit()?;
+    }
     Ok(())
+}
+
+/// Notes that the library of `server` was synced just now.
+pub(crate) fn mark_synced(server: &str) -> rusqlite::Result<()> {
+    let conn = open()?;
+    conn.execute(
+        "INSERT OR REPLACE INTO sync_state (server, synced_at)
+         VALUES (?1, CAST(strftime('%s', 'now') AS INTEGER))",
+        params![server],
+    )?;
+    Ok(())
+}
+
+/// What the local library of one server holds.
+pub(crate) struct Stats {
+    pub albums: u32,
+    pub songs: u32,
+    /// When it was last synced (Unix time), if it ever was.
+    pub synced_at: Option<i64>,
+}
+
+pub(crate) fn stats(server: &str) -> rusqlite::Result<Stats> {
+    let conn = open()?;
+    conn.query_row(
+        "SELECT (SELECT COUNT(*) FROM albums WHERE server = ?1),
+                (SELECT COUNT(*) FROM songs WHERE server = ?1),
+                (SELECT synced_at FROM sync_state WHERE server = ?1)",
+        params![server],
+        |row| {
+            Ok(Stats {
+                albums: row.get(0)?,
+                songs: row.get(1)?,
+                synced_at: row.get(2)?,
+            })
+        },
+    )
 }
 
 /// Text for the search index and for queries: lower case, and Polish letters as

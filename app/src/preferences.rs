@@ -2,11 +2,11 @@
 //! so the rest of the app reads the same values and nothing needs saving here.
 
 use adw::subclass::prelude::*;
-use gettextrs::gettext;
+use gettextrs::{gettext, ngettext, pgettext};
 use gtk::gio;
 use gtk::glib;
 use adw::prelude::*;
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 
 use crate::main_view::{Connection, MainView};
 
@@ -17,6 +17,10 @@ mod imp {
     #[template(file = "src/preferences.blp")]
     pub struct Preferences {
         #[template_child]
+        pub avatar: gtk::TemplateChild<adw::Avatar>,
+        #[template_child]
+        pub user_name: gtk::TemplateChild<gtk::Label>,
+        #[template_child]
         pub server_address: gtk::TemplateChild<gtk::Label>,
         #[template_child]
         pub server_status: gtk::TemplateChild<gtk::Label>,
@@ -24,13 +28,22 @@ mod imp {
         pub server_dot: gtk::TemplateChild<gtk::Box>,
         #[template_child]
         pub server_warning: gtk::TemplateChild<gtk::Image>,
-        /// The main view and the handler that listens to its connection
-        /// state, taken off again when the dialog closes.
-        pub listening: RefCell<Option<(glib::WeakRef<MainView>, glib::SignalHandlerId)>>,
+        /// The main view and the handlers that listen to it (connection,
+        /// library), taken off again when the dialog closes.
+        pub listening: RefCell<Option<(glib::WeakRef<MainView>, Vec<glib::SignalHandlerId>)>>,
         #[template_child]
-        pub user_row: gtk::TemplateChild<adw::ActionRow>,
+        pub logout_side: gtk::TemplateChild<gtk::Button>,
         #[template_child]
-        pub logout_row: gtk::TemplateChild<adw::ButtonRow>,
+        pub logout_below: gtk::TemplateChild<gtk::Button>,
+        #[template_child]
+        pub library_row: gtk::TemplateChild<adw::ActionRow>,
+        #[template_child]
+        pub sync_button: gtk::TemplateChild<gtk::Button>,
+        /// The Library row: its counts line, when the library was last
+        /// synced (Unix time) and whether a sync runs now.
+        pub counts: RefCell<String>,
+        pub synced_at: Cell<Option<i64>>,
+        pub syncing: Cell<bool>,
         #[template_child]
         pub endless_radio: gtk::TemplateChild<adw::SwitchRow>,
         #[template_child]
@@ -43,8 +56,6 @@ mod imp {
         pub replay_gain: gtk::TemplateChild<adw::ToggleGroup>,
         #[template_child]
         pub report_listens: gtk::TemplateChild<adw::SwitchRow>,
-        #[template_child]
-        pub sync_row: gtk::TemplateChild<adw::ButtonRow>,
         #[template_child]
         pub covers_row: gtk::TemplateChild<adw::ActionRow>,
         #[template_child]
@@ -72,16 +83,21 @@ mod imp {
             self.parent_constructed();
             // The bindings keep the settings object alive for as long as needed.
             let settings = gio::Settings::new(crate::APP_ID);
-            self.user_row.set_subtitle(&settings.string("username"));
-            self.obj().setup_library();
+            let user = settings.string("username");
+            self.avatar.set_text(Some(&user));
+            self.user_name.set_label(&user);
+            self.server_address.set_label(&settings.string("server-url"));
+            self.obj().setup_covers();
 
-            // Logging out leaves the account behind: the dialog goes with it.
-            let dialog = self.obj().downgrade();
-            self.logout_row.connect_activated(move |_| {
-                if let Some(dialog) = dialog.upgrade() {
-                    dialog.close();
-                }
-            });
+            // One of the two shows, by the width of the dialog.
+            for button in [&*self.logout_side, &*self.logout_below] {
+                let dialog = self.obj().downgrade();
+                button.connect_clicked(move |_| {
+                    if let Some(dialog) = dialog.upgrade() {
+                        dialog.confirm_logout();
+                    }
+                });
+            }
             settings
                 .bind("endless-radio", &*self.endless_radio, "active")
                 .build();
@@ -118,12 +134,32 @@ impl Preferences {
     pub(crate) fn new(main: &MainView) -> Self {
         let dialog: Self = glib::Object::new();
         dialog.setup_connection(main);
+        dialog.setup_library(main);
+        // The main view outlives the dialog: its handlers go as it closes.
+        dialog.connect_closed(|dialog| {
+            if let Some((main, handlers)) = dialog.imp().listening.take() {
+                if let Some(main) = main.upgrade() {
+                    for handler in handlers {
+                        main.disconnect(handler);
+                    }
+                }
+            }
+        });
         dialog
     }
 }
 
 impl Preferences {
-    /// The Server row: the address and, under it, whether the server answers.
+    /// Keeps a handler connected to the main view, to take it off on closing.
+    fn listen(&self, main: &MainView, handler: glib::SignalHandlerId) {
+        let mut listening = self.imp().listening.borrow_mut();
+        match listening.as_mut() {
+            Some((_, handlers)) => handlers.push(handler),
+            None => *listening = Some((main.downgrade(), vec![handler])),
+        }
+    }
+
+    /// The account row: under the address, whether the server answers.
     /// What the main view knows shows at once; the server is then asked
     /// again, so the dialog does not repeat an answer from hours ago.
     fn setup_connection(&self, main: &MainView) {
@@ -138,16 +174,7 @@ impl Preferences {
                 dialog.show_connection(&main.connection());
             }
         });
-        self.imp()
-            .listening
-            .replace(Some((main.downgrade(), handler)));
-        self.connect_closed(|dialog| {
-            if let Some((main, handler)) = dialog.imp().listening.take() {
-                if let Some(main) = main.upgrade() {
-                    main.disconnect(handler);
-                }
-            }
-        });
+        self.listen(main, handler);
 
         let Some(client) = main.client() else {
             return;
@@ -192,13 +219,66 @@ impl Preferences {
             Connection::Connected { server: None, .. } => gettext("Connected"),
             Connection::Offline(message) => message.clone(),
         };
-        imp.server_address
-            .set_label(&gio::Settings::new(crate::APP_ID).string("server-url"));
         imp.server_status.set_label(&status);
         imp.server_dot
             .set_visible(matches!(connection, Connection::Connected { .. }));
         imp.server_warning
             .set_visible(matches!(connection, Connection::Offline(_)));
+    }
+}
+
+/// A count with its thousands set apart from 10 000 up ("11 265").
+fn grouped(n: u32) -> String {
+    let digits = n.to_string();
+    if digits.len() < 5 {
+        return digits;
+    }
+    // Translators: what separates thousands in a large number ("11,265").
+    let separator = pgettext("thousands separator", ",");
+    let mut out = String::new();
+    for (index, digit) in digits.chars().enumerate() {
+        if index > 0 && (digits.len() - index) % 3 == 0 {
+            out.push_str(&separator);
+        }
+        out.push(digit);
+    }
+    out
+}
+
+/// How long ago `then` (Unix time) was, in words: minutes and hours within
+/// a day, then days by the calendar, and from a week on the date itself.
+fn time_ago(then: i64) -> String {
+    let (Ok(now), Ok(then_local)) = (
+        glib::DateTime::now_local(),
+        glib::DateTime::from_unix_local(then),
+    ) else {
+        return String::new();
+    };
+    let seconds = (now.to_unix() - then).max(0);
+    if seconds < 60 {
+        return gettext("just now");
+    }
+    if seconds < 3600 {
+        let n = (seconds / 60) as u32;
+        return ngettext("{n} minute ago", "{n} minutes ago", n).replace("{n}", &n.to_string());
+    }
+    if seconds < 86400 {
+        let n = (seconds / 3600) as u32;
+        return ngettext("{n} hour ago", "{n} hours ago", n).replace("{n}", &n.to_string());
+    }
+    // The number of the day in local time, so "yesterday" follows midnight.
+    let day = |time: &glib::DateTime| {
+        (time.to_unix() + time.utc_offset().as_seconds()).div_euclid(86400)
+    };
+    match (day(&now) - day(&then_local)).max(1) {
+        1 => gettext("yesterday"),
+        n @ 2..=6 => {
+            ngettext("{n} day ago", "{n} days ago", n as u32).replace("{n}", &n.to_string())
+        }
+        _ => then_local
+            .format("%x")
+            .map(|date| date.to_string())
+            .unwrap_or_default(),
     }
 }
 
@@ -212,17 +292,132 @@ fn capitalized(name: &str) -> String {
 }
 
 impl Preferences {
-    /// The Library group: a note when a sync starts, the size of the cover
-    /// cache (worked out in the background) and the button that clears it.
-    fn setup_library(&self) {
-        let imp = self.imp();
-
+    /// Log Out asks first: the queue and the saved password go with it.
+    fn confirm_logout(&self) {
+        let alert = adw::AlertDialog::new(
+            Some(&gettext("Log Out?")),
+            Some(&gettext(
+                "Playback stops and the saved password is removed. The library downloaded from this server stays on this device.",
+            )),
+        );
+        alert.add_responses(&[("cancel", &gettext("Cancel")), ("logout", &gettext("Log Out"))]);
+        alert.set_response_appearance("logout", adw::ResponseAppearance::Destructive);
+        alert.set_default_response(Some("cancel"));
+        alert.set_close_response("cancel");
         let dialog = self.downgrade();
-        imp.sync_row.connect_activated(move |_| {
+        alert.connect_response(Some("logout"), move |_, _| {
             if let Some(dialog) = dialog.upgrade() {
-                dialog.add_toast(crate::plain_toast(&gettext("Syncing the library…")));
+                // app.logout (main.rs); the account is left behind, and the
+                // dialog goes with it.
+                let _ = dialog.activate_action("app.logout", None);
+                dialog.close();
             }
         });
+        alert.present(Some(self));
+    }
+
+    /// The Library row: how much the local library holds, when it was last
+    /// synced, and a button that syncs it now (as Ctrl+R does).
+    fn setup_library(&self, main: &MainView) {
+        let imp = self.imp();
+
+        let main_weak = main.downgrade();
+        imp.sync_button.connect_clicked(move |_| {
+            if let Some(main) = main_weak.upgrade() {
+                main.sync_now();
+            }
+        });
+
+        // A sync starts or ends, or the artists arrive: the row follows.
+        let dialog = self.downgrade();
+        let handler = main.connect_library_changed(move |main| {
+            if let Some(dialog) = dialog.upgrade() {
+                dialog.update_library(main);
+            }
+        });
+        self.listen(main, handler);
+        self.update_library(main);
+
+        // "5 minutes ago" grows old while the dialog stays open.
+        let dialog = self.downgrade();
+        glib::timeout_add_seconds_local(30, move || match dialog.upgrade() {
+            Some(dialog) if dialog.imp().listening.borrow().is_some() => {
+                dialog.show_library();
+                glib::ControlFlow::Continue
+            }
+            _ => glib::ControlFlow::Break,
+        });
+    }
+
+    /// Reads the numbers of the Library row anew: albums, songs and the time
+    /// of the last sync from the database, the artists from the main view
+    /// (they are not stored; none until they are fetched).
+    fn update_library(&self, main: &MainView) {
+        let imp = self.imp();
+        imp.syncing.set(main.is_syncing());
+        imp.sync_button
+            .set_sensitive(!main.is_syncing() && main.client().is_some());
+        self.show_library();
+
+        let server = main.server_key();
+        let artists = main.artist_count() as u32;
+        let dialog = self.downgrade();
+        glib::spawn_future_local(async move {
+            let stats = crate::runtime()
+                .spawn_blocking(move || crate::library::stats(&server))
+                .await;
+            let (Some(dialog), Ok(Ok(stats))) = (dialog.upgrade(), stats) else {
+                return;
+            };
+            let mut parts = vec![
+                ngettext("{n} album", "{n} albums", stats.albums)
+                    .replace("{n}", &grouped(stats.albums)),
+            ];
+            if artists > 0 {
+                parts.push(
+                    ngettext("{n} artist", "{n} artists", artists).replace("{n}", &grouped(artists)),
+                );
+            }
+            parts.push(
+                // Translators: {n} is a number of tracks.
+                ngettext("{n} track", "{n} tracks", stats.songs)
+                    .replace("{n}", &grouped(stats.songs)),
+            );
+            dialog.imp().counts.replace(parts.join(" · "));
+            dialog.imp().synced_at.set(stats.synced_at);
+            dialog.show_library();
+        });
+    }
+
+    /// The two lines under "Library", from what update_library last read.
+    fn show_library(&self) {
+        let imp = self.imp();
+        let second = if imp.syncing.get() {
+            gettext("Syncing the library…")
+        } else {
+            // Translators: {time} is how long ago, e.g. "5 minutes ago", "yesterday", "never".
+            gettext("Last sync: {time}").replace(
+                "{time}",
+                &match imp.synced_at.get() {
+                    Some(then) => time_ago(then),
+                    None => gettext("never"),
+                },
+            )
+        };
+        let counts = imp.counts.borrow();
+        let text = if counts.is_empty() {
+            second
+        } else {
+            format!("{counts}\n{second}")
+        };
+        // The row reads its subtitle as markup.
+        imp.library_row.set_subtitle(&glib::markup_escape_text(&text));
+    }
+
+    /// The Local Data group: the size of the cover cache (worked out in the
+    /// background) and the button that clears it.
+    fn setup_covers(&self) {
+        let imp = self.imp();
 
         let dialog = self.downgrade();
         imp.clear_covers.connect_clicked(move |button| {

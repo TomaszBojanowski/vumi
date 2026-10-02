@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vumi\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-02 22:23+0200\n"
+"POT-Creation-Date: 2026-10-02 22:45+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -76,7 +76,7 @@ msgstr ""
 msgid "Built With"
 msgstr ""
 
-#: app/src/main.rs:503 app/src/preferences.blp:139
+#: app/src/main.rs:503 app/src/preferences.blp:187
 msgid "Playback"
 msgstr ""
 
@@ -92,7 +92,7 @@ msgstr ""
 msgid "Next Track"
 msgstr ""
 
-#: app/src/main.rs:511 app/src/main_view.blp:132 app/src/preferences.blp:213
+#: app/src/main.rs:511 app/src/main_view.blp:132 app/src/preferences.blp:139
 msgid "Library"
 msgstr ""
 
@@ -120,41 +120,41 @@ msgstr ""
 msgid "Quit"
 msgstr ""
 
-#: app/src/main_view.rs:229
+#: app/src/main_view.rs:235
 msgid "No Favorites"
 msgstr ""
 
-#: app/src/main_view.rs:230
+#: app/src/main_view.rs:236
 msgid "Star albums and songs to see them here"
 msgstr ""
 
-#: app/src/main_view.rs:409
+#: app/src/main_view.rs:415
 msgid "Connecting…"
 msgstr ""
 
 #. Translators: {server} is the server software (e.g. navidrome), {version} its version.
-#: app/src/main_view.rs:418
+#: app/src/main_view.rs:424
 #, rust-format
 msgid "Connected to {server} {version}"
 msgstr ""
 
-#: app/src/main_view.rs:430
+#: app/src/main_view.rs:436
 msgid "Offline"
 msgstr ""
 
 #. Translators: {n} is a number of tracks.
 #. Translators: {n} is a number of tracks in the queue.
 #. Translators: {n} is a number of tracks.
-#: app/src/main_view.rs:1101 app/src/album_page.rs:354
-#: app/src/queue_page.rs:454 app/src/song_menu.rs:288
-#: app/src/playlist_page.rs:125
+#: app/src/main_view.rs:1112 app/src/album_page.rs:354
+#: app/src/preferences.rs:383 app/src/queue_page.rs:454
+#: app/src/song_menu.rs:288 app/src/playlist_page.rs:125
 #, rust-format
 msgid "{n} track"
 msgid_plural "{n} tracks"
 msgstr[0] ""
 msgstr[1] ""
 
-#: app/src/main_view.rs:1166 app/src/album_page.rs:628
+#: app/src/main_view.rs:1177 app/src/album_page.rs:628
 #: app/src/album_page.rs:810 app/src/now_playing.rs:246
 #: app/src/mini_player.rs:101 app/src/start_page.blp:204
 #: app/src/playlist_page.blp:80
@@ -259,7 +259,7 @@ msgstr ""
 msgid "Recently Added"
 msgstr ""
 
-#: app/src/main_view.blp:500 app/src/preferences.blp:142
+#: app/src/main_view.blp:500 app/src/preferences.blp:190
 msgid "Endless Radio"
 msgstr ""
 
@@ -267,7 +267,7 @@ msgstr ""
 msgid "Repeat"
 msgstr ""
 
-#: app/src/main_view.blp:508 app/src/preferences.blp:197
+#: app/src/main_view.blp:508 app/src/preferences.blp:245
 msgid "Off"
 msgstr ""
 
@@ -461,6 +461,7 @@ msgid "Show less"
 msgstr ""
 
 #: app/src/artist_card.rs:81 app/src/artist_page.rs:126
+#: app/src/preferences.rs:373
 #, rust-format
 msgid "{n} album"
 msgid_plural "{n} albums"
@@ -529,123 +530,187 @@ msgstr ""
 msgid "Search"
 msgstr ""
 
-#: app/src/preferences.blp:13
+#: app/src/preferences.blp:13 app/src/preferences.blp:18
 msgid "Account"
 msgstr ""
 
-#: app/src/preferences.blp:18 app/src/preferences.blp:31
-msgid "Server"
-msgstr ""
-
-#: app/src/preferences.blp:88
-msgid "User"
-msgstr ""
-
-#: app/src/preferences.blp:98
+#: app/src/preferences.blp:113 app/src/preferences.blp:126
+#: app/src/preferences.rs:303
 msgid "Log Out"
 msgstr ""
 
-#: app/src/preferences.blp:108
-msgid "Appearance"
-msgstr ""
-
-#: app/src/preferences.blp:112
-msgid "Style"
-msgstr ""
-
-#: app/src/preferences.blp:119
-msgid "Follow System"
-msgstr ""
-
-#: app/src/preferences.blp:123
-msgid "Light"
-msgstr ""
-
-#: app/src/preferences.blp:127
-msgid "Dark"
-msgstr ""
-
-#: app/src/preferences.blp:133
-msgid "Cover Colors"
-msgstr ""
-
-#: app/src/preferences.blp:134
-msgid "Tint the album page and the player with the colour of the cover"
-msgstr ""
-
-#: app/src/preferences.blp:143
-msgid "When the queue ends, keep playing songs similar to the last one"
-msgstr ""
-
-#: app/src/preferences.blp:147
-msgid "Play After the Window Is Closed"
-msgstr ""
-
-#: app/src/preferences.blp:148
-msgid "The music goes on; the controls stay in the system menu"
-msgstr ""
-
-#: app/src/preferences.blp:155 app/src/preferences.blp:171
-msgid "Volume Normalization"
-msgstr ""
-
-#: app/src/preferences.blp:182
-msgid "From ReplayGain tags; off keeps the signal unchanged"
-msgstr ""
-
-#: app/src/preferences.blp:201
-msgid "Per Track"
-msgstr ""
-
-#: app/src/preferences.blp:205
-msgid "Per Album"
-msgstr ""
-
-#: app/src/preferences.blp:217
+#: app/src/preferences.blp:145
 msgid "Sync Now"
 msgstr ""
 
-#: app/src/preferences.blp:223
+#: app/src/preferences.blp:156
+msgid "Appearance"
+msgstr ""
+
+#: app/src/preferences.blp:160
+msgid "Style"
+msgstr ""
+
+#: app/src/preferences.blp:167
+msgid "Follow System"
+msgstr ""
+
+#: app/src/preferences.blp:171
+msgid "Light"
+msgstr ""
+
+#: app/src/preferences.blp:175
+msgid "Dark"
+msgstr ""
+
+#: app/src/preferences.blp:181
+msgid "Cover Colors"
+msgstr ""
+
+#: app/src/preferences.blp:182
+msgid "Tint the album page and the player with the colour of the cover"
+msgstr ""
+
+#: app/src/preferences.blp:191
+msgid "When the queue ends, keep playing songs similar to the last one"
+msgstr ""
+
+#: app/src/preferences.blp:195
+msgid "Play After the Window Is Closed"
+msgstr ""
+
+#: app/src/preferences.blp:196
+msgid "The music goes on; the controls stay in the system menu"
+msgstr ""
+
+#: app/src/preferences.blp:203 app/src/preferences.blp:219
+msgid "Volume Normalization"
+msgstr ""
+
+#: app/src/preferences.blp:230
+msgid "From ReplayGain tags; off keeps the signal unchanged"
+msgstr ""
+
+#: app/src/preferences.blp:249
+msgid "Per Track"
+msgstr ""
+
+#: app/src/preferences.blp:253
+msgid "Per Album"
+msgstr ""
+
+#: app/src/preferences.blp:261
+msgid "Local Data"
+msgstr ""
+
+#: app/src/preferences.blp:264
 msgid "Cover Cache"
 msgstr ""
 
-#: app/src/preferences.blp:227 app/src/queue_page.rs:367
+#: app/src/preferences.blp:268 app/src/queue_page.rs:367
 msgid "Clear"
 msgstr ""
 
-#: app/src/preferences.blp:234
+#: app/src/preferences.blp:275
 msgid "Privacy"
 msgstr ""
 
-#: app/src/preferences.blp:237
+#: app/src/preferences.blp:278
 msgid "Share Listening Activity"
 msgstr ""
 
-#: app/src/preferences.blp:238
+#: app/src/preferences.blp:279
 msgid ""
 "The server sees what is playing and counts plays; it may pass them on to "
 "Last.fm or ListenBrainz"
 msgstr ""
 
-#: app/src/preferences.rs:176
+#: app/src/preferences.rs:203
 msgid "Checking the connection…"
 msgstr ""
 
 #. Translators: {server} is the server software (e.g. Navidrome), {version} its version.
-#: app/src/preferences.rs:179
+#: app/src/preferences.rs:206
 #, rust-format
 msgid "Connected · {server} {version}"
 msgstr ""
 
-#: app/src/preferences.rs:192
+#: app/src/preferences.rs:219
 msgid "Connected"
 msgstr ""
 
-#: app/src/preferences.rs:223
+#. Translators: what separates thousands in a large number ("11,265").
+#: app/src/preferences.rs:237
+msgctxt "thousands separator"
+msgid ","
+msgstr ""
+
+#: app/src/preferences.rs:259
+msgid "just now"
+msgstr ""
+
+#: app/src/preferences.rs:263
+#, rust-format
+msgid "{n} minute ago"
+msgid_plural "{n} minutes ago"
+msgstr[0] ""
+msgstr[1] ""
+
+#: app/src/preferences.rs:267
+#, rust-format
+msgid "{n} hour ago"
+msgid_plural "{n} hours ago"
+msgstr[0] ""
+msgstr[1] ""
+
+#: app/src/preferences.rs:274
+msgid "yesterday"
+msgstr ""
+
+#: app/src/preferences.rs:276
+#, rust-format
+msgid "{n} day ago"
+msgid_plural "{n} days ago"
+msgstr[0] ""
+msgstr[1] ""
+
+#: app/src/preferences.rs:298
+msgid "Log Out?"
+msgstr ""
+
+#: app/src/preferences.rs:300
+msgid ""
+"Playback stops and the saved password is removed. The library downloaded "
+"from this server stays on this device."
+msgstr ""
+
+#: app/src/preferences.rs:303 app/src/queue_page.rs:367
+#: app/src/queue_page.rs:393
+msgid "Cancel"
+msgstr ""
+
+#: app/src/preferences.rs:378
+#, rust-format
+msgid "{n} artist"
+msgid_plural "{n} artists"
+msgstr[0] ""
+msgstr[1] ""
+
+#: app/src/preferences.rs:396
 msgid "Syncing the library…"
 msgstr ""
 
-#: app/src/preferences.rs:240
+#. Translators: {time} is how long ago, e.g. "5 minutes ago", "yesterday", "never".
+#: app/src/preferences.rs:399
+#, rust-format
+msgid "Last sync: {time}"
+msgstr ""
+
+#: app/src/preferences.rs:403
+msgid "never"
+msgstr ""
+
+#: app/src/preferences.rs:435
 msgid "Could not clear the cover cache"
 msgstr ""
 
@@ -691,10 +756,6 @@ msgstr[1] ""
 
 #: app/src/queue_page.rs:366
 msgid "Clear Queue?"
-msgstr ""
-
-#: app/src/queue_page.rs:367 app/src/queue_page.rs:393
-msgid "Cancel"
 msgstr ""
 
 #: app/src/queue_page.rs:391 app/src/song_menu.rs:235
