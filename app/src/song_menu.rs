@@ -4,6 +4,7 @@
 use adw::prelude::*;
 use gettextrs::{gettext, ngettext};
 use gtk::{gio, glib};
+use std::cell::Cell;
 use std::rc::Rc;
 
 use crate::main_view::MainView;
@@ -29,17 +30,45 @@ pub(crate) fn attach(
     row.add_suffix(&button);
 }
 
+/// Asks for the song a menu is about, and the client, when the menu is used.
+type Current = Rc<dyn Fn() -> Option<(subsonic::Song, subsonic::Client)>>;
+
 /// The ⋮ button with the song menu, for the end of a row. Its actions live on
 /// `owner` (the row, or what the row holds) and ask `current` for the song
 /// and the client only when one of them is used, so a row that is reused for
 /// another song needs no new menu.
+///
+/// The menu itself (its actions, its items and the popover) is made on the
+/// first click: most rows are never clicked there, and the menu costs several
+/// times what the rest of a row does.
 pub(crate) fn menu_button(
     owner: &impl IsA<gtk::Widget>,
     current: impl Fn() -> Option<(subsonic::Song, subsonic::Client)> + 'static,
     go_to_album: bool,
 ) -> gtk::MenuButton {
-    let row: &gtk::Widget = owner.upcast_ref();
-    let current: Rc<dyn Fn() -> Option<(subsonic::Song, subsonic::Client)>> = Rc::new(current);
+    let button = gtk::MenuButton::builder()
+        .icon_name("view-more-symbolic")
+        .tooltip_text(gettext("More"))
+        .valign(gtk::Align::Center)
+        .css_classes(["flat", "circular"])
+        .build();
+    let owner = owner.upcast_ref::<gtk::Widget>().downgrade();
+    let current: Current = Rc::new(current);
+    let made = Cell::new(false);
+    // Called each time the menu is about to open; only the first time counts.
+    button.set_create_popup_func(move |button| {
+        if made.replace(true) {
+            return;
+        }
+        if let Some(owner) = owner.upgrade() {
+            button.set_menu_model(Some(&menu(&owner, &current, go_to_album)));
+        }
+    });
+    button
+}
+
+/// The actions of the song menu, put on `row`, and the menu that uses them.
+fn menu(row: &gtk::Widget, current: &Current, go_to_album: bool) -> gio::Menu {
     let actions = gio::SimpleActionGroup::new();
     let add = |name: &str, run: Box<dyn Fn(&gtk::Widget, subsonic::Song, subsonic::Client)>| {
         let action = gio::SimpleAction::new(name, None);
@@ -136,14 +165,7 @@ pub(crate) fn menu_button(
     let info = gio::Menu::new();
     info.append(Some(&gettext("Song Information")), Some("song.info"));
     menu.append_section(None, &info);
-
-    gtk::MenuButton::builder()
-        .icon_name("view-more-symbolic")
-        .menu_model(&menu)
-        .tooltip_text(gettext("More"))
-        .valign(gtk::Align::Center)
-        .css_classes(["flat", "circular"])
-        .build()
+    menu
 }
 
 /// Play Similar: this song, then songs that sound like it (AudioMuse-AI).

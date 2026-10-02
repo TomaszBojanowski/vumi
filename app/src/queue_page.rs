@@ -12,7 +12,7 @@ use gettextrs::{gettext, ngettext};
 use gtk::gdk;
 use gtk::gio;
 use gtk::glib;
-use std::cell::{OnceCell, RefCell};
+use std::cell::{Cell, OnceCell, RefCell};
 use std::rc::Rc;
 
 use crate::player;
@@ -141,28 +141,40 @@ impl QueuePage {
         let row = SongRow::new();
         row.set_title_lines(1);
 
-        // A ⋮ menu at the end of the row: "Remove from Queue".
-        let actions = gio::SimpleActionGroup::new();
-        let remove = gio::SimpleAction::new("remove", None);
+        // A ⋮ menu at the end of the row: "Remove from Queue". The menu and
+        // its action are made on the first click (as in song_menu.rs): most
+        // rows are never clicked there.
+        let button = gtk::MenuButton::builder()
+            .icon_name("view-more-symbolic")
+            .tooltip_text(gettext("More"))
+            .valign(gtk::Align::Center)
+            .css_classes(["flat", "circular"])
+            .build();
         let item_weak = item.downgrade();
-        remove.connect_activate(move |_, _| {
-            if let Some(index) = position_of(&item_weak) {
-                player::get().remove(index);
+        let row_weak = row.downgrade();
+        let made = Cell::new(false);
+        button.set_create_popup_func(move |button| {
+            if made.replace(true) {
+                return;
             }
+            let Some(row) = row_weak.upgrade() else {
+                return;
+            };
+            let actions = gio::SimpleActionGroup::new();
+            let remove = gio::SimpleAction::new("remove", None);
+            let item_weak = item_weak.clone();
+            remove.connect_activate(move |_, _| {
+                if let Some(index) = position_of(&item_weak) {
+                    player::get().remove(index);
+                }
+            });
+            actions.add_action(&remove);
+            row.insert_action_group("queue", Some(&actions));
+            let menu = gio::Menu::new();
+            menu.append(Some(&gettext("Remove from Queue")), Some("queue.remove"));
+            button.set_menu_model(Some(&menu));
         });
-        actions.add_action(&remove);
-        row.insert_action_group("queue", Some(&actions));
-        let menu = gio::Menu::new();
-        menu.append(Some(&gettext("Remove from Queue")), Some("queue.remove"));
-        row.add_suffix(
-            &gtk::MenuButton::builder()
-                .icon_name("view-more-symbolic")
-                .menu_model(&menu)
-                .tooltip_text(gettext("More"))
-                .valign(gtk::Align::Center)
-                .css_classes(["flat", "circular"])
-                .build(),
-        );
+        row.add_suffix(&button);
 
         // Drag and drop: a row carries its index; dropping it on another row
         // moves the track there. The whole row can be grabbed.
