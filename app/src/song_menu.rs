@@ -31,7 +31,7 @@ pub(crate) fn attach(
 }
 
 /// Asks for the song a menu is about, and the client, when the menu is used.
-type Current = Rc<dyn Fn() -> Option<(subsonic::Song, subsonic::Client)>>;
+pub(crate) type Current = Rc<dyn Fn() -> Option<(subsonic::Song, subsonic::Client)>>;
 
 /// The ⋮ button with the song menu, for the end of a row. Its actions live on
 /// `owner` (the row, or what the row holds) and ask `current` for the song
@@ -61,14 +61,17 @@ pub(crate) fn menu_button(
             return;
         }
         if let Some(owner) = owner.upgrade() {
-            button.set_menu_model(Some(&menu(&owner, &current, go_to_album)));
+            install_actions(&owner, &current);
+            button.set_menu_model(Some(&menu(go_to_album)));
         }
     });
     button
 }
 
-/// The actions of the song menu, put on `row`, and the menu that uses them.
-fn menu(row: &gtk::Widget, current: &Current, go_to_album: bool) -> gio::Menu {
+/// Puts the actions a song menu can use on `row`, as the group "song":
+/// play-next, add-to-queue, add-to-playlist, play-similar, go-to-album,
+/// go-to-artist and info. The queue builds a menu of its own from them.
+pub(crate) fn install_actions(row: &gtk::Widget, current: &Current) {
     let actions = gio::SimpleActionGroup::new();
     let add = |name: &str, run: Box<dyn Fn(&gtk::Widget, subsonic::Song, subsonic::Client)>| {
         let action = gio::SimpleAction::new(name, None);
@@ -144,7 +147,10 @@ fn menu(row: &gtk::Widget, current: &Current, go_to_album: bool) -> gio::Menu {
     );
     add("info", Box::new(|row, song, _| show_info(row, &song)));
     row.insert_action_group("song", Some(&actions));
+}
 
+/// The menu of a song in a list, for the actions above.
+fn menu(go_to_album: bool) -> gio::Menu {
     // Grouped as in the picture: queue, radio, navigation, information.
     let menu = gio::Menu::new();
     let queue = gio::Menu::new();

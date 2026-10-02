@@ -152,6 +152,53 @@ pub(crate) fn star_button(
     button
 }
 
+/// Whether `item` is a favourite now: what this session knows, else what the
+/// caller's (possibly older) copy of the data says.
+pub(crate) fn is_starred(item: &Favorite, fallback: bool) -> bool {
+    KNOWN
+        .with(|known| known.borrow().get(&item.key()).copied())
+        .unwrap_or(fallback)
+}
+
+/// Stars or unstars `item` without a star button (a menu item): the server
+/// first, then the local database, the Favorites page and every star button
+/// on screen for the same item. `widget` is where a failure is reported.
+pub(crate) fn set(
+    widget: &impl IsA<gtk::Widget>,
+    client: subsonic::Client,
+    item: Favorite,
+    starred: bool,
+) {
+    let server = client.server_key();
+    let (is_album, id) = match &item {
+        Favorite::Album(id) => (true, id.clone()),
+        Favorite::Song(id) => (false, id.clone()),
+    };
+    let key = item.key();
+    let main = widget
+        .ancestor(crate::main_view::MainView::static_type())
+        .and_downcast::<crate::main_view::MainView>();
+    let widget = widget.upcast_ref::<gtk::Widget>().downgrade();
+    glib::spawn_future_local(async move {
+        let result = runtime()
+            .spawn(async move { client.set_starred(item.as_starrable(), starred).await })
+            .await;
+        if !matches!(result, Ok(Ok(()))) {
+            if let Some(widget) = widget.upgrade() {
+                show_toast(&widget, &gettext("Could not change favorites. Please try again."));
+            }
+            return;
+        }
+        let _ = runtime()
+            .spawn_blocking(move || crate::library::set_starred(&server, is_album, &id, starred))
+            .await;
+        if let Some(main) = main {
+            main.refresh_favorites();
+        }
+        share(&key, starred);
+    });
+}
+
 fn update_icon(button: &gtk::ToggleButton) {
     if button.is_active() {
         button.set_icon_name("starred-symbolic");

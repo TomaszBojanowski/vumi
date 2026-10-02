@@ -508,6 +508,28 @@ impl MainView {
         self.open_album_on(&imp.library_nav.get(), id, fallback);
     }
 
+    /// The navigation view of the section `from` is in, where a page opened
+    /// from it goes so that Back returns there. A widget outside the sections
+    /// (a row of the queue panel) has none: its pages go to the Albums
+    /// section, which comes to the front, and a queue lying over the content
+    /// (narrow windows) gets out of the way.
+    fn section_of(&self, from: &impl IsA<gtk::Widget>) -> adw::NavigationView {
+        let imp = self.imp();
+        let section = from
+            .ancestor(adw::NavigationView::static_type())
+            .and_downcast::<adw::NavigationView>()
+            // The window has a navigation view too, around this whole view:
+            // that one is not a section.
+            .filter(|nav| nav.is_ancestor(self));
+        section.unwrap_or_else(|| {
+            imp.views.set_visible_child_name("library");
+            if imp.queue_split.is_collapsed() {
+                imp.queue_split.set_show_sidebar(false);
+            }
+            imp.library_nav.get()
+        })
+    }
+
     /// Opens an album page in the section `from` belongs to (Start, Favorites,
     /// search results), so that Back returns there.
     pub(crate) fn open_album_from(
@@ -516,10 +538,7 @@ impl MainView {
         id: &str,
         fallback: subsonic::Album,
     ) {
-        let nav = from
-            .ancestor(adw::NavigationView::static_type())
-            .and_downcast::<adw::NavigationView>()
-            .unwrap_or_else(|| self.imp().library_nav.get());
+        let nav = self.section_of(from);
         self.open_album_on(&nav, id, fallback);
     }
 
@@ -533,10 +552,7 @@ impl MainView {
         client: subsonic::Client,
     ) {
         let imp = self.imp();
-        let nav = from
-            .ancestor(adw::NavigationView::static_type())
-            .and_downcast::<adw::NavigationView>()
-            .unwrap_or_else(|| imp.library_nav.get());
+        let nav = self.section_of(from);
         if imp.split.is_collapsed() {
             imp.split.set_show_sidebar(false);
         }
