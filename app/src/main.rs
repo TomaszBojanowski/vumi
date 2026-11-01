@@ -64,8 +64,22 @@ fn main() -> glib::ExitCode {
     gettextrs::textdomain(GETTEXT_PACKAGE).expect("failed to set text domain");
 
     let app = adw::Application::builder().application_id(APP_ID).build();
-    app.connect_startup(|_| load_css());
+    app.connect_startup(|app| {
+        load_css();
+        // SIGTERM (the session ends, or the system stops the app): where
+        // playback is gets saved, then the app quits cleanly.
+        let app = app.downgrade();
+        resume::save_on_terminate(move || {
+            if let Some(app) = app.upgrade() {
+                app.quit();
+            }
+        });
+    });
     app.connect_shutdown(|_| { resume::save_now(); player::shutdown() });
+    // Logging out or shutting down: GNOME asks the app first (GTK registers
+    // with the session manager by itself, through the portal inside Flatpak),
+    // before anything is stopped.
+    app.connect_query_end(|_| resume::save_now());
     app.connect_activate(build_ui);
     app.run()
 }

@@ -15,7 +15,7 @@ md5 = "0.8.1"
 oo7 = "0.6.0"
 rusqlite = "0.40.2"
 subsonic = { version = "0.1.0", path = "../subsonic" }
-tokio = { version = "1.53.1", features = ["fs", "rt-multi-thread", "sync"] }
+tokio = { version = "1.53.1", features = ["fs", "rt-multi-thread", "signal", "sync"] }
 
 [[bin]]
 name = "vumi"

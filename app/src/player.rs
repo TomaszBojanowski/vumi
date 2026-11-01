@@ -49,6 +49,10 @@ pub(crate) struct Player {
     /// Told about every jump of the position, with the new position in
     /// seconds (MPRIS sends Seeked, the sidebar card moves its slider).
     seek_listeners: RefCell<Vec<Box<dyn Fn(f64)>>>,
+    /// Called with the track in progress and the second it is at, just before
+    /// the player leaves it by hand (another queue, Stop): the change that
+    /// follows no longer knows where it was.
+    leave_listeners: RefCell<Vec<LeaveListener>>,
     /// Counts the user's commands (play, stop, changes to the queue). Requests
     /// to the server remember it; an answer for an older command is dropped.
     command: Cell<u64>,
@@ -67,6 +71,9 @@ pub(crate) struct Player {
 thread_local! {
     static PLAYER: OnceCell<Rc<Player>> = const { OnceCell::new() };
 }
+
+/// Told the track and the second it was at when the player leaves it by hand.
+type LeaveListener = Box<dyn Fn(&subsonic::Song, f64)>;
 
 /// The one player of the app, created on first use.
 pub(crate) fn get() -> Rc<Player> {
@@ -128,6 +135,7 @@ impl Player {
                 replay_gain_mode: std::cell::Cell::new(None),
                 volume: std::cell::Cell::new(saved_volume()),
                 seek_listeners: RefCell::new(Vec::new()),
+                leave_listeners: RefCell::new(Vec::new()),
                 command: Cell::new(0),
                 pending_seek: Cell::new(None),
                 next_uri,
@@ -160,6 +168,28 @@ impl Player {
     /// connect_changed: nothing else about the player has changed.
     pub(crate) fn connect_seeked(&self, f: impl Fn(f64) + 'static) {
         self.seek_listeners.borrow_mut().push(Box::new(f));
+    }
+
+    /// Registers `f`, called with the track in progress and where in it, just
+    /// before the player leaves that track by hand (see `leave`).
+    pub(crate) fn connect_leaving(&self, f: impl Fn(&subsonic::Song, f64) + 'static) {
+        self.leave_listeners.borrow_mut().push(Box::new(f));
+    }
+
+    /// The track in progress is about to be left by hand: another queue
+    /// replaces this one, or Stop. Tells the listeners where it is, while that
+    /// can still be read; after an error or the end of the queue there is no
+    /// place to tell.
+    fn leave(&self) {
+        if !self.is_active() {
+            return;
+        }
+        let (Some(song), Some(seconds)) = (self.current(), self.resume_position()) else {
+            return;
+        };
+        for listener in self.leave_listeners.borrow().iter() {
+            listener(&song, seconds);
+        }
     }
 
     fn notify_seeked(&self, seconds: f64) {
@@ -211,6 +241,7 @@ impl Player {
 
     /// Replaces the queue with `songs` and starts playing the one at `start`.
     pub(crate) fn play(&self, client: subsonic::Client, songs: Rc<[subsonic::Song]>, start: usize) {
+        self.leave();
         self.new_command();
         self.client.replace(Some(client));
         self.queue.replace(songs);
@@ -231,6 +262,9 @@ impl Player {
         self.play(client, songs, start);
         if seconds > 0.0 {
             self.pending_seek.set(Some(seconds));
+            // play() has told the listeners about the track at its start; now
+            // they learn the second it is going to.
+            self.notify();
         }
     }
 
@@ -382,6 +416,12 @@ impl Player {
         self.playbin
             .query_position::<gst::ClockTime>()
             .map(|t| t.mseconds() as f64 / 1000.0)
+    }
+
+    /// Where the current track is, to resume it later: a seek that waits for
+    /// the track to be ready counts as done.
+    pub(crate) fn resume_position(&self) -> Option<f64> {
+        self.pending_seek.get().or_else(|| self.position_secs())
     }
 
     fn on_message(&self, message: &gst::Message) {
@@ -729,6 +769,7 @@ impl Player {
     /// Stop (MPRIS): like reaching the end of the queue; Play starts it again.
     pub(crate) fn stop(&self) {
         if self.current().is_some() {
+            self.leave();
             self.new_command();
             let _ = self.playbin.set_state(gst::State::Null);
             self.set_state(State::Ended);
@@ -998,5 +1039,17 @@ impl Player {
     /// True if nothing has happened since command `id`.
     pub(crate) fn is_current(&self, id: u64) -> bool {
         self.command.get() == id
+    }
+}
+
+#[cfg(test)]
+impl Player {
+    /// Tests: the sound goes nowhere, at the pace of a real sink.
+    pub(crate) fn use_fake_sink(&self) {
+        let sink = gst::ElementFactory::make("fakesink")
+            .property("sync", true)
+            .build()
+            .expect("GStreamer fakesink is missing");
+        self.playbin.set_property("audio-sink", &sink);
     }
 }
