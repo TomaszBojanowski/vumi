@@ -1,6 +1,8 @@
 //! Tints from the dominant colour of an album cover.
 //! Every tinted widget gets its own style class and rule, removed again
 //! when the widget is destroyed, so pages never share or steal colours.
+//! The rules are written for the style the app shows (Preferences can force
+//! light or dark), and again when it changes.
 
 use gtk::gdk;
 use gtk::prelude::*;
@@ -10,8 +12,35 @@ use std::collections::BTreeMap;
 thread_local! {
     /// One app-wide stylesheet holding the rules of all tinted widgets alive now.
     static PROVIDER: OnceCell<gtk::CssProvider> = const { OnceCell::new() };
-    static RULES: RefCell<BTreeMap<u64, String>> = const { RefCell::new(BTreeMap::new()) };
+    static RULES: RefCell<BTreeMap<u64, Rule>> = const { RefCell::new(BTreeMap::new()) };
     static NEXT_ID: Cell<u64> = const { Cell::new(0) };
+}
+
+/// What one tinted widget shows, in the colour of a cover.
+#[derive(Clone, Copy)]
+enum Tint {
+    /// The colour from the top of a page down (page_rule).
+    Page((u8, u8, u8)),
+    /// The now-playing pill (pill_rule).
+    Pill((u8, u8, u8)),
+    /// A flat card (card_rule).
+    Card((u8, u8, u8)),
+}
+
+/// The tint of one widget and the style class it is drawn for.
+struct Rule {
+    class: String,
+    tint: Tint,
+}
+
+impl Rule {
+    fn css(&self, dark: bool) -> String {
+        match self.tint {
+            Tint::Page(color) => page_rule(&self.class, color, dark),
+            Tint::Pill(color) => pill_rule(&self.class, color),
+            Tint::Card(color) => card_rule(&self.class, color, dark),
+        }
+    }
 }
 
 fn next_id() -> u64 {
@@ -96,13 +125,13 @@ pub(crate) fn dominant_color(texture: &gdk::Texture) -> Option<(u8, u8, u8)> {
 
 /// Gives `widget` a background gradient in `color` that belongs to it alone
 /// (album pages).
-pub(crate) fn apply(widget: &impl IsA<gtk::Widget>, (r, g, b): (u8, u8, u8)) {
+pub(crate) fn apply(widget: &impl IsA<gtk::Widget>, color: (u8, u8, u8)) {
     let id = next_id();
     let class = format!("album-tint-{id}");
-
-    RULES.with(|rules| rules.borrow_mut().insert(id, page_rule(&class, (r, g, b))));
-    reload();
     widget.add_css_class(&class);
+    let tint = Tint::Page(color);
+    RULES.with(|rules| rules.borrow_mut().insert(id, Rule { class, tint }));
+    reload();
 
     // The page is gone: drop its rule too.
     widget.connect_destroy(move |_| {
@@ -112,18 +141,29 @@ pub(crate) fn apply(widget: &impl IsA<gtk::Widget>, (r, g, b): (u8, u8, u8)) {
 }
 
 /// The colour from the top of a page down, fading into the page's own
-/// background (album pages, Favorites).
-fn page_rule(class: &str, (r, g, b): (u8, u8, u8)) -> String {
+/// background (album pages, Favorites). Softer in the light style, or dark
+/// covers drown the title.
+fn page_rule(class: &str, (r, g, b): (u8, u8, u8), dark: bool) -> String {
+    let (top, middle) = if dark { (0.6, 0.3) } else { (0.35, 0.15) };
     format!(
-        // Light style: a softer tint, or dark covers drown the title.
         ".{class} {{ background-image: linear-gradient(to bottom, \
-         rgba({r}, {g}, {b}, 0.35), rgba({r}, {g}, {b}, 0.15) 240px, \
-         transparent 440px); }} \
-         @media (prefers-color-scheme: dark) {{ \
-         .{class} {{ background-image: linear-gradient(to bottom, \
-         rgba({r}, {g}, {b}, 0.6), rgba({r}, {g}, {b}, 0.3) 240px, \
-         transparent 440px); }} }}"
+         rgba({r}, {g}, {b}, {top}), rgba({r}, {g}, {b}, {middle}) 240px, \
+         transparent 440px); }}"
     )
+}
+
+/// The now-playing pill: the cover colour mixed into the window background,
+/// so the text keeps its normal colour and stays readable on any cover. Only
+/// the progress line and the play button carry the colour at full strength.
+fn pill_rule(class: &str, (r, g, b): (u8, u8, u8)) -> String {
+    let color = format!("rgb({r}, {g}, {b})");
+    // Two classes, so these win over the plain .now-playing-pill rules.
+    [
+        format!(".now-playing-pill.{class} {{ background-color: color-mix(in srgb, {color} 30%, var(--window-bg-color)); }}"),
+        format!(".now-playing-pill.{class} .pill-progress highlight {{ background-color: color-mix(in srgb, {color} 30%, currentColor); }}"),
+        format!(".now-playing-pill.{class} .pill-play {{ background-color: color-mix(in srgb, {color} 45%, transparent); }}"),
+    ]
+    .join("\n")
 }
 
 /// Adwaita's window backgrounds, against which a card's share of colour is
@@ -182,9 +222,7 @@ pub(crate) fn card_share(color: (u8, u8, u8), dark: bool) -> u32 {
 }
 
 /// The flat colour of a card (the Tuner on the Start page): the cover colour
-/// mixed into the window background (card_share). Written for the style the
-/// app shows (`dark`): a media query would follow the system instead of a
-/// style chosen in Preferences.
+/// mixed into the window background (card_share).
 pub(crate) fn card_rule(class: &str, (r, g, b): (u8, u8, u8), dark: bool) -> String {
     let share = card_share((r, g, b), dark);
     format!(
@@ -199,15 +237,19 @@ fn enabled() -> bool {
     gtk::gio::Settings::new(crate::APP_ID).boolean("cover-colors")
 }
 
-/// Loads the rules, or none when cover colours are off. The rules are kept
-/// either way, so turning the option back on shows them again at once.
+/// Loads the rules for the style the app shows, or none when cover colours
+/// are off. The rules are kept either way, so turning the option back on
+/// shows them again at once. A media query in the rules would follow the
+/// system's style instead of one chosen in Preferences.
 pub(crate) fn reload() {
+    let style = adw::StyleManager::default();
     let css = if enabled() {
+        let dark = style.is_dark();
         RULES.with(|rules| {
             rules
                 .borrow()
                 .values()
-                .cloned()
+                .map(|rule| rule.css(dark))
                 .collect::<Vec<_>>()
                 .join("\n")
         })
@@ -224,6 +266,8 @@ pub(crate) fn reload() {
                     gtk::STYLE_PROVIDER_PRIORITY_APPLICATION,
                 );
             }
+            // Another style: the rules again, written for it.
+            style.connect_dark_notify(|_| reload());
             provider
         });
         provider.load_from_string(&css);
@@ -251,36 +295,26 @@ impl Dynamic {
         &self.class
     }
 
-    /// A soft tint: the cover colour mixed into the window background, so the
-    /// text keeps its normal colour and stays readable on any cover. Only the
-    /// progress line and the play button carry the colour at full strength.
-    pub(crate) fn set_solid(&self, (r, g, b): (u8, u8, u8)) {
-        let c = &self.class;
-        let color = format!("rgb({r}, {g}, {b})");
-        // Two classes, so these win over the plain .now-playing-pill rules.
-        let rule = [
-            format!(".now-playing-pill.{c} {{ background-color: color-mix(in srgb, {color} 30%, var(--window-bg-color)); }}"),
-            format!(".now-playing-pill.{c} .pill-progress highlight {{ background-color: color-mix(in srgb, {color} 30%, currentColor); }}"),
-            format!(".now-playing-pill.{c} .pill-play {{ background-color: color-mix(in srgb, {color} 45%, transparent); }}"),
-        ]
-        .join("\n");
-        RULES.with(|rules| rules.borrow_mut().insert(self.id, rule));
+    fn set(&self, tint: Tint) {
+        let class = self.class.clone();
+        RULES.with(|rules| rules.borrow_mut().insert(self.id, Rule { class, tint }));
         reload();
+    }
+
+    /// The now-playing pill in the cover's colour (pill_rule).
+    pub(crate) fn set_solid(&self, color: (u8, u8, u8)) {
+        self.set(Tint::Pill(color));
     }
 
     /// The colour behind the top of a page, as on album pages (apply), for a
     /// page whose colour changes (Favorites).
     pub(crate) fn set_page(&self, color: (u8, u8, u8)) {
-        let rule = page_rule(&self.class, color);
-        RULES.with(|rules| rules.borrow_mut().insert(self.id, rule));
-        reload();
+        self.set(Tint::Page(color));
     }
 
-    /// The flat colour of a card (card_rule), for the style the app shows.
-    pub(crate) fn set_card(&self, color: (u8, u8, u8), dark: bool) {
-        let rule = card_rule(&self.class, color, dark);
-        RULES.with(|rules| rules.borrow_mut().insert(self.id, rule));
-        reload();
+    /// The flat colour of a card (card_rule).
+    pub(crate) fn set_card(&self, color: (u8, u8, u8)) {
+        self.set(Tint::Card(color));
     }
 
     /// Back to the default colours (no cover).
@@ -293,6 +327,24 @@ impl Dynamic {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn the_page_rule_has_no_media_query() {
+        // A media query follows the system's style, not one forced in
+        // Preferences: the rule is written for the style shown.
+        let dark = page_rule("tint-1", (200, 100, 50), true);
+        let light = page_rule("tint-1", (200, 100, 50), false);
+        for rule in [&dark, &light] {
+            assert!(!rule.contains("@media"), "{rule}");
+            assert!(rule.starts_with(".tint-1 {"), "{rule}");
+            assert!(rule.contains("rgba(200, 100, 50, "), "{rule}");
+        }
+        assert!(dark.contains(", 0.6)") && dark.contains(", 0.3)"), "{dark}");
+        assert!(
+            light.contains(", 0.35)") && light.contains(", 0.15)"),
+            "{light}"
+        );
+    }
 
     #[test]
     fn the_card_takes_more_of_the_cover_in_the_dark_style() {

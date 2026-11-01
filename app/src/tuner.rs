@@ -157,10 +157,9 @@ impl Tuner {
         imp.card.add_css_class(tint.class());
         let _ = imp.tint.set(tint);
 
-        // The orange of the year and the needle is darker in the light style,
-        // and the card takes less of the cover's colour. The style the app
-        // shows decides (Preferences can force either); a CSS media query
-        // follows the system instead.
+        // The orange of the year and the needle is darker in the light style.
+        // The style the app shows decides (Preferences can force either); a
+        // CSS media query follows the system instead.
         let style = adw::StyleManager::default();
         self.follow_style(style.is_dark());
         style.connect_dark_notify(glib::clone!(
@@ -176,9 +175,6 @@ impl Tuner {
         } else {
             self.remove_css_class("tuner-dark");
         }
-        // The rule is written again for this style.
-        self.imp().tint_shown.set(None);
-        self.apply_tint();
     }
 
     /// The year chosen; None until there are albums with a year and a year
@@ -377,7 +373,7 @@ impl Tuner {
             return;
         };
         match color {
-            Some(color) => tint.set_card(color, adw::StyleManager::default().is_dark()),
+            Some(color) => tint.set_card(color),
             None => tint.clear(),
         }
     }
