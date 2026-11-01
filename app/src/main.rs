@@ -24,6 +24,7 @@ mod results_view;
 mod resume;
 mod search_page;
 mod secrets;
+mod shelf;
 mod song_menu;
 mod song_row;
 mod start_page;
