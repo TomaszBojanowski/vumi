@@ -511,14 +511,6 @@ picture.letterbox {
   background-color: #242424;
 }
 
-/* The small heading over the name of a collection page ("COLLECTION"). */
-.collection-label {
-  font-size: smaller;
-  font-weight: bold;
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
-}
-
 /* The collage of the Favorites page: a little rounder than a playlist cover. */
 .playlist-cover.collage {
   border-radius: 12px;
