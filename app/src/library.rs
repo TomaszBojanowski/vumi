@@ -177,19 +177,112 @@ fn migrate(conn: &mut Connection) -> rusqlite::Result<()> {
         )?;
         tx.commit()?;
     }
+    if version < 8 {
+        // Version 8: the end of the server's last scan, as it was at the last
+        // full sync: unchanged, the library needs no full sync (last_scan).
+        let tx = conn.transaction()?;
+        tx.execute_batch(
+            "ALTER TABLE sync_state ADD COLUMN last_scan TEXT;
+             PRAGMA user_version = 8;",
+        )?;
+        tx.commit()?;
+    }
     Ok(())
 }
 
-/// Notes that the library of `server` was synced just now.
-pub(crate) fn mark_synced(server: &str) -> rusqlite::Result<()> {
+/// Notes that the library of `server` was synced in full just now, with the
+/// end of the server's last scan as it was when the sync began
+/// (scan_to_store).
+pub(crate) fn mark_synced(server: &str, last_scan: Option<&str>) -> rusqlite::Result<()> {
     with_connection(|conn| {
         conn.execute(
-            "INSERT OR REPLACE INTO sync_state (server, synced_at)
-             VALUES (?1, CAST(strftime('%s', 'now') AS INTEGER))",
+            "INSERT OR REPLACE INTO sync_state (server, synced_at, last_scan)
+             VALUES (?1, CAST(strftime('%s', 'now') AS INTEGER), ?2)",
+            params![server, last_scan],
+        )?;
+        Ok(())
+    })
+}
+
+/// The end of the server's last scan as stored with the last full sync of
+/// `server` (scan_to_store), if any.
+pub(crate) fn last_scan(server: &str) -> rusqlite::Result<Option<String>> {
+    with_connection(|conn| {
+        let stored = conn.query_row(
+            "SELECT last_scan FROM sync_state WHERE server = ?1",
+            params![server],
+            |row| row.get(0),
+        );
+        match stored {
+            Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
+            other => other,
+        }
+    })
+}
+
+/// Notes that the library of `server` was checked just now and found as it
+/// was (a light sync): the time moves, the stored scan stays.
+pub(crate) fn mark_checked(server: &str) -> rusqlite::Result<()> {
+    with_connection(|conn| {
+        conn.execute(
+            "UPDATE sync_state SET synced_at = CAST(strftime('%s', 'now') AS INTEGER)
+             WHERE server = ?1",
             params![server],
         )?;
         Ok(())
     })
+}
+
+/// The stars of `server` as the server has them now: every other star goes.
+pub(crate) fn set_stars(server: &str, starred: &subsonic::Starred) -> rusqlite::Result<()> {
+    with_connection(|conn| {
+        let tx = conn.transaction()?;
+        tx.execute(
+            "UPDATE albums SET starred = NULL WHERE server = ?1 AND starred IS NOT NULL",
+            params![server],
+        )?;
+        tx.execute(
+            "UPDATE songs SET starred = NULL WHERE server = ?1 AND starred IS NOT NULL",
+            params![server],
+        )?;
+        {
+            let mut album =
+                tx.prepare("UPDATE albums SET starred = ?1 WHERE server = ?2 AND id = ?3")?;
+            for a in &starred.album {
+                album.execute(params![a.starred.as_deref().unwrap_or("1"), server, a.id])?;
+            }
+            let mut song =
+                tx.prepare("UPDATE songs SET starred = ?1 WHERE server = ?2 AND id = ?3")?;
+            for s in &starred.song {
+                song.execute(params![s.starred.as_deref().unwrap_or("1"), server, s.id])?;
+            }
+        }
+        tx.commit()
+    })
+}
+
+/// Whether the library is as at the last full sync: the server scans no more
+/// and its last scan ended when it had ended then (`stored`). A server that
+/// does not tell (no status, no last scan) is taken as changed.
+pub(crate) fn library_unchanged(
+    stored: Option<&str>,
+    status: Option<&subsonic::ScanStatus>,
+) -> bool {
+    match (stored, status) {
+        (Some(stored), Some(status)) => {
+            !status.scanning && status.last_scan.as_deref() == Some(stored)
+        }
+        _ => false,
+    }
+}
+
+/// What a full sync stores of the scan status read at its start: the end of
+/// the last scan, but nothing while a scan runs (what the sync reads may be
+/// half old, so the next start syncs everything again).
+pub(crate) fn scan_to_store(status: Option<&subsonic::ScanStatus>) -> Option<String> {
+    status
+        .filter(|status| !status.scanning)
+        .and_then(|status| status.last_scan.clone())
 }
 
 /// What the local library of one server holds.
@@ -659,7 +752,7 @@ mod tests {
         assert_eq!(albums[0].created, None);
         with_connection(|conn| {
             let version: i64 = conn.query_row("PRAGMA user_version", [], |row| row.get(0))?;
-            assert_eq!(version, 7);
+            assert_eq!(version, 8);
             let mode: String = conn.query_row("PRAGMA journal_mode", [], |row| row.get(0))?;
             assert_eq!(mode, "wal");
             Ok(())
@@ -667,7 +760,7 @@ mod tests {
         .unwrap();
         // Every later table is there and works.
         save_songs(SERVER, &[song("s", "Song", "a", 1, 1)]).unwrap();
-        mark_synced(SERVER).unwrap();
+        mark_synced(SERVER, Some("2026-10-31T21:26:55Z")).unwrap();
         let stats = stats(SERVER).unwrap();
         assert_eq!((stats.albums, stats.songs), (1, 1));
         assert!(stats.synced_at.is_some());
@@ -809,6 +902,110 @@ mod tests {
         let starred = load_starred(SERVER).unwrap();
         assert_eq!(starred.album_ids, ["b"]);
         assert_eq!(ids(&starred.songs), ["s1"]);
+    }
+
+    #[test]
+    fn a_full_sync_keeps_the_last_scan_and_a_check_moves_only_the_time() {
+        let _temporary = Temporary::new("scan");
+        assert_eq!(last_scan(SERVER).unwrap(), None);
+        mark_synced(SERVER, Some("2026-10-31T21:26:55Z")).unwrap();
+        assert_eq!(
+            last_scan(SERVER).unwrap().as_deref(),
+            Some("2026-10-31T21:26:55Z")
+        );
+        // Back an hour, so the check shows it moved the time.
+        with_connection(|conn| {
+            conn.execute("UPDATE sync_state SET synced_at = synced_at - 3600", [])?;
+            Ok(())
+        })
+        .unwrap();
+        let before = stats(SERVER).unwrap().synced_at.unwrap();
+        mark_checked(SERVER).unwrap();
+        assert!(stats(SERVER).unwrap().synced_at.unwrap() >= before + 3600);
+        assert_eq!(
+            last_scan(SERVER).unwrap().as_deref(),
+            Some("2026-10-31T21:26:55Z")
+        );
+        // A full sync during a scan stores none.
+        mark_synced(SERVER, None).unwrap();
+        assert_eq!(last_scan(SERVER).unwrap(), None);
+    }
+
+    #[test]
+    fn stars_from_the_server_replace_the_local_ones() {
+        let _temporary = Temporary::new("set-stars");
+        let mut starred_album = (*album("a", "A", "X", 2000)).clone();
+        starred_album.starred = Some("2020-01-01T00:00:00Z".into());
+        save_albums(
+            SERVER,
+            &[Arc::new(starred_album), album("b", "B", "X", 2000)],
+        )
+        .unwrap();
+        let mut old = song("s1", "Old", "a", 1, 1);
+        old.starred = Some("2020-01-01T00:00:00Z".into());
+        save_songs(
+            SERVER,
+            &[
+                old,
+                song("s2", "New", "a", 1, 2),
+                song("s3", "Not", "a", 1, 3),
+            ],
+        )
+        .unwrap();
+
+        let mut b = (*album("b", "B", "X", 2000)).clone();
+        b.starred = Some("2026-02-01T00:00:00Z".into());
+        let mut s2 = song("s2", "New", "a", 1, 2);
+        s2.starred = Some("2026-03-01T00:00:00Z".into());
+        let starred = subsonic::Starred {
+            album: vec![b],
+            song: vec![s2],
+        };
+        set_stars(SERVER, &starred).unwrap();
+
+        let found = load_starred(SERVER).unwrap();
+        assert_eq!(found.album_ids, ["b"]);
+        assert_eq!(ids(&found.songs), ["s2"]);
+        assert_eq!(
+            found.songs[0].starred.as_deref(),
+            Some("2026-03-01T00:00:00Z")
+        );
+        // Another account's stars stay.
+        assert!(
+            load_starred("other@http://server")
+                .unwrap()
+                .songs
+                .is_empty()
+        );
+    }
+
+    #[test]
+    fn the_library_counts_as_unchanged_only_after_the_same_finished_scan() {
+        let status = |scanning: bool, last: Option<&str>| subsonic::ScanStatus {
+            scanning,
+            last_scan: last.map(Into::into),
+        };
+        let done = status(false, Some("2026-10-31T21:26:55Z"));
+        assert!(library_unchanged(Some("2026-10-31T21:26:55Z"), Some(&done)));
+        // A newer scan, a scan running, nothing stored, nothing told.
+        assert!(!library_unchanged(
+            Some("2026-10-30T10:00:00Z"),
+            Some(&done)
+        ));
+        assert!(!library_unchanged(
+            Some("2026-10-31T21:26:55Z"),
+            Some(&status(true, Some("2026-10-31T21:26:55Z")))
+        ));
+        assert!(!library_unchanged(None, Some(&done)));
+        assert!(!library_unchanged(Some("x"), Some(&status(false, None))));
+        assert!(!library_unchanged(Some("x"), None));
+        // What a full sync stores.
+        assert_eq!(
+            scan_to_store(Some(&done)).as_deref(),
+            Some("2026-10-31T21:26:55Z")
+        );
+        assert_eq!(scan_to_store(Some(&status(true, Some("x")))), None);
+        assert_eq!(scan_to_store(None), None);
     }
 
     #[test]

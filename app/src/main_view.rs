@@ -190,6 +190,9 @@ mod imp {
         /// sync (favorites::changes): once it has stored the server's stars,
         /// the earlier ones follow them (favorites::settle).
         pub stars_since: Cell<u64>,
+        /// What the running full sync stores of the scan status it began with
+        /// (library::scan_to_store).
+        pub scan_to_store: RefCell<Option<String>>,
         /// True once the server's own album list was shown (even an empty one):
         /// the local copy read at the same time must not replace it.
         pub synced: Cell<bool>,
@@ -450,7 +453,7 @@ impl MainView {
         // The description is markup; the server names itself.
         imp.status
             .set_description(Some(&glib::markup_escape_text(&text)));
-        self.sync_albums(client);
+        self.sync(client, false);
     }
 
     pub(crate) fn show_offline(&self, message: &str) {
@@ -498,8 +501,11 @@ impl MainView {
         self.imp().banner.connect_button_clicked(move |_| f());
     }
 
-    /// Fetches the album list from the server, shows it and stores it locally.
-    fn sync_albums(&self, client: subsonic::Client) {
+    /// Syncs the library of `client`'s account: in full when `full` (Ctrl+R),
+    /// or when the server has scanned its library since the last full sync
+    /// (getScanStatus); otherwise only what changes without a scan
+    /// (sync_light).
+    fn sync(&self, client: subsonic::Client, full: bool) {
         // A new sync supersedes a running one (another account, say): the
         // client changes right away, and the older sync drops its results.
         let generation = self.imp().sync_generation.get() + 1;
@@ -523,6 +529,48 @@ impl MainView {
         let server = client.server_key();
         covers::set_server(server.clone());
         self.imp().server.replace(server.clone());
+        let view = self.downgrade();
+        glib::spawn_future_local(async move {
+            let request = client.clone();
+            let status = match runtime()
+                .spawn(async move { request.scan_status().await })
+                .await
+            {
+                Ok(Ok(status)) => Some(status),
+                Ok(Err(e)) => {
+                    eprintln!("Could not read the scan status: {e}");
+                    None
+                }
+                Err(_) => None,
+            };
+            let account = server.clone();
+            let stored = runtime()
+                .spawn_blocking(move || library::last_scan(&account))
+                .await
+                .ok()
+                .and_then(Result::ok)
+                .flatten();
+            let Some(view) = view
+                .upgrade()
+                .filter(|v| v.imp().sync_generation.get() == generation)
+            else {
+                return;
+            };
+            if !full && library::library_unchanged(stored.as_deref(), status.as_ref()) {
+                view.sync_light(client, generation);
+            } else {
+                view.imp()
+                    .scan_to_store
+                    .replace(library::scan_to_store(status.as_ref()));
+                view.sync_albums(client, generation);
+            }
+        });
+    }
+
+    /// Fetches the album list from the server, shows it and stores it locally;
+    /// the songs, playlists and artists follow.
+    fn sync_albums(&self, client: subsonic::Client, generation: u64) {
+        let server = client.server_key();
         let view = self.downgrade();
         glib::spawn_future_local(async move {
             let started = Instant::now();
@@ -796,6 +844,7 @@ impl MainView {
         };
         let server = client.server_key();
         let generation = self.imp().sync_generation.get();
+        let last_scan = self.imp().scan_to_store.borrow().clone();
         let view = self.downgrade();
         glib::spawn_future_local(async move {
             // Whatever happens inside, the sync is over when this block ends.
@@ -825,7 +874,7 @@ impl MainView {
                     // The songs come last: with them stored, the sync is done.
                     .spawn_blocking(move || {
                         library::save_songs(&server, &songs)?;
-                        library::mark_synced(&server)
+                        library::mark_synced(&server, last_scan.as_deref())
                     })
                     .await;
                 match saved {
@@ -1614,15 +1663,66 @@ impl MainView {
     /// Syncs albums and then songs now (Preferences), as after connecting.
     /// While a sync runs, another click does nothing: the same account would
     /// only be fetched twice, and the first result thrown away.
+    /// The library is as at the last full sync: only what changes without a
+    /// scan comes - the stars (into the database, then all that shows them),
+    /// the playlists and the artists (kept in memory only).
+    fn sync_light(&self, client: subsonic::Client, generation: u64) {
+        eprintln!(
+            "Library not scanned since the last full sync: stars, playlists and artists only"
+        );
+        let server = client.server_key();
+        let view = self.downgrade();
+        glib::spawn_future_local(async move {
+            let started = Instant::now();
+            let fetched = runtime().spawn(async move { client.starred().await }).await;
+            let saved = match fetched {
+                Ok(Ok(starred)) => {
+                    let account = server.clone();
+                    runtime()
+                        .spawn_blocking(move || {
+                            library::set_stars(&account, &starred)?;
+                            library::mark_checked(&account)?;
+                            library::load_albums(&account)
+                        })
+                        .await
+                        .map_err(|e| e.to_string())
+                        .and_then(|saved| saved.map_err(|e| e.to_string()))
+                }
+                Ok(Err(e)) => Err(e.to_string()),
+                Err(e) => Err(e.to_string()),
+            };
+            let Some(view) = view
+                .upgrade()
+                .filter(|v| v.imp().sync_generation.get() == generation)
+            else {
+                return;
+            };
+            match saved {
+                Ok(albums) => {
+                    eprintln!("Synced the stars in {:.2?}", started.elapsed());
+                    // The albums as stored now, with their stars: what was read
+                    // from the database at startup must not replace them.
+                    view.imp().synced.set(true);
+                    view.show_albums(albums.into_iter().map(Arc::new).collect());
+                    view.read_favorites(Some(view.imp().stars_since.get()));
+                }
+                Err(e) => eprintln!("Could not sync the stars: {e}"),
+            }
+            view.sync_playlists();
+            view.sync_artists();
+            view.set_syncing(false);
+        });
+    }
+
     pub(crate) fn sync_now(&self) {
         if self.imp().syncing.get() {
             return;
         }
         // Taken out first: in `if let`, the borrow would last for the whole block,
-        // while sync_albums stores the client (borrow_mut).
+        // while sync stores the client (borrow_mut).
         let client = self.imp().client.borrow().clone();
         if let Some(client) = client {
-            self.sync_albums(client);
+            self.sync(client, true);
         }
     }
 }

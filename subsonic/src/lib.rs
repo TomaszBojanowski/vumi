@@ -87,6 +87,30 @@ pub struct Response {
     pub artists: Option<ArtistIndexes>,
     pub playlists: Option<Playlists>,
     pub playlist: Option<PlaylistWithSongs>,
+    pub scan_status: Option<ScanStatus>,
+    pub starred2: Option<Starred>,
+}
+
+/// What the server says about the scan of its library (getScanStatus).
+#[derive(Deserialize, Clone, Debug, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct ScanStatus {
+    pub scanning: bool,
+    /// When the last scan ended, as the server writes it (Navidrome, an
+    /// OpenSubsonic field). Unchanged means the library is as it was: tracks,
+    /// albums and tags change only through a scan. None on servers that do
+    /// not tell.
+    pub last_scan: Option<String>,
+}
+
+/// The starred albums and songs (getStarred2), each with the date of its
+/// star; stars change without a scan.
+#[derive(Deserialize, Default)]
+pub struct Starred {
+    #[serde(default)]
+    pub album: Vec<Album>,
+    #[serde(default)]
+    pub song: Vec<Song>,
 }
 
 #[derive(Deserialize)]
@@ -588,6 +612,20 @@ impl Client {
     pub async fn playlists(&self) -> Result<Vec<Playlist>> {
         let response = self.call("getPlaylists", &[]).await?;
         Ok(response.playlists.map(|p| p.playlist).unwrap_or_default())
+    }
+
+    /// Whether a scan runs, and when the last one ended (getScanStatus).
+    pub async fn scan_status(&self) -> Result<ScanStatus> {
+        let response = self.call("getScanStatus", &[]).await?;
+        response
+            .scan_status
+            .ok_or_else(|| Error::BadResponse("no scan status".into()))
+    }
+
+    /// The starred albums and songs (getStarred2).
+    pub async fn starred(&self) -> Result<Starred> {
+        let response = self.call("getStarred2", &[]).await?;
+        Ok(response.starred2.unwrap_or_default())
     }
 
     /// One playlist with its songs, in playlist order.

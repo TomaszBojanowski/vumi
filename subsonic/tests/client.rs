@@ -1289,3 +1289,114 @@ mod errors {
         assert!(matches!(e, Error::WrongCredentials), "got {e:?}");
     }
 }
+
+mod library_changes {
+    //! What a client asks before a sync: whether the library changed since
+    //! (getScanStatus), and the stars, which change without a scan
+    //! (getStarred2).
+    use super::*;
+
+    #[tokio::test]
+    async fn the_scan_status_tells_whether_a_scan_runs_and_when_the_last_ended() {
+        let (server, client) = start().await;
+        endpoint("getScanStatus")
+            .respond_with(ok_with(json!({
+                "scanStatus": {
+                    "scanning": false,
+                    "count": 11333,
+                    "folderCount": 749,
+                    "lastScan": "2026-10-31T21:26:55.751080157Z",
+                    "scanType": "quick",
+                    "elapsedTime": 51751080157_u64
+                }
+            })))
+            .expect(1)
+            .mount(&server)
+            .await;
+
+        let status = client.scan_status().await.unwrap();
+        assert!(!status.scanning);
+        assert_eq!(
+            status.last_scan.as_deref(),
+            Some("2026-10-31T21:26:55.751080157Z")
+        );
+    }
+
+    #[tokio::test]
+    async fn a_server_that_does_not_tell_the_last_scan_gives_none() {
+        let (server, client) = start().await;
+        endpoint("getScanStatus")
+            .respond_with(ok_with(
+                json!({ "scanStatus": { "scanning": true, "count": 10 } }),
+            ))
+            .mount(&server)
+            .await;
+
+        let status = client.scan_status().await.unwrap();
+        assert!(status.scanning);
+        assert_eq!(status.last_scan, None);
+    }
+
+    #[tokio::test]
+    async fn a_server_without_the_scan_status_gives_an_error() {
+        let (server, client) = start().await;
+        endpoint("getScanStatus")
+            .respond_with(failed(70, "Not found"))
+            .mount(&server)
+            .await;
+        assert!(client.scan_status().await.is_err());
+
+        let (server, client) = start().await;
+        endpoint("getScanStatus")
+            .respond_with(ok_with(json!({})))
+            .mount(&server)
+            .await;
+        assert!(client.scan_status().await.is_err());
+    }
+
+    #[tokio::test]
+    async fn the_starred_albums_and_songs_come_with_the_dates_of_their_stars() {
+        let (server, client) = start().await;
+        endpoint("getStarred2")
+            .respond_with(ok_with(json!({
+                "starred2": {
+                    "artist": [{ "id": "ar1", "name": "Artist", "starred": "2026-01-01T00:00:00Z" }],
+                    "album": [{
+                        "id": "al1", "name": "Album", "artist": "Artist", "year": 1965,
+                        "songCount": 3, "starred": "2026-02-01T00:00:00Z"
+                    }],
+                    "song": [
+                        { "id": "s1", "title": "One", "albumId": "al1", "starred": "2026-03-01T00:00:00Z" },
+                        { "id": "s2", "title": "Two", "albumId": "al2", "starred": "2026-04-01T00:00:00Z" }
+                    ]
+                }
+            })))
+            .expect(1)
+            .mount(&server)
+            .await;
+
+        let starred = client.starred().await.unwrap();
+        assert_eq!(ids(&starred.album, |a| &a.id), ["al1"]);
+        assert_eq!(
+            starred.album[0].starred.as_deref(),
+            Some("2026-02-01T00:00:00Z")
+        );
+        assert_eq!(ids(&starred.song, |s| &s.id), ["s1", "s2"]);
+        assert_eq!(
+            starred.song[1].starred.as_deref(),
+            Some("2026-04-01T00:00:00Z")
+        );
+    }
+
+    #[tokio::test]
+    async fn nothing_starred_gives_empty_lists() {
+        let (server, client) = start().await;
+        endpoint("getStarred2")
+            .respond_with(ok_with(json!({ "starred2": {} })))
+            .mount(&server)
+            .await;
+
+        let starred = client.starred().await.unwrap();
+        assert!(starred.album.is_empty() && starred.song.is_empty());
+    }
+}
