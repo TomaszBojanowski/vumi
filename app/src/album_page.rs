@@ -301,14 +301,13 @@ impl AlbumPage {
             .as_ref()
             .filter(|(key, _)| Some(key) != album_artist_key.as_ref())
         {
-            // Translators: {name} is the composer of (most of) the album's tracks.
             Some((_, name)) => {
                 let name = format!("<i>{}</i>", glib::markup_escape_text(name));
+                // Translators: {name} is the composer of (most of) the album's tracks.
+                let label = gettext("Composer: {name}");
                 imp.composer.set_use_markup(true);
-                imp.composer.set_label(
-                    &glib::markup_escape_text(&gettext("Composer: {name}"))
-                        .replace("{name}", &name),
-                );
+                imp.composer
+                    .set_label(&glib::markup_escape_text(&label).replace("{name}", &name));
                 imp.composer.set_visible(true);
             }
             None => imp.composer.set_visible(false),
@@ -550,10 +549,7 @@ pub(crate) fn quality_text(songs: &[subsonic::Song]) -> Option<(String, bool)> {
 
     let quality = match (depth, rate) {
         (Some(depth), Some(rate)) => format!("{} / {}", bits_text(depth), khz_text(rate)),
-        _ => {
-            let kbps = songs.iter().filter_map(|s| s.bit_rate).max()?;
-            format!("{kbps} kbps")
-        }
+        _ => kbps_text(songs.iter().filter_map(|s| s.bit_rate).max()?),
     };
 
     let uniform = songs.iter().all(|s| {
@@ -574,12 +570,12 @@ pub(crate) fn quality_text(songs: &[subsonic::Song]) -> Option<(String, bool)> {
     Some((text, hi_res))
 }
 
-fn bits_text(depth: u32) -> String {
+pub(crate) fn bits_text(depth: u32) -> String {
     // Translators: audio bit depth, e.g. "24 bit".
     gettext("{n} bit").replace("{n}", &depth.to_string())
 }
 
-fn khz_text(rate: u32) -> String {
+pub(crate) fn khz_text(rate: u32) -> String {
     let whole = rate / 1000;
     let fraction = (rate % 1000) / 100;
     if fraction == 0 {
@@ -591,6 +587,11 @@ fn khz_text(rate: u32) -> String {
             .replace("{whole}", &whole.to_string())
             .replace("{fraction}", &fraction.to_string())
     }
+}
+
+pub(crate) fn kbps_text(kbps: u32) -> String {
+    // Translators: audio bit rate, e.g. "320 kbps".
+    gettext("{kbps} kbps").replace("{kbps}", &kbps.to_string())
 }
 
 impl AlbumPage {

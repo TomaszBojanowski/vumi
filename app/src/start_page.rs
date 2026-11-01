@@ -638,8 +638,9 @@ impl StartPage {
             .collect();
 
         // Translators: {title} is the title of the song that played last.
+        let heading = gettext("Similar to “{title}”");
         imp.similar_title
-            .set_label(&gettext("Similar to “{title}”").replace("{title}", title));
+            .set_label(&heading.replace("{title}", title));
         fill_shelf(&imp.similar_row, &imp.similar_ids, &shelf, Some(client));
         imp.similar_shelf.set_visible(!shelf.is_empty());
         let songs: Rc<[subsonic::Song]> = songs.into();

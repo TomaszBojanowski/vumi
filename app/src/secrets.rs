@@ -1,6 +1,8 @@
 //! Server passwords in the keyring. Inside Flatpak oo7 uses an encrypted
 //! file in the app's own data directory, unlocked through the Secret portal.
 
+use gettextrs::gettext;
+
 use crate::APP_ID;
 
 /// oo7's error is large; boxed, every result of these functions stays small.
@@ -17,9 +19,12 @@ fn attributes<'a>(server: &'a str, user: &'a str) -> [(&'a str, &'a str); 3] {
 
 pub async fn save_password(server: &str, user: &str, password: &str) -> Result<()> {
     let keyring = oo7::Keyring::new().await?;
+    // Translators: the name of the saved password in the keyring (the
+    // Passwords app shows it); {server} is the address of the server.
+    let label = gettext("Password for {user} on {server}");
     keyring
         .create_item(
-            &format!("Password for {user} on {server}"),
+            &label.replace("{user}", user).replace("{server}", server),
             &attributes(server, user),
             password,
             true,

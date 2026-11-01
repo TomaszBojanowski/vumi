@@ -337,49 +337,57 @@ fn choose_playlist(parent: &gtk::Widget, song: subsonic::Song, client: subsonic:
     dialog.present(Some(parent));
 }
 
+/// The rows of Song Information, title and value, only those the song has.
+fn song_details(song: &subsonic::Song) -> Vec<(String, String)> {
+    use crate::album_page::{bits_text, kbps_text, khz_text};
+    let rows = [
+        (gettext("Title"), Some(song.title.clone())),
+        (gettext("Artist"), song.artist.clone()),
+        (gettext("Composer"), song.composer.clone()),
+        (gettext("Album"), song.album.clone()),
+        (gettext("Track"), song.track.map(|n| n.to_string())),
+        (gettext("Disc"), song.disc_number.map(|n| n.to_string())),
+        (
+            gettext("Duration"),
+            song.duration.map(|d| format!("{}:{:02}", d / 60, d % 60)),
+        ),
+        (
+            gettext("Format"),
+            song.suffix.as_ref().map(|s| s.to_uppercase()),
+        ),
+        // A lossy file tells 0 (or nothing) for its bit depth.
+        (
+            gettext("Bit Depth"),
+            song.bit_depth.filter(|&b| b > 0).map(bits_text),
+        ),
+        (
+            gettext("Sample Rate"),
+            song.sampling_rate.filter(|&r| r > 0).map(khz_text),
+        ),
+        (
+            gettext("Bit Rate"),
+            song.bit_rate.filter(|&r| r > 0).map(kbps_text),
+        ),
+    ];
+    rows.into_iter()
+        .filter_map(|(title, value)| value.filter(|v| !v.is_empty()).map(|v| (title, v)))
+        .collect()
+}
+
 /// Song Information: what the server knows about the file.
 fn show_info(parent: &gtk::Widget, song: &subsonic::Song) {
     let group = adw::PreferencesGroup::new();
-    let add = |title: String, value: Option<String>| {
-        if let Some(value) = value.filter(|v| !v.is_empty()) {
-            let row = adw::ActionRow::builder()
-                .title(title)
-                .use_markup(false)
-                .subtitle_selectable(true)
-                .css_classes(["property"])
-                .build();
-            // After use_markup is off: "&" in names is plain text.
-            row.set_subtitle(&value);
-            group.add(&row);
-        }
-    };
-    add(gettext("Title"), Some(song.title.clone()));
-    add(gettext("Artist"), song.artist.clone());
-    add(gettext("Composer"), song.composer.clone());
-    add(gettext("Album"), song.album.clone());
-    add(gettext("Track"), song.track.map(|n| n.to_string()));
-    add(gettext("Disc"), song.disc_number.map(|n| n.to_string()));
-    add(
-        gettext("Duration"),
-        song.duration.map(|d| format!("{}:{:02}", d / 60, d % 60)),
-    );
-    add(
-        gettext("Format"),
-        song.suffix.as_ref().map(|s| s.to_uppercase()),
-    );
-    add(
-        gettext("Bit Depth"),
-        song.bit_depth.map(|b| format!("{b} bit")),
-    );
-    add(
-        gettext("Sample Rate"),
-        song.sampling_rate
-            .map(|r| format!("{} kHz", (r as f64 / 1000.0).to_string().replace('.', ","))),
-    );
-    add(
-        gettext("Bit Rate"),
-        song.bit_rate.map(|r| format!("{r} kbps")),
-    );
+    for (title, value) in song_details(song) {
+        let row = adw::ActionRow::builder()
+            .title(title)
+            .use_markup(false)
+            .subtitle_selectable(true)
+            .css_classes(["property"])
+            .build();
+        // After use_markup is off: "&" in names is plain text.
+        row.set_subtitle(&value);
+        group.add(&row);
+    }
 
     let page = adw::PreferencesPage::new();
     page.add(&group);
@@ -424,5 +432,57 @@ pub(crate) fn toast(widget: &impl IsA<gtk::Widget>, text: &str) {
         .and_downcast::<adw::ToastOverlay>()
     {
         toasts.add_toast(crate::plain_toast(text));
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn song(depth: Option<u32>, rate: Option<u32>, kbps: Option<u32>) -> subsonic::Song {
+        subsonic::Song {
+            id: "s".into(),
+            title: "Title".into(),
+            artist: Some("Artist".into()),
+            track: Some(3),
+            disc_number: None,
+            album: Some("Album".into()),
+            album_id: None,
+            artist_id: None,
+            duration: Some(125),
+            suffix: Some("flac".into()),
+            bit_rate: kbps,
+            cover_art: None,
+            bit_depth: depth,
+            sampling_rate: rate,
+            starred: None,
+            composer: None,
+        }
+    }
+
+    fn value<'a>(rows: &'a [(String, String)], title: &str) -> Option<&'a str> {
+        rows.iter()
+            .find(|(t, _)| t == title)
+            .map(|(_, v)| v.as_str())
+    }
+
+    #[test]
+    fn units_and_decimals_come_from_the_translations() {
+        // No translations in tests: what the English text gives.
+        let rows = song_details(&song(Some(24), Some(44_100), Some(1429)));
+        assert_eq!(value(&rows, "Bit Depth"), Some("24 bit"));
+        assert_eq!(value(&rows, "Sample Rate"), Some("44.1 kHz"));
+        assert_eq!(value(&rows, "Bit Rate"), Some("1429 kbps"));
+        assert_eq!(value(&rows, "Duration"), Some("2:05"));
+        assert_eq!(value(&rows, "Format"), Some("FLAC"));
+        assert_eq!(value(&rows, "Disc"), None);
+    }
+
+    #[test]
+    fn a_lossy_file_shows_no_bit_depth() {
+        let rows = song_details(&song(Some(0), Some(48_000), Some(320)));
+        assert_eq!(value(&rows, "Bit Depth"), None);
+        assert_eq!(value(&rows, "Sample Rate"), Some("48 kHz"));
+        assert_eq!(value(&rows, "Bit Rate"), Some("320 kbps"));
     }
 }

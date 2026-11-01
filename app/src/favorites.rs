@@ -259,10 +259,10 @@ pub(crate) fn set(
 fn update_icon(button: &gtk::ToggleButton) {
     if button.is_active() {
         button.set_icon_name("starred-symbolic");
-        button.set_tooltip_text(Some(&gettext("Remove from favorites")));
+        button.set_tooltip_text(Some(&gettext("Remove from Favorites")));
     } else {
         button.set_icon_name("non-starred-symbolic");
-        button.set_tooltip_text(Some(&gettext("Add to favorites")));
+        button.set_tooltip_text(Some(&gettext("Add to Favorites")));
     }
 }
 

@@ -460,9 +460,8 @@ impl QueuePage {
         if !queue.is_empty() {
             let count = queue.len() as u32;
             // Translators: {n} is a number of tracks in the queue.
-            parts.push(
-                ngettext("{n} track", "{n} tracks", count).replace("{n}", &count.to_string()),
-            );
+            let tracks = ngettext("{n} track", "{n} tracks", count);
+            parts.push(tracks.replace("{n}", &count.to_string()));
             let seconds = |songs: &[subsonic::Song]| -> u32 {
                 songs.iter().filter_map(|song| song.duration).sum()
             };
@@ -632,10 +631,8 @@ fn menu(starred: bool) -> gio::Menu {
     let place = gio::Menu::new();
     // Translators: in the queue, moves the track to right after the current
     // one (elsewhere "Play Next" adds a track to the queue).
-    place.append(
-        Some(&pgettext("queue", "Play Next")),
-        Some("queue.play-next"),
-    );
+    let play_next = pgettext("queue", "Play Next");
+    place.append(Some(&play_next), Some("queue.play-next"));
     place.append(Some(&gettext("Remove from Queue")), Some("queue.remove"));
     menu.append_section(None, &place);
     let keep = gio::Menu::new();

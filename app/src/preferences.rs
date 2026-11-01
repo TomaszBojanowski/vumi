@@ -231,10 +231,15 @@ impl Preferences {
     }
 }
 
-/// A count with its thousands set apart from 10 000 up ("11 265").
+/// A count with its thousands set apart as the language does it: from 1,234
+/// on in English, from 10 000 on in Polish.
 fn grouped(n: u32) -> String {
     let digits = n.to_string();
-    if digits.len() < 5 {
+    // Translators: the fewest digits a number has before its thousands are
+    // set apart: "4" groups 1,234 already (English), "5" leaves 1234 as it is
+    // and groups 12 345 (Polish). A number, nothing else.
+    let fewest = pgettext("digit grouping", "4").trim().parse().unwrap_or(4);
+    if digits.len() < fewest {
         return digits;
     }
     // Translators: what separates thousands in a large number ("11,265").
@@ -468,5 +473,19 @@ impl Preferences {
                     .set_subtitle(&glib::format_size(size));
             }
         });
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn thousands_are_grouped_as_the_language_groups_them() {
+        // No translations in tests: English groups from four digits on.
+        assert_eq!(grouped(999), "999");
+        assert_eq!(grouped(1234), "1,234");
+        assert_eq!(grouped(11_333), "11,333");
+        assert_eq!(grouped(1_234_567), "1,234,567");
     }
 }

@@ -157,7 +157,7 @@ impl NowPlaying {
         imp.cover_frame.add_controller(click);
         imp.cover_frame.set_cursor_from_name(Some("pointer"));
         imp.cover_frame
-            .set_tooltip_text(Some(&gettext("Go to album")));
+            .set_tooltip_text(Some(&gettext("Go to Album")));
 
         // Only a drag by the user seeks; updates from the timer do not. The seek
         // waits until the drag pauses for a moment: seeking on every step

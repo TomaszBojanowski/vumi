@@ -446,10 +446,17 @@ impl MainView {
         let imp = self.imp();
         self.set_connection(Connection::from_response(r));
         imp.banner.set_revealed(false);
-        // Translators: {server} is the server software (e.g. navidrome), {version} its version.
-        let text = gettext("Connected to {server} {version}")
-            .replace("{server}", r.server_type.as_deref().unwrap_or("server"))
-            .replace("{version}", r.server_version.as_deref().unwrap_or(""));
+        let text = match r.server_type.as_deref() {
+            Some(server) => {
+                // Translators: {server} is the server software (e.g. navidrome), {version} its version.
+                let text = gettext("Connected to {server} {version}");
+                text.replace("{server}", server)
+                    .replace("{version}", r.server_version.as_deref().unwrap_or(""))
+                    .trim_end()
+                    .to_string()
+            }
+            None => gettext("Connected"),
+        };
         // The description is markup; the server names itself.
         imp.status
             .set_description(Some(&glib::markup_escape_text(&text)));

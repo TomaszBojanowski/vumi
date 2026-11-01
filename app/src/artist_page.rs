@@ -146,8 +146,8 @@ impl ArtistPage {
 
         let n = artist.album.len() as u32;
         // Translators: {n} is a number of albums.
-        imp.details
-            .set_label(&ngettext("{n} album", "{n} albums", n).replace("{n}", &n.to_string()));
+        let count = ngettext("{n} album", "{n} albums", n);
+        imp.details.set_label(&count.replace("{n}", &n.to_string()));
 
         for album in &artist.album {
             let card = AlbumCard::new();

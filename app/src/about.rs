@@ -1,5 +1,5 @@
 //! "About" sections (album description, artist biography): HTML from the
-//! server turned into plain text, long texts collapsed behind "Show more".
+//! server turned into plain text, long texts collapsed behind "Show More".
 
 use gettextrs::gettext;
 use gtk::glib;
@@ -32,7 +32,7 @@ pub(crate) fn plain_text(html: &str) -> String {
         .to_string()
 }
 
-/// Shows the section with `text`. "Show more" appears only while the text
+/// Shows the section with `text`. "Show More" appears only while the text
 /// needs more than four lines at the current width, also after a resize.
 pub(crate) fn fill(section: &gtk::Box, text_label: &gtk::Label, more: &gtk::Button, text: &str) {
     text_label.set_label(text);
@@ -61,11 +61,11 @@ pub(crate) fn fill(section: &gtk::Box, text_label: &gtk::Label, more: &gtk::Butt
         if expanded {
             label.set_ellipsize(gtk::pango::EllipsizeMode::End);
             label.set_lines(4);
-            button.set_label(&gettext("Show more"));
+            button.set_label(&gettext("Show More"));
         } else {
             label.set_ellipsize(gtk::pango::EllipsizeMode::None);
             label.set_lines(-1);
-            button.set_label(&gettext("Show less"));
+            button.set_label(&gettext("Show Less"));
         }
     });
 }

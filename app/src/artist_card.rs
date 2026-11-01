@@ -77,9 +77,9 @@ impl ArtistCard {
         imp.avatar.set_text(Some(name));
         imp.name.set_label(name);
         // Translators: {n} is a number of albums.
-        imp.albums.set_label(
-            &ngettext("{n} album", "{n} albums", albums).replace("{n}", &albums.to_string()),
-        );
+        let count = ngettext("{n} album", "{n} albums", albums);
+        imp.albums
+            .set_label(&count.replace("{n}", &albums.to_string()));
 
         // The picture of whoever was here before must not show under a new name.
         imp.avatar.set_custom_image(None::<&gtk::gdk::Paintable>);
