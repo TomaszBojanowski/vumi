@@ -12,6 +12,9 @@ use crate::artist_page::ArtistPage;
 use crate::favorites::{Favorite, star_button};
 use crate::{about, covers, error_message, player, runtime, tint};
 
+/// Heavy work that waits for the end of the page's slide-in animation.
+type AfterShown = Box<dyn FnOnce(&AlbumPage)>;
+
 mod imp {
     use super::*;
 
@@ -55,7 +58,7 @@ mod imp {
         /// True once the page has fully slid into view.
         pub shown: std::cell::Cell<bool>,
         /// Heavy work waiting for the end of the slide-in animation.
-        pub after_shown: std::cell::RefCell<Vec<Box<dyn FnOnce(&super::AlbumPage)>>>,
+        pub after_shown: std::cell::RefCell<Vec<super::AfterShown>>,
         /// Running fade-in animations, kept alive until the page goes away.
         pub animations: std::cell::RefCell<Vec<adw::TimedAnimation>>,
         /// Layer under the whole page that carries the cover-coloured gradient.

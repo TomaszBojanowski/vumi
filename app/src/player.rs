@@ -31,10 +31,10 @@ pub(crate) struct Player {
     state: RefCell<State>,
     client: RefCell<Option<subsonic::Client>>,
     /// Called after every change of track or state.
-    listeners: RefCell<Vec<(u64, Box<dyn Fn()>)>>,
+    listeners: RefCell<Vec<(u64, Listener)>>,
     next_listener: Cell<u64>,
     /// Shows playback errors to the user (a toast in the window).
-    error_handler: RefCell<Option<Box<dyn Fn(&str)>>>,
+    error_handler: RefCell<Option<ErrorHandler>>,
     /// The listen in progress, for scrobbling.
     listen: RefCell<Option<Listen>>,
     /// Whether the once-a-second listen timer runs already.
@@ -48,7 +48,7 @@ pub(crate) struct Player {
     volume: std::cell::Cell<f64>,
     /// Told about every jump of the position, with the new position in
     /// seconds (MPRIS sends Seeked, the sidebar card moves its slider).
-    seek_listeners: RefCell<Vec<Box<dyn Fn(f64)>>>,
+    seek_listeners: RefCell<Vec<SeekListener>>,
     /// Called with the track in progress and the second it is at, just before
     /// the player leaves it by hand (another queue, Stop): the change that
     /// follows no longer knows where it was.
@@ -72,6 +72,12 @@ thread_local! {
     static PLAYER: OnceCell<Rc<Player>> = const { OnceCell::new() };
 }
 
+/// Called after every change of track or state.
+type Listener = Box<dyn Fn()>;
+/// Shows a playback error to the user.
+type ErrorHandler = Box<dyn Fn(&str)>;
+/// Told the new position, in seconds, after a jump.
+type SeekListener = Box<dyn Fn(f64)>;
 /// Told the track and the second it was at when the player leaves it by hand.
 type LeaveListener = Box<dyn Fn(&subsonic::Song, f64)>;
 
@@ -251,7 +257,6 @@ impl Player {
     /// Like play(), but starts the track at `seconds` (resuming where playback
     /// stopped). GStreamer ignores seeks until the track is ready, so the seek
     /// waits for AsyncDone.
-
     pub(crate) fn play_from(
         &self,
         client: subsonic::Client,
@@ -984,10 +989,10 @@ impl Player {
     pub(crate) fn shuffle_rest(&self) {
         let mut songs = self.queue.borrow().to_vec();
         let mut from = (self.position.get() + 1).min(songs.len());
-        if let Some(id) = self.pending_switch() {
-            if songs.get(from).is_some_and(|song| song.id == id) {
-                from += 1;
-            }
+        if let Some(id) = self.pending_switch()
+            && songs.get(from).is_some_and(|song| song.id == id)
+        {
+            from += 1;
         }
         if songs.len().saturating_sub(from) < 2 {
             return;

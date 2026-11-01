@@ -231,8 +231,7 @@ pub(crate) fn load_albums(server: &str) -> rusqlite::Result<Vec<subsonic::Album>
             starred: row.get(8)?,
         })
     })?;
-    let albums = rows.collect::<rusqlite::Result<Vec<_>>>();
-    albums
+    rows.collect::<rusqlite::Result<Vec<_>>>()
 }
 
 /// Replaces the stored albums of one server, and their search index, in a
@@ -361,8 +360,7 @@ pub(crate) fn load_album_songs(
          ORDER BY COALESCE(disc_number, 1), COALESCE(track, 0), position",
     )?;
     let rows = stmt.query_map(params![server, album_id], song_from_row)?;
-    let songs = rows.collect::<rusqlite::Result<Vec<_>>>();
-    songs
+    rows.collect::<rusqlite::Result<Vec<_>>>()
 }
 
 /// What a search (or the favourites) found: album ids (the albums themselves

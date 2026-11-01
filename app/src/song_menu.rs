@@ -68,12 +68,15 @@ pub(crate) fn menu_button(
     button
 }
 
+/// What a song menu item does with the row, its song and the client.
+type SongAction = Box<dyn Fn(&gtk::Widget, subsonic::Song, subsonic::Client)>;
+
 /// Puts the actions a song menu can use on `row`, as the group "song":
 /// play-next, add-to-queue, add-to-playlist, play-similar, go-to-album,
 /// go-to-artist and info. The queue builds a menu of its own from them.
 pub(crate) fn install_actions(row: &gtk::Widget, current: &Current) {
     let actions = gio::SimpleActionGroup::new();
-    let add = |name: &str, run: Box<dyn Fn(&gtk::Widget, subsonic::Song, subsonic::Client)>| {
+    let add = |name: &str, run: SongAction| {
         let action = gio::SimpleAction::new(name, None);
         let current = current.clone();
         let row_weak = row.downgrade();
@@ -100,14 +103,8 @@ pub(crate) fn install_actions(row: &gtk::Widget, current: &Current) {
             toast(row, &gettext("Added to the queue"));
         }),
     );
-    add(
-        "add-to-playlist",
-        Box::new(|row, song, client| choose_playlist(row, song, client)),
-    );
-    add(
-        "play-similar",
-        Box::new(|row, song, client| play_similar(row, song, client)),
-    );
+    add("add-to-playlist", Box::new(choose_playlist));
+    add("play-similar", Box::new(play_similar));
     add(
         "go-to-album",
         Box::new(|row, song, _| {

@@ -277,10 +277,10 @@ impl NowPlaying {
             // A slow server must not hold the card back for long, though.
             let bar = self.downgrade();
             glib::timeout_add_local_once(Duration::from_millis(500), move || {
-                if let Some(bar) = bar.upgrade() {
-                    if player::get().current().is_some() {
-                        bar.imp().revealer.set_reveal_child(true);
-                    }
+                if let Some(bar) = bar.upgrade()
+                    && player::get().current().is_some()
+                {
+                    bar.imp().revealer.set_reveal_child(true);
                 }
             });
         } else {

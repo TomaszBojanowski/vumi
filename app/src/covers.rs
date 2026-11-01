@@ -167,10 +167,10 @@ fn texture_bytes(texture: &gdk::Texture) -> usize {
 fn memory_get(key: &str) -> Option<gdk::Texture> {
     let mut memory = MEMORY.lock().ok()?;
     let texture = memory.textures.get(key)?.clone();
-    if let Some(index) = memory.order.iter().position(|k| k == key) {
-        if let Some(k) = memory.order.remove(index) {
-            memory.order.push_back(k);
-        }
+    if let Some(index) = memory.order.iter().position(|k| k == key)
+        && let Some(k) = memory.order.remove(index)
+    {
+        memory.order.push_back(k);
     }
     Some(texture)
 }

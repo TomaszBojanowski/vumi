@@ -165,11 +165,7 @@ mod imp {
         pub favorites_header: OnceCell<crate::favorites_header::FavoritesHeader>,
         /// What the Favorites page shows, as read from the database (songs
         /// most recently starred first), and the client it came with.
-        pub favorite_content: RefCell<(
-            Vec<Arc<subsonic::Album>>,
-            Vec<subsonic::Song>,
-            Option<subsonic::Client>,
-        )>,
+        pub favorite_content: RefCell<crate::results_view::Content>,
         /// How the favourite songs are sorted: the switch on their heading.
         pub favorites_sort: OnceCell<adw::ToggleGroup>,
         /// The Favorites page is below its breakpoint.
@@ -666,11 +662,11 @@ impl MainView {
         // another copy on top.
         let stack = nav.navigation_stack();
         for i in (0..stack.n_items()).rev() {
-            if let Some(page) = stack.item(i).and_downcast::<ArtistPage>() {
-                if page.artist_id() == id {
-                    nav.pop_to_page(&page);
-                    return;
-                }
+            if let Some(page) = stack.item(i).and_downcast::<ArtistPage>()
+                && page.artist_id() == id
+            {
+                nav.pop_to_page(&page);
+                return;
             }
         }
         nav.push(&ArtistPage::new(id, name, client));
@@ -695,11 +691,11 @@ impl MainView {
         // another copy on top.
         let stack = nav.navigation_stack();
         for i in (0..stack.n_items()).rev() {
-            if let Some(page) = stack.item(i).and_downcast::<AlbumPage>() {
-                if page.album_id() == id {
-                    nav.pop_to_page(&page);
-                    return;
-                }
+            if let Some(page) = stack.item(i).and_downcast::<AlbumPage>()
+                && page.album_id() == id
+            {
+                nav.pop_to_page(&page);
+                return;
             }
         }
         crate::album_page::open(nav, &album, client);
@@ -855,14 +851,13 @@ impl MainView {
 
 /// Pops every navigation view under `widget` back to its first page.
 fn pop_all_to_root(widget: &gtk::Widget) {
-    if let Some(nav) = widget.downcast_ref::<adw::NavigationView>() {
-        if let Some(root) = nav
+    if let Some(nav) = widget.downcast_ref::<adw::NavigationView>()
+        && let Some(root) = nav
             .navigation_stack()
             .item(0)
             .and_downcast::<adw::NavigationPage>()
-        {
-            nav.pop_to_page(&root);
-        }
+    {
+        nav.pop_to_page(&root);
     }
     let mut child = widget.first_child();
     while let Some(widget) = child {
@@ -1426,11 +1421,10 @@ impl MainView {
             if let Some(page) = stack
                 .item(i)
                 .and_downcast::<crate::playlist_page::PlaylistPage>()
+                && page.playlist_id() == id
             {
-                if page.playlist_id() == id {
-                    nav.pop_to_page(&page);
-                    return;
-                }
+                nav.pop_to_page(&page);
+                return;
             }
         }
         nav.push(&crate::playlist_page::PlaylistPage::new(id, name, client));
@@ -1472,10 +1466,10 @@ impl MainView {
 
         let entry = imp.search_entry.downgrade();
         imp.library_nav.connect_popped(move |_, page| {
-            if page.is::<crate::search_page::SearchPage>() {
-                if let Some(entry) = entry.upgrade() {
-                    entry.set_text("");
-                }
+            if page.is::<crate::search_page::SearchPage>()
+                && let Some(entry) = entry.upgrade()
+            {
+                entry.set_text("");
             }
         });
     }

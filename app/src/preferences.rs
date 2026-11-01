@@ -138,11 +138,11 @@ impl Preferences {
         dialog.setup_library(main);
         // The main view outlives the dialog: its handlers go as it closes.
         dialog.connect_closed(|dialog| {
-            if let Some((main, handlers)) = dialog.imp().listening.take() {
-                if let Some(main) = main.upgrade() {
-                    for handler in handlers {
-                        main.disconnect(handler);
-                    }
+            if let Some((main, handlers)) = dialog.imp().listening.take()
+                && let Some(main) = main.upgrade()
+            {
+                for handler in handlers {
+                    main.disconnect(handler);
                 }
             }
         });
@@ -241,7 +241,7 @@ fn grouped(n: u32) -> String {
     let separator = pgettext("thousands separator", ",");
     let mut out = String::new();
     for (index, digit) in digits.chars().enumerate() {
-        if index > 0 && (digits.len() - index) % 3 == 0 {
+        if index > 0 && (digits.len() - index).is_multiple_of(3) {
             out.push_str(&separator);
         }
         out.push(digit);

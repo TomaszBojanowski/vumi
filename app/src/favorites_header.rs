@@ -18,6 +18,9 @@ use crate::{covers, player};
 const COLLAGE: i32 = 200;
 const COLLAGE_COMPACT: i32 = 120;
 
+/// Told the colour of the first cover, or None without a cover.
+type ColorHandler = Box<dyn Fn(Option<(u8, u8, u8)>)>;
+
 mod imp {
     use super::*;
 
@@ -49,7 +52,7 @@ mod imp {
         pub compact: Cell<bool>,
         /// Told the colour of the first cover, for the page behind the
         /// header; None when there is no cover.
-        pub color_handler: RefCell<Option<Box<dyn Fn(Option<(u8, u8, u8)>)>>>,
+        pub color_handler: RefCell<Option<super::ColorHandler>>,
     }
 
     #[glib::object_subclass]

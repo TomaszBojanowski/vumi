@@ -272,7 +272,7 @@ fn build_ui(app: &adw::Application) {
             if let Some(page) = login_page.downcast_ref::<LoginPage>() {
                 page.clear_password();
             }
-            nav.replace(&[login_page.clone()]);
+            nav.replace(std::slice::from_ref(&login_page));
         });
     }
     app.add_action(&logout);

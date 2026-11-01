@@ -43,7 +43,7 @@ pub(crate) fn dominant_color(texture: &gdk::Texture) -> Option<(u8, u8, u8)> {
     let mut bins = [(0f32, 0f32, 0f32, 0f32); BINS];
     let (mut avg_r, mut avg_g, mut avg_b, mut avg_w) = (0f32, 0f32, 0f32, 0f32);
     // Every 7th pixel is plenty.
-    for px in pixels.chunks_exact(4).step_by(7) {
+    for px in pixels.as_chunks::<4>().0.iter().step_by(7) {
         let (pb, pg, pr) = (px[0] as f32, px[1] as f32, px[2] as f32);
         let max = pr.max(pg).max(pb);
         let min = pr.min(pg).min(pb);

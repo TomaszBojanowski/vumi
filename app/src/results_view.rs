@@ -20,7 +20,7 @@ use crate::song_row::SongRow;
 
 /// What a view is asked to show: the albums, the songs and the client for
 /// covers, playing and the song menu.
-type Content = (
+pub(crate) type Content = (
     Vec<Arc<subsonic::Album>>,
     Vec<subsonic::Song>,
     Option<subsonic::Client>,
@@ -29,11 +29,15 @@ type Content = (
 /// What a page says about a song on its row; empty for nothing.
 type Note = Rc<dyn Fn(&subsonic::Song) -> String>;
 
-/// One item of the list: what stands above the songs, or a song.
+/// One item of the list: what stands above the songs, or a song (boxed: a
+/// header item would otherwise take a song's size).
 enum Entry {
     Header,
-    Song(subsonic::Song),
+    Song(Box<subsonic::Song>),
 }
+
+/// The albums on screen and the account they came from.
+type Shown = (Vec<Arc<subsonic::Album>>, Option<String>);
 
 mod imp {
     use super::*;
@@ -89,7 +93,7 @@ mod imp {
         pub pending: RefCell<Option<Content>>,
         /// The albums on screen and the account they came from (the songs are
         /// in `songs`): the same content again is not built again.
-        pub shown: RefCell<Option<(Vec<Arc<subsonic::Album>>, Option<String>)>>,
+        pub shown: RefCell<Option<super::Shown>>,
     }
 
     #[glib::object_subclass]
@@ -455,7 +459,7 @@ impl ResultsView {
             songs
                 .iter()
                 .cloned()
-                .map(|song| glib::BoxedAnyObject::new(Entry::Song(song))),
+                .map(|song| glib::BoxedAnyObject::new(Entry::Song(Box::new(song)))),
         );
         imp.songs.replace(Some(songs.into()));
         imp.client.replace(client);

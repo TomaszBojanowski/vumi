@@ -3,6 +3,9 @@
 
 use crate::APP_ID;
 
+/// oo7's error is large; boxed, every result of these functions stays small.
+type Result<T> = std::result::Result<T, Box<oo7::Error>>;
+
 /// Attributes that identify one saved password.
 fn attributes<'a>(server: &'a str, user: &'a str) -> [(&'a str, &'a str); 3] {
     [
@@ -12,7 +15,7 @@ fn attributes<'a>(server: &'a str, user: &'a str) -> [(&'a str, &'a str); 3] {
     ]
 }
 
-pub async fn save_password(server: &str, user: &str, password: &str) -> oo7::Result<()> {
+pub async fn save_password(server: &str, user: &str, password: &str) -> Result<()> {
     let keyring = oo7::Keyring::new().await?;
     keyring
         .create_item(
@@ -25,7 +28,7 @@ pub async fn save_password(server: &str, user: &str, password: &str) -> oo7::Res
     Ok(())
 }
 
-pub async fn load_password(server: &str, user: &str) -> oo7::Result<Option<String>> {
+pub async fn load_password(server: &str, user: &str) -> Result<Option<String>> {
     let keyring = oo7::Keyring::new().await?;
     let items = keyring.search_items(&attributes(server, user)).await?;
     let Some(item) = items.first() else {
@@ -38,7 +41,8 @@ pub async fn load_password(server: &str, user: &str) -> oo7::Result<Option<Strin
 }
 
 /// Removes the saved password (logging out).
-pub async fn delete_password(server: &str, user: &str) -> oo7::Result<()> {
+pub async fn delete_password(server: &str, user: &str) -> Result<()> {
     let keyring = oo7::Keyring::new().await?;
-    keyring.delete(&attributes(server, user)).await
+    keyring.delete(&attributes(server, user)).await?;
+    Ok(())
 }
