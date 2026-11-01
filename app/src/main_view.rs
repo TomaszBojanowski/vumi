@@ -503,6 +503,11 @@ impl MainView {
         // Covers on the Start page can now come from the server too.
         self.refresh_start();
         self.refresh_favorites();
+        // Results found before the connection get the client, to play songs.
+        let text = self.imp().search_entry.text();
+        if !text.trim().is_empty() {
+            self.search_library(&text);
+        }
         // Cards drawn before the connection could not fetch uncached covers:
         // every card that still shows the placeholder tries again now.
         for card in self.imp().cards.borrow().iter().filter_map(|c| c.upgrade()) {
@@ -1481,14 +1486,27 @@ impl MainView {
         } else if nav.visible_page().as_ref() != Some(page_widget) {
             nav.pop_to_page(&page);
         }
+        self.search_library(text);
+    }
 
-        let Some(client) = imp.client.borrow().clone() else {
+    /// The results of `text` on the search page. The library is searched in
+    /// the local database: no connection is needed, only the account whose
+    /// library is on screen. The client, once there, lets a song play and a
+    /// missing cover come.
+    fn search_library(&self, text: &str) {
+        let imp = self.imp();
+        let Some(page) = imp.search_page.get().cloned() else {
             return;
         };
+        let server = imp.server.borrow().clone();
+        if server.is_empty() {
+            return;
+        }
+        let client = imp.client.borrow().clone();
         let generation = imp.search_generation.get() + 1;
         imp.search_generation.set(generation);
-        let server = client.server_key();
         let query = text.to_owned();
+        let account = server.clone();
         let view = self.downgrade();
         glib::spawn_future_local(async move {
             let result = runtime()
@@ -1497,8 +1515,10 @@ impl MainView {
             let Some(view) = view.upgrade() else {
                 return;
             };
-            // A newer search has started meanwhile: its results will come.
-            if view.imp().search_generation.get() != generation {
+            // A newer search has started meanwhile, or another account is on
+            // screen: these results are not wanted.
+            let imp = view.imp();
+            if imp.search_generation.get() != generation || *imp.server.borrow() != account {
                 return;
             }
             let Ok(Ok(results)) = result else {
@@ -1512,7 +1532,7 @@ impl MainView {
                     .filter_map(|id| current.iter().find(|a| a.id == *id).cloned())
                     .collect()
             };
-            page.show(&albums, results.songs, Some(client));
+            page.show(&albums, results.songs, client);
         });
     }
 }
@@ -1584,13 +1604,16 @@ impl MainView {
 
 impl MainView {
     /// The Favorites page: starred albums and songs from the local database,
-    /// read in the background; refreshed with the library.
+    /// read in the background; refreshed with the library. Like a search, it
+    /// needs no connection (run_search).
     pub(crate) fn refresh_favorites(&self) {
         let imp = self.imp();
-        let Some(client) = imp.client.borrow().clone() else {
+        let server = imp.server.borrow().clone();
+        if server.is_empty() {
             return;
-        };
-        let server = client.server_key();
+        }
+        let client = imp.client.borrow().clone();
+        let account = server.clone();
         let view = self.downgrade();
         glib::spawn_future_local(async move {
             let result = runtime()
@@ -1599,6 +1622,10 @@ impl MainView {
             let (Some(view), Ok(Ok(found))) = (view.upgrade(), result) else {
                 return;
             };
+            // Another account is on screen now (logged out meanwhile).
+            if *view.imp().server.borrow() != account {
+                return;
+            }
             let albums: Vec<Arc<subsonic::Album>> = {
                 let current = view.imp().current.borrow();
                 found
@@ -1609,7 +1636,7 @@ impl MainView {
             };
             view.imp()
                 .favorite_content
-                .replace((albums, found.songs, Some(client)));
+                .replace((albums, found.songs, client));
             view.show_favorites();
         });
     }
