@@ -1,0 +1,4 @@
+# Commits that git blame skips: `git config blame.ignoreRevsFile .git-blame-ignore-revs`.
+
+# Format the code with rustfmt: layout only, no change in behaviour.
+14c51c9d80ff250b321b3f0e8a0fdf455ee36fcd
