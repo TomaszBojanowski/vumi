@@ -1,11 +1,11 @@
 //! The Preferences dialog (Ctrl+,). Every switch is bound straight to GSettings,
 //! so the rest of the app reads the same values and nothing needs saving here.
 
+use adw::prelude::*;
 use adw::subclass::prelude::*;
 use gettextrs::{gettext, ngettext, pgettext};
 use gtk::gio;
 use gtk::glib;
-use adw::prelude::*;
 use std::cell::{Cell, RefCell};
 
 use crate::main_view::{Connection, MainView};
@@ -86,7 +86,8 @@ mod imp {
             let user = settings.string("username");
             self.avatar.set_text(Some(&user));
             self.user_name.set_label(&user);
-            self.server_address.set_label(&settings.string("server-url"));
+            self.server_address
+                .set_label(&settings.string("server-url"));
             self.obj().setup_covers();
 
             // One of the two shows, by the width of the dialog.
@@ -201,7 +202,10 @@ impl Preferences {
         let imp = self.imp();
         let status = match connection {
             Connection::None | Connection::Connecting => gettext("Checking the connection…"),
-            Connection::Connected { server: Some(server), version } => {
+            Connection::Connected {
+                server: Some(server),
+                version,
+            } => {
                 // Translators: {server} is the server software (e.g. Navidrome), {version} its version.
                 gettext("Connected · {server} {version}")
                     .replace("{server}", &capitalized(server))
@@ -267,9 +271,8 @@ fn time_ago(then: i64) -> String {
         return ngettext("{n} hour ago", "{n} hours ago", n).replace("{n}", &n.to_string());
     }
     // The number of the day in local time, so "yesterday" follows midnight.
-    let day = |time: &glib::DateTime| {
-        (time.to_unix() + time.utc_offset().as_seconds()).div_euclid(86400)
-    };
+    let day =
+        |time: &glib::DateTime| (time.to_unix() + time.utc_offset().as_seconds()).div_euclid(86400);
     match (day(&now) - day(&then_local)).max(1) {
         1 => gettext("yesterday"),
         n @ 2..=6 => {
@@ -300,7 +303,10 @@ impl Preferences {
                 "Playback stops and the saved password is removed. The library downloaded from this server stays on this device.",
             )),
         );
-        alert.add_responses(&[("cancel", &gettext("Cancel")), ("logout", &gettext("Log Out"))]);
+        alert.add_responses(&[
+            ("cancel", &gettext("Cancel")),
+            ("logout", &gettext("Log Out")),
+        ]);
         alert.set_response_appearance("logout", adw::ResponseAppearance::Destructive);
         alert.set_default_response(Some("cancel"));
         alert.set_close_response("cancel");
@@ -375,7 +381,8 @@ impl Preferences {
             ];
             if artists > 0 {
                 parts.push(
-                    ngettext("{n} artist", "{n} artists", artists).replace("{n}", &grouped(artists)),
+                    ngettext("{n} artist", "{n} artists", artists)
+                        .replace("{n}", &grouped(artists)),
                 );
             }
             parts.push(
@@ -411,7 +418,8 @@ impl Preferences {
             format!("{counts}\n{second}")
         };
         // The row reads its subtitle as markup.
-        imp.library_row.set_subtitle(&glib::markup_escape_text(&text));
+        imp.library_row
+            .set_subtitle(&glib::markup_escape_text(&text));
     }
 
     /// The Local Data group: the size of the cover cache (worked out in the
@@ -454,7 +462,10 @@ impl Preferences {
                 .await
                 .unwrap_or(0);
             if let Some(dialog) = dialog.upgrade() {
-                dialog.imp().covers_row.set_subtitle(&glib::format_size(size));
+                dialog
+                    .imp()
+                    .covers_row
+                    .set_subtitle(&glib::format_size(size));
             }
         });
     }

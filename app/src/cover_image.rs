@@ -162,8 +162,8 @@ mod imp {
                 } else {
                     0
                 };
-                let transform = gtk::gsk::Transform::new()
-                    .translate(&graphene::Point::new(x as f32, 0.0));
+                let transform =
+                    gtk::gsk::Transform::new().translate(&graphene::Point::new(x as f32, 0.0));
                 child.allocate(side, side, baseline, Some(transform));
             }
         }
@@ -239,13 +239,15 @@ fn downscale(texture: &gdk::Texture, width: i32, height: i32) -> gdk::Texture {
         for x in 0..width {
             let mut sum = [0f32; 4];
             for (offset, weight) in weights.iter().enumerate() {
-                let pixel = &rows[((first + offset) * width + x) * 4..((first + offset) * width + x) * 4 + 4];
+                let pixel = &rows
+                    [((first + offset) * width + x) * 4..((first + offset) * width + x) * 4 + 4];
                 for channel in 0..4 {
                     sum[channel] += pixel[channel] * weight;
                 }
             }
             for channel in 0..4 {
-                pixels[(y * width + x) * 4 + channel] = sum[channel].round().clamp(0.0, 255.0) as u8;
+                pixels[(y * width + x) * 4 + channel] =
+                    sum[channel].round().clamp(0.0, 255.0) as u8;
             }
         }
     }

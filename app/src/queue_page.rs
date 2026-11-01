@@ -166,7 +166,10 @@ impl QueuePage {
                 return;
             };
             let row = page.new_row(item);
-            page.imp().rows.borrow_mut().push((row.downgrade(), item.downgrade()));
+            page.imp()
+                .rows
+                .borrow_mut()
+                .push((row.downgrade(), item.downgrade()));
             item.set_child(Some(&row));
         });
         let page = self.downgrade();
@@ -296,8 +299,11 @@ impl QueuePage {
             // The queue changed under the drag (another album, the radio, a
             // track removed): the index it carries is of the old queue, and
             // would move some other track now.
-            let dragged_from = page.upgrade().and_then(|page| page.imp().dragged_from.take());
-            let stale = !dragged_from.is_some_and(|queue| Rc::ptr_eq(&queue, &player::get().queue()));
+            let dragged_from = page
+                .upgrade()
+                .and_then(|page| page.imp().dragged_from.take());
+            let stale =
+                !dragged_from.is_some_and(|queue| Rc::ptr_eq(&queue, &player::get().queue()));
             match (value.get::<i32>(), position_of(&item_weak)) {
                 (Ok(from), Some(index)) if !stale => {
                     player::get().move_track(from as usize, index);
@@ -341,7 +347,10 @@ impl QueuePage {
         // The player reports every change, the volume too: the rows are gone
         // through only when the queue, the current track or the play state
         // is another one.
-        let state = (player.is_active().then(|| player.position()), player.is_playing());
+        let state = (
+            player.is_active().then(|| player.position()),
+            player.is_playing(),
+        );
         if !same || imp.placed.get() != Some(state) {
             imp.placed.set(Some(state));
             self.place_rows();
@@ -451,7 +460,9 @@ impl QueuePage {
         if !queue.is_empty() {
             let count = queue.len() as u32;
             // Translators: {n} is a number of tracks in the queue.
-            parts.push(ngettext("{n} track", "{n} tracks", count).replace("{n}", &count.to_string()));
+            parts.push(
+                ngettext("{n} track", "{n} tracks", count).replace("{n}", &count.to_string()),
+            );
             let seconds = |songs: &[subsonic::Song]| -> u32 {
                 songs.iter().filter_map(|song| song.duration).sum()
             };
@@ -471,7 +482,10 @@ impl QueuePage {
         }
         // In a narrow panel the line wraps: between the parts, never inside
         // one (no-break spaces), and the dot stays with the part before it.
-        let parts: Vec<String> = parts.iter().map(|part| part.replace(' ', "\u{a0}")).collect();
+        let parts: Vec<String> = parts
+            .iter()
+            .map(|part| part.replace(' ', "\u{a0}"))
+            .collect();
         let subtitle = parts.join("\u{a0}· ");
         // Asked for often (a timer, every change of the player): the label
         // is touched only when the text is another one.
@@ -493,7 +507,11 @@ impl QueuePage {
         };
         let shown = imp.shown.borrow();
         let old: &[subsonic::Song] = shown.as_deref().unwrap_or(&[]);
-        let start = old.iter().zip(queue.iter()).take_while(|(a, b)| a == b).count();
+        let start = old
+            .iter()
+            .zip(queue.iter())
+            .take_while(|(a, b)| a == b)
+            .count();
         let end = old[start..]
             .iter()
             .rev()
@@ -530,7 +548,10 @@ impl QueuePage {
         // The tracks look like one card: the first and the last row round
         // its corners (style.css).
         let last = self.imp().tracks.get().map_or(0, |tracks| tracks.n_items());
-        for (class, on) in [("first", item.position() == 0), ("last", item.position() + 1 == last)] {
+        for (class, on) in [
+            ("first", item.position() == 0),
+            ("last", item.position() + 1 == last),
+        ] {
             if on {
                 row.add_css_class(class);
             } else {
@@ -566,7 +587,11 @@ fn install_actions(row: &SongRow, item: &glib::WeakRef<gtk::ListItem>) {
             return;
         };
         let position = player::get().position();
-        let to = if index > position { position + 1 } else { position };
+        let to = if index > position {
+            position + 1
+        } else {
+            position
+        };
         if index != position && index != to {
             player::get().move_track(index, to);
         }
@@ -607,11 +632,17 @@ fn menu(starred: bool) -> gio::Menu {
     let place = gio::Menu::new();
     // Translators: in the queue, moves the track to right after the current
     // one (elsewhere "Play Next" adds a track to the queue).
-    place.append(Some(&pgettext("queue", "Play Next")), Some("queue.play-next"));
+    place.append(
+        Some(&pgettext("queue", "Play Next")),
+        Some("queue.play-next"),
+    );
     place.append(Some(&gettext("Remove from Queue")), Some("queue.remove"));
     menu.append_section(None, &place);
     let keep = gio::Menu::new();
-    keep.append(Some(&gettext("Add to Playlist…")), Some("song.add-to-playlist"));
+    keep.append(
+        Some(&gettext("Add to Playlist…")),
+        Some("song.add-to-playlist"),
+    );
     let favorite = if starred {
         gettext("Remove from Favorites")
     } else {

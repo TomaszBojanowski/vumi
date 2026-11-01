@@ -7,7 +7,7 @@
 //! next start simply runs it again.
 
 use gtk::glib;
-use rusqlite::{params, Connection};
+use rusqlite::{Connection, params};
 use std::path::PathBuf;
 use std::sync::Arc;
 
@@ -237,10 +237,7 @@ pub(crate) fn load_albums(server: &str) -> rusqlite::Result<Vec<subsonic::Album>
 
 /// Replaces the stored albums of one server, and their search index, in a
 /// single transaction.
-pub(crate) fn save_albums(
-    server: &str,
-    albums: &[Arc<subsonic::Album>],
-) -> rusqlite::Result<()> {
+pub(crate) fn save_albums(server: &str, albums: &[Arc<subsonic::Album>]) -> rusqlite::Result<()> {
     let mut conn = open()?;
     let tx = conn.transaction()?;
     tx.execute("DELETE FROM albums WHERE server = ?1", params![server])?;

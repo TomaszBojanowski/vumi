@@ -6,7 +6,7 @@ use adw::subclass::prelude::*;
 use gettextrs::gettext;
 use gtk::{gio, glib};
 
-use crate::{error_message, runtime, secrets, MainView};
+use crate::{MainView, error_message, runtime, secrets};
 
 mod imp {
     use super::*;
@@ -57,7 +57,11 @@ glib::wrapper! {
 }
 
 impl LoginPage {
-    pub(crate) fn new(nav: &adw::NavigationView, settings: &gio::Settings, main: &MainView) -> Self {
+    pub(crate) fn new(
+        nav: &adw::NavigationView,
+        settings: &gio::Settings,
+        main: &MainView,
+    ) -> Self {
         let page: Self = glib::Object::new();
         let imp = page.imp();
 
@@ -124,7 +128,12 @@ impl LoginPage {
         // Runs on the GTK main loop; only the network call goes to tokio.
         glib::spawn_future_local(async move {
             let client = subsonic::Client::new(&url, &user, &password);
-            let result = runtime().spawn({ let client = client.clone(); async move { client.ping().await } }).await;
+            let result = runtime()
+                .spawn({
+                    let client = client.clone();
+                    async move { client.ping().await }
+                })
+                .await;
 
             let imp = page.imp();
             button.set_label(&gettext("Connect"));

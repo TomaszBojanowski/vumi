@@ -94,10 +94,12 @@ impl MiniPlayer {
         imp.artist.set_label(song.artist.as_deref().unwrap_or(""));
 
         if player.is_playing() {
-            imp.play_pause.set_icon_name("media-playback-pause-symbolic");
+            imp.play_pause
+                .set_icon_name("media-playback-pause-symbolic");
             imp.play_pause.set_tooltip_text(Some(&gettext("Pause")));
         } else {
-            imp.play_pause.set_icon_name("media-playback-start-symbolic");
+            imp.play_pause
+                .set_icon_name("media-playback-start-symbolic");
             imp.play_pause.set_tooltip_text(Some(&gettext("Play")));
         }
 

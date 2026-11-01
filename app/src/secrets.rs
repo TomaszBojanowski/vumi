@@ -5,7 +5,11 @@ use crate::APP_ID;
 
 /// Attributes that identify one saved password.
 fn attributes<'a>(server: &'a str, user: &'a str) -> [(&'a str, &'a str); 3] {
-    [("application", APP_ID), ("server", server), ("username", user)]
+    [
+        ("application", APP_ID),
+        ("server", server),
+        ("username", user),
+    ]
 }
 
 pub async fn save_password(server: &str, user: &str, password: &str) -> oo7::Result<()> {
@@ -28,7 +32,9 @@ pub async fn load_password(server: &str, user: &str) -> oo7::Result<Option<Strin
         return Ok(None);
     };
     let secret = item.secret().await?;
-    Ok(Some(String::from_utf8_lossy(secret.as_bytes()).into_owned()))
+    Ok(Some(
+        String::from_utf8_lossy(secret.as_bytes()).into_owned(),
+    ))
 }
 
 /// Removes the saved password (logging out).

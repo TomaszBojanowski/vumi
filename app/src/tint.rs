@@ -85,7 +85,11 @@ pub(crate) fn dominant_color(texture: &gdk::Texture) -> Option<(u8, u8, u8)> {
     }
     // Hardly any colour on the cover: the weighted average of everything.
     if w < avg_w * 0.05 {
-        return Some(((avg_r / avg_w) as u8, (avg_g / avg_w) as u8, (avg_b / avg_w) as u8));
+        return Some((
+            (avg_r / avg_w) as u8,
+            (avg_g / avg_w) as u8,
+            (avg_b / avg_w) as u8,
+        ));
     }
     Some(((r / w) as u8, (g / w) as u8, (b / w) as u8))
 }
@@ -132,7 +136,14 @@ fn enabled() -> bool {
 /// either way, so turning the option back on shows them again at once.
 pub(crate) fn reload() {
     let css = if enabled() {
-        RULES.with(|rules| rules.borrow().values().cloned().collect::<Vec<_>>().join("\n"))
+        RULES.with(|rules| {
+            rules
+                .borrow()
+                .values()
+                .cloned()
+                .collect::<Vec<_>>()
+                .join("\n")
+        })
     } else {
         String::new()
     };

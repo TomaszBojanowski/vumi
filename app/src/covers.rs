@@ -34,7 +34,10 @@ fn update_size() {
         .flatten()
         .map(|monitor| monitor.scale())
         .fold(1.0, f64::max);
-    SIZE.store(if 256.0 * scale > 320.0 { 640 } else { 320 }, Ordering::Relaxed);
+    SIZE.store(
+        if 256.0 * scale > 320.0 { 640 } else { 320 },
+        Ordering::Relaxed,
+    );
 }
 
 /// At most this many covers are downloaded at the same time.
@@ -113,7 +116,10 @@ pub(crate) async fn load(client: Option<subsonic::Client>, id: String) -> Option
             // Cache only what decodes, so an error reply is never stored as an image.
             let Some(texture) = decode(bytes.clone()).await else {
                 let start = String::from_utf8_lossy(&bytes[..bytes.len().min(120)]).to_string();
-                eprintln!("Cover {id}: {} bytes that are not an image: {start}", bytes.len());
+                eprintln!(
+                    "Cover {id}: {} bytes that are not an image: {start}",
+                    bytes.len()
+                );
                 return None;
             };
             if let Some(dir) = path.parent() {

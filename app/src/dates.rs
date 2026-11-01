@@ -15,14 +15,15 @@ pub(crate) fn starred_ago(date: &str) -> String {
         return String::new();
     };
     // The number of the day in local time, so "yesterday" follows midnight.
-    let day = |time: &glib::DateTime| {
-        (time.to_unix() + time.utc_offset().as_seconds()).div_euclid(86400)
-    };
+    let day =
+        |time: &glib::DateTime| (time.to_unix() + time.utc_offset().as_seconds()).div_euclid(86400);
     let days = (day(&now) - day(&then)).max(0);
     match days {
         0 => gettext("today"),
         1 => gettext("yesterday"),
-        2..=6 => ngettext("{n} day ago", "{n} days ago", days as u32).replace("{n}", &days.to_string()),
+        2..=6 => {
+            ngettext("{n} day ago", "{n} days ago", days as u32).replace("{n}", &days.to_string())
+        }
         7..=13 => gettext("a week ago"),
         14..=27 => {
             let weeks = (days / 7) as u32;

@@ -9,7 +9,7 @@ use std::collections::BTreeSet;
 use std::rc::Rc;
 
 use crate::artist_page::ArtistPage;
-use crate::favorites::{star_button, Favorite};
+use crate::favorites::{Favorite, star_button};
 use crate::{about, covers, error_message, player, runtime, tint};
 
 mod imp {
@@ -153,7 +153,13 @@ impl AlbumPage {
         match client {
             Some(client) => {
                 page.load_about(client.clone(), album.id.clone());
-                page.load_tracks(client, album.id.clone(), album.year, album.artist.clone(), local);
+                page.load_tracks(
+                    client,
+                    album.id.clone(),
+                    album.year,
+                    album.artist.clone(),
+                    local,
+                );
             }
             None => page.show_error(&gettext("Connect to the server to see the tracks.")),
         }
@@ -192,14 +198,19 @@ impl AlbumPage {
         let page = self.downgrade();
         let client_for_page = client.clone();
         glib::spawn_future_local(async move {
-            let result = runtime().spawn(async move { client.album(&id).await }).await;
+            let result = runtime()
+                .spawn(async move { client.album(&id).await })
+                .await;
             let Some(page) = page.upgrade() else {
                 return;
             };
             match result {
                 Ok(Ok(album)) => {
                     // Nothing new: the page stays exactly as it is.
-                    if local_album.as_ref().is_some_and(|local| same_album(local, &album)) {
+                    if local_album
+                        .as_ref()
+                        .is_some_and(|local| same_album(local, &album))
+                    {
                         return;
                     }
                     page.after_shown(move |page| {
@@ -272,7 +283,10 @@ impl AlbumPage {
             .filter_map(|s| s.composer.as_deref())
             .filter(|c| !c.trim().is_empty())
         {
-            counts.entry(composer_key(composer)).or_insert((0, composer)).0 += 1;
+            counts
+                .entry(composer_key(composer))
+                .or_insert((0, composer))
+                .0 += 1;
         }
         let dominant = counts
             .iter()
@@ -433,7 +447,9 @@ fn track_row(
         // Left out when it is the header's composer, or when the composers
         // all perform the track themselves.
         let performers = names_of(song.artist.as_deref().unwrap_or(""));
-        let performs = names_of(composer).iter().all(|name| performers.contains(name));
+        let performs = names_of(composer)
+            .iter()
+            .all(|name| performers.contains(name));
         if Some(composer_key(composer).as_str()) != hidden_composer && !performs {
             // In italics, so the composer is told from the performer.
             subtitle.push(format!(
@@ -508,8 +524,16 @@ pub(crate) fn quality_text(songs: &[subsonic::Song]) -> Option<(String, bool)> {
     let format = first.suffix.as_deref()?.to_uppercase();
 
     // Lossy files report a bit depth of 0; treat that as "not applicable".
-    let depth = songs.iter().filter_map(|s| s.bit_depth).filter(|&d| d > 0).max();
-    let rate = songs.iter().filter_map(|s| s.sampling_rate).filter(|&r| r > 0).max();
+    let depth = songs
+        .iter()
+        .filter_map(|s| s.bit_depth)
+        .filter(|&d| d > 0)
+        .max();
+    let rate = songs
+        .iter()
+        .filter_map(|s| s.sampling_rate)
+        .filter(|&r| r > 0)
+        .max();
 
     let quality = match (depth, rate) {
         (Some(depth), Some(rate)) => format!("{} / {}", bits_text(depth), khz_text(rate)),
@@ -567,7 +591,11 @@ impl AlbumPage {
             let (Some(page), Ok(Ok(info))) = (page.upgrade(), result) else {
                 return;
             };
-            let text = info.notes.as_deref().map(about::plain_text).unwrap_or_default();
+            let text = info
+                .notes
+                .as_deref()
+                .map(about::plain_text)
+                .unwrap_or_default();
             if !text.is_empty() {
                 page.show_about(&text);
             }
@@ -579,7 +607,6 @@ impl AlbumPage {
         about::fill(&imp.about, &imp.about_text, &imp.about_more, text);
     }
 }
-
 
 impl AlbumPage {
     pub(crate) fn album_id(&self) -> String {

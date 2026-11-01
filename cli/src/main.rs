@@ -1,5 +1,5 @@
-use gstreamer as gst;
 use gst::prelude::*;
+use gstreamer as gst;
 use std::env;
 use std::process::exit;
 
@@ -29,20 +29,32 @@ async fn main() -> AnyResult<()> {
     let albums = client.album_list(20, 0).await?;
     for (i, a) in albums.iter().enumerate() {
         let year = a.year.map(|y| format!(" ({y})")).unwrap_or_default();
-        println!("{:>2}. {} — {}{}", i + 1, a.artist.as_deref().unwrap_or(""), a.name, year);
+        println!(
+            "{:>2}. {} — {}{}",
+            i + 1,
+            a.artist.as_deref().unwrap_or(""),
+            a.name,
+            year
+        );
     }
 
     let Some(arg) = env::args().nth(1) else {
         println!("\nRun with an album number to play it, e.g.: cargo run -p cli -- 3");
         return Ok(());
     };
-    let n: usize = arg.parse().map_err(|_| "album number must be a positive integer")?;
+    let n: usize = arg
+        .parse()
+        .map_err(|_| "album number must be a positive integer")?;
     if n == 0 || n > albums.len() {
         return Err(format!("pick a number from 1 to {}", albums.len()).into());
     }
 
     let album = client.album(&albums[n - 1].id).await?;
-    println!("\nPlaying: {} — {}\n", album.artist.as_deref().unwrap_or(""), album.name);
+    println!(
+        "\nPlaying: {} — {}\n",
+        album.artist.as_deref().unwrap_or(""),
+        album.name
+    );
 
     gst::init()?;
     for song in &album.song {

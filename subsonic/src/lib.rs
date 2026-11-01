@@ -401,7 +401,10 @@ impl Client {
     /// Last.fm or ListenBrainz if the server forwards them). `time` is when the
     /// listen began, in milliseconds since the Unix epoch.
     pub async fn scrobble(&self, id: &str, submission: bool, time: Option<u64>) -> Result<()> {
-        let mut params = vec![("id", id.to_string()), ("submission", submission.to_string())];
+        let mut params = vec![
+            ("id", id.to_string()),
+            ("submission", submission.to_string()),
+        ];
         if let Some(time) = time {
             params.push(("time", time.to_string()));
         }
@@ -451,7 +454,9 @@ pub struct AlbumInfo {
 
 impl Client {
     pub async fn album_info(&self, id: &str) -> Result<AlbumInfo> {
-        let response = self.call("getAlbumInfo2", &[("id", id.to_string())]).await?;
+        let response = self
+            .call("getAlbumInfo2", &[("id", id.to_string())])
+            .await?;
         Ok(response.album_info.unwrap_or_default())
     }
 }
@@ -521,7 +526,9 @@ impl Client {
     }
 
     pub async fn artist_info(&self, id: &str) -> Result<ArtistInfo> {
-        let response = self.call("getArtistInfo2", &[("id", id.to_string())]).await?;
+        let response = self
+            .call("getArtistInfo2", &[("id", id.to_string())])
+            .await?;
         Ok(response.artist_info2.unwrap_or_default())
     }
 }
@@ -592,7 +599,11 @@ impl Client {
     }
 
     /// Creates a playlist with the given songs; returns it.
-    pub async fn create_playlist(&self, name: &str, song_ids: &[&str]) -> Result<PlaylistWithSongs> {
+    pub async fn create_playlist(
+        &self,
+        name: &str,
+        song_ids: &[&str],
+    ) -> Result<PlaylistWithSongs> {
         let mut params = vec![("name", name.to_string())];
         params.extend(song_ids.iter().map(|id| ("songId", id.to_string())));
         let response = self.call("createPlaylist", &params).await?;

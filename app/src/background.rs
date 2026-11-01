@@ -20,8 +20,7 @@ thread_local! {
 pub(crate) fn request() {
     glib::spawn_future_local(async move {
         // The app is already on the session bus (GTK connects at startup).
-        let Some(connection) =
-            gio::Application::default().and_then(|app| app.dbus_connection())
+        let Some(connection) = gio::Application::default().and_then(|app| app.dbus_connection())
         else {
             eprintln!("Background portal: not on the session bus");
             return;

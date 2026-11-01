@@ -71,7 +71,9 @@ pub(crate) fn star_button(
     item: Favorite,
 ) -> gtk::ToggleButton {
     let key = item.key();
-    let starred = KNOWN.with(|known| known.borrow().get(&key).copied()).unwrap_or(starred);
+    let starred = KNOWN
+        .with(|known| known.borrow().get(&key).copied())
+        .unwrap_or(starred);
     let button = gtk::ToggleButton::builder()
         .active(starred)
         .valign(gtk::Align::Center)
@@ -126,7 +128,9 @@ pub(crate) fn star_button(
                 // Confirmed: the local database follows now, whether or not the
                 // button still exists (the page may have been left meanwhile).
                 let _ = runtime()
-                    .spawn_blocking(move || crate::library::set_starred(&server, is_album, &id, starred))
+                    .spawn_blocking(move || {
+                        crate::library::set_starred(&server, is_album, &id, starred)
+                    })
                     .await;
                 // The Favorites page follows the database, without waiting for
                 // the next sync.
@@ -145,7 +149,10 @@ pub(crate) fn star_button(
                 reverting.set(true);
                 button.set_active(!starred);
                 reverting.set(false);
-                show_toast(&button, &gettext("Could not change favorites. Please try again."));
+                show_toast(
+                    &button,
+                    &gettext("Could not change favorites. Please try again."),
+                );
             }
         });
     });
@@ -185,7 +192,10 @@ pub(crate) fn set(
             .await;
         if !matches!(result, Ok(Ok(()))) {
             if let Some(widget) = widget.upgrade() {
-                show_toast(&widget, &gettext("Could not change favorites. Please try again."));
+                show_toast(
+                    &widget,
+                    &gettext("Could not change favorites. Please try again."),
+                );
             }
             return;
         }

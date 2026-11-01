@@ -8,7 +8,7 @@ use gtk::gio;
 use gtk::glib::variant::ToVariant;
 use gtk::prelude::*;
 
-use crate::{player, APP_ID};
+use crate::{APP_ID, player};
 
 /// The settings key; one (album, song, seconds) entry per album.
 const KEY: &str = "played-albums";
@@ -265,10 +265,18 @@ mod tests {
 
         // "Resume" on the Last Played card, then at once another album: the
         // first one keeps the second it was resumed at.
-        player.play_from(client.clone(), vec![song("a1", "A"), song("a2", "A")].into(), 1, 20.0);
+        player.play_from(
+            client.clone(),
+            vec![song("a1", "A"), song("a2", "A")].into(),
+            1,
+            20.0,
+        );
         player.play(client.clone(), vec![song("b1", "B")].into(), 0);
         if remembered("A") != Some(("a2".into(), 20)) {
-            failures.push(format!("resumed and left at once: A is {:?}", remembered("A")));
+            failures.push(format!(
+                "resumed and left at once: A is {:?}",
+                remembered("A")
+            ));
         }
 
         // Another album by hand, without a pause, after two seconds and more.

@@ -109,7 +109,9 @@ impl PlaylistPage {
         let page = self.downgrade();
         let client_for_page = client.clone();
         glib::spawn_future_local(async move {
-            let result = runtime().spawn(async move { client.playlist(&id).await }).await;
+            let result = runtime()
+                .spawn(async move { client.playlist(&id).await })
+                .await;
             let (Some(page), Ok(Ok(playlist))) = (page.upgrade(), result) else {
                 return;
             };
@@ -137,11 +139,16 @@ impl PlaylistPage {
         }
 
         if let Some(cover) = playlist.cover_art.clone() {
-            covers::load_for(&imp.cover.get(), Some(client.clone()), cover, |cover, texture| {
-                if texture.is_some() {
-                    cover.set_texture(texture.as_ref());
-                }
-            });
+            covers::load_for(
+                &imp.cover.get(),
+                Some(client.clone()),
+                cover,
+                |cover, texture| {
+                    if texture.is_some() {
+                        cover.set_texture(texture.as_ref());
+                    }
+                },
+            );
         }
 
         let songs: Rc<[subsonic::Song]> = playlist.entry.as_slice().into();

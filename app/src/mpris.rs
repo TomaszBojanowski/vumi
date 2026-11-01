@@ -191,7 +191,10 @@ fn handle_method(
 
 /// The length of the current track in seconds, as Metadata gives it out.
 fn track_length() -> Option<f64> {
-    player::get().current()?.duration.map(|seconds| seconds as f64)
+    player::get()
+        .current()?
+        .duration
+        .map(|seconds| seconds as f64)
 }
 
 /// "Playing", "Paused" or "Stopped" (nothing loaded, ended, or failed).
@@ -251,9 +254,7 @@ fn get_property(interface: &str, property: &str) -> glib::Variant {
         // As on the app's own slider, from 0 to 1.
         (_, "Volume") => player.volume().to_variant(),
         (_, "Metadata") => metadata(),
-        (_, "Position") => {
-            ((player.position_secs().unwrap_or(0.0) * 1e6) as i64).to_variant()
-        }
+        (_, "Position") => ((player.position_secs().unwrap_or(0.0) * 1e6) as i64).to_variant(),
         (_, "CanGoNext") => player.has_next().to_variant(),
         (_, "CanGoPrevious") | (_, "CanPlay") | (_, "CanPause") | (_, "CanSeek") => {
             loaded.to_variant()
@@ -355,5 +356,6 @@ fn track_path(song_id: &str) -> Option<glib::variant::ObjectPath> {
         .chars()
         .map(|c| if c.is_ascii_alphanumeric() { c } else { '_' })
         .collect();
-    glib::variant::ObjectPath::try_from(format!("/io/github/tomaszbojanowski/Vumi/track/t{id}")).ok()
+    glib::variant::ObjectPath::try_from(format!("/io/github/tomaszbojanowski/Vumi/track/t{id}"))
+        .ok()
 }

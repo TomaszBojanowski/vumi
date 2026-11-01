@@ -100,7 +100,8 @@ impl NowPlaying {
         imp.pill.add_css_class(tint.class());
         let _ = imp.tint.set(tint);
 
-        imp.play_pause.connect_clicked(|_| player::get().toggle_pause());
+        imp.play_pause
+            .connect_clicked(|_| player::get().toggle_pause());
         imp.volume_scale
             .connect_value_changed(|scale| player::get().set_volume(scale.value()));
         // The scroll wheel over the button: 5% a step, without opening it.
@@ -238,11 +239,13 @@ impl NowPlaying {
             .set_upper(song.duration.unwrap_or(0).max(1) as f64);
 
         if player.is_playing() {
-            imp.play_pause.set_icon_name("media-playback-pause-symbolic");
+            imp.play_pause
+                .set_icon_name("media-playback-pause-symbolic");
             imp.play_pause.set_tooltip_text(Some(&gettext("Pause")));
             self.start_timer();
         } else {
-            imp.play_pause.set_icon_name("media-playback-start-symbolic");
+            imp.play_pause
+                .set_icon_name("media-playback-start-symbolic");
             imp.play_pause.set_tooltip_text(Some(&gettext("Play")));
             self.stop_timer();
         }

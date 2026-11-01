@@ -109,7 +109,9 @@ impl ArtistPage {
         let page = self.downgrade();
         let client_for_cards = client.clone();
         glib::spawn_future_local(async move {
-            let result = runtime().spawn(async move { client.artist(&id).await }).await;
+            let result = runtime()
+                .spawn(async move { client.artist(&id).await })
+                .await;
             let (Some(page), Ok(Ok(artist))) = (page.upgrade(), result) else {
                 return;
             };

@@ -67,7 +67,11 @@ impl WelcomePage {
         let button = imp.next_button.get();
         imp.carousel.connect_page_changed(move |carousel, index| {
             let last = index + 1 == carousel.n_pages();
-            let label = if last { gettext("Get Started") } else { pgettext("welcome", "Next") };
+            let label = if last {
+                gettext("Get Started")
+            } else {
+                pgettext("welcome", "Next")
+            };
             button.set_label(&label);
         });
 

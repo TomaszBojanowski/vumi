@@ -4,8 +4,8 @@
 //! Widgets that show the playback state register with connect_changed().
 
 use gettextrs::gettext;
-use gstreamer as gst;
 use gst::prelude::*;
+use gstreamer as gst;
 use std::cell::{Cell, OnceCell, RefCell};
 use std::rc::{Rc, Weak};
 use std::sync::{Arc, Mutex};
@@ -308,7 +308,11 @@ impl Player {
         self.apply_replay_gain();
         self.apply_volume();
         self.playbin.set_property("uri", url.as_str());
-        let target = if play { gst::State::Playing } else { gst::State::Paused };
+        let target = if play {
+            gst::State::Playing
+        } else {
+            gst::State::Paused
+        };
         match self.playbin.set_state(target) {
             Ok(_) => {
                 self.set_state(if play { State::Playing } else { State::Paused });
@@ -406,7 +410,11 @@ impl Player {
             .playbin
             .seek_simple(gst::SeekFlags::FLUSH | gst::SeekFlags::KEY_UNIT, target);
         if sought.is_ok() {
-            let state = if self.is_playing() { "playing" } else { "paused" };
+            let state = if self.is_playing() {
+                "playing"
+            } else {
+                "paused"
+            };
             self.report(state, Some((seconds.max(0.0) * 1000.0) as u64));
             self.notify_seeked(seconds.max(0.0));
         }
@@ -445,7 +453,11 @@ impl Player {
             // URL, and with it the login token.
             gst::MessageView::Error(err) => {
                 self.blame_pending_switch();
-                self.fail(format!("{}: {}", gettext("Could not play the track"), err.error()));
+                self.fail(format!(
+                    "{}: {}",
+                    gettext("Could not play the track"),
+                    err.error()
+                ));
             }
             _ => {}
         }
@@ -576,13 +588,20 @@ impl Player {
         };
         self.report_support.set(Some(false));
         gst::glib::spawn_future_local(async move {
-            let result = crate::runtime().spawn(async move { client.extensions().await }).await;
-            let supported = matches!(&result, Ok(Ok(names)) if names.iter().any(|n| n == "playbackReport"));
+            let result = crate::runtime()
+                .spawn(async move { client.extensions().await })
+                .await;
+            let supported =
+                matches!(&result, Ok(Ok(names)) if names.iter().any(|n| n == "playbackReport"));
             let player = get();
             // Logged out meanwhile: the answer is about another server.
             if supported && player.report_support.get() == Some(false) {
                 player.report_support.set(Some(true));
-                let state = if player.is_playing() { "playing" } else { "paused" };
+                let state = if player.is_playing() {
+                    "playing"
+                } else {
+                    "paused"
+                };
                 player.report(state, None);
             }
         });
@@ -655,7 +674,8 @@ impl Player {
     /// the slider sound like half as loud. 1 stays exactly 1, so at full volume
     /// the signal is unchanged.
     fn apply_volume(&self) {
-        self.playbin.set_property("volume", self.volume.get().powi(3));
+        self.playbin
+            .set_property("volume", self.volume.get().powi(3));
     }
 }
 
@@ -700,7 +720,9 @@ impl Player {
 /// "Repeat" from the main menu: none, queue or track.
 fn repeat_mode() -> String {
     use gtk::gio::prelude::*;
-    gtk::gio::Settings::new(crate::APP_ID).string("repeat").to_string()
+    gtk::gio::Settings::new(crate::APP_ID)
+        .string("repeat")
+        .to_string()
 }
 
 /// "Endless Radio" from the main menu.
@@ -833,7 +855,11 @@ impl Player {
             return;
         };
         let expected = self.following(self.position.get());
-        let handed_over = self.queue.borrow().get(expected).is_some_and(|song| song.id == id);
+        let handed_over = self
+            .queue
+            .borrow()
+            .get(expected)
+            .is_some_and(|song| song.id == id);
         if handed_over {
             self.position.set(expected);
         }

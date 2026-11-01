@@ -1,19 +1,19 @@
 //! Main view: the album grid, plus the connection state and an offline
 //! banner with a Retry button.
 
-use std::sync::Arc;
 use adw::prelude::*;
 use adw::subclass::prelude::*;
 use gettextrs::{gettext, ngettext};
 use gtk::{gio, glib};
 use std::cell::{Cell, OnceCell, RefCell};
+use std::sync::Arc;
 use std::time::Instant;
 
 use crate::album_card::AlbumCard;
 use crate::album_page::AlbumPage;
 use crate::artist_card::ArtistCard;
 use crate::artist_page::ArtistPage;
-use crate::{covers, error_message, library, runtime, since_start, APP_ID, APP_NAME};
+use crate::{APP_ID, APP_NAME, covers, error_message, library, runtime, since_start};
 
 /// One artist in the Artists grid.
 struct ArtistItem {
@@ -165,7 +165,11 @@ mod imp {
         pub favorites_header: OnceCell<crate::favorites_header::FavoritesHeader>,
         /// What the Favorites page shows, as read from the database (songs
         /// most recently starred first), and the client it came with.
-        pub favorite_content: RefCell<(Vec<Arc<subsonic::Album>>, Vec<subsonic::Song>, Option<subsonic::Client>)>,
+        pub favorite_content: RefCell<(
+            Vec<Arc<subsonic::Album>>,
+            Vec<subsonic::Song>,
+            Option<subsonic::Client>,
+        )>,
         /// How the favourite songs are sorted: the switch on their heading.
         pub favorites_sort: OnceCell<adw::ToggleGroup>,
         /// The Favorites page is below its breakpoint.
@@ -525,9 +529,14 @@ impl MainView {
             let stale = view.imp().sync_generation.get() != generation;
             match result {
                 Ok(Ok(albums)) => {
-                    eprintln!("Synced {} albums in {:.2?}", albums.len(), started.elapsed());
+                    eprintln!(
+                        "Synced {} albums in {:.2?}",
+                        albums.len(),
+                        started.elapsed()
+                    );
                     // Shared, not copied: the grid and the save below point at the same albums.
-                    let albums: Vec<Arc<subsonic::Album>> = albums.into_iter().map(Arc::new).collect();
+                    let albums: Vec<Arc<subsonic::Album>> =
+                        albums.into_iter().map(Arc::new).collect();
                     if stale {
                         return;
                     }
@@ -764,9 +773,7 @@ fn sort_albums(albums: &mut [Arc<subsonic::Album>], mode: &str) {
             )
         }),
         "year-desc" => albums.sort_by_cached_key(|a| (Reverse(a.year), lower(&a.name))),
-        "year-asc" => {
-            albums.sort_by_cached_key(|a| (a.year.unwrap_or(i32::MAX), lower(&a.name)))
-        }
+        "year-asc" => albums.sort_by_cached_key(|a| (a.year.unwrap_or(i32::MAX), lower(&a.name))),
         // Dates compare as text (ISO 8601), so no key needs to be built.
         "added" => albums.sort_by(|a, b| b.created.cmp(&a.created)),
         _ => albums.sort_by_cached_key(|a| lower(&a.name)),
@@ -786,53 +793,53 @@ impl MainView {
         glib::spawn_future_local(async move {
             // Whatever happens inside, the sync is over when this block ends.
             async {
-            let started = std::time::Instant::now();
-            let fetched = runtime()
-                .spawn(async move { client.all_songs().await })
-                .await;
-            let songs = match fetched {
-                Ok(Ok(songs)) => songs,
-                Ok(Err(e)) => {
-                    eprintln!("Could not sync songs: {e}");
+                let started = std::time::Instant::now();
+                let fetched = runtime()
+                    .spawn(async move { client.all_songs().await })
+                    .await;
+                let songs = match fetched {
+                    Ok(Ok(songs)) => songs,
+                    Ok(Err(e)) => {
+                        eprintln!("Could not sync songs: {e}");
+                        return;
+                    }
+                    Err(_) => return,
+                };
+                // Superseded meanwhile: a newer sync may have saved fresher songs
+                // already, so this response is dropped instead of written over them.
+                if !view
+                    .upgrade()
+                    .is_some_and(|v| v.imp().sync_generation.get() == generation)
+                {
                     return;
                 }
-                Err(_) => return,
-            };
-            // Superseded meanwhile: a newer sync may have saved fresher songs
-            // already, so this response is dropped instead of written over them.
-            if !view
-                .upgrade()
-                .is_some_and(|v| v.imp().sync_generation.get() == generation)
-            {
-                return;
-            }
-            let count = songs.len();
-            let saved = runtime()
-                // The songs come last: with them stored, the sync is done.
-                .spawn_blocking(move || {
-                    library::save_songs(&server, &songs)?;
-                    library::mark_synced(&server)
-                })
-                .await;
-            match saved {
-                Ok(Ok(())) => {
-                    eprintln!("Synced {count} songs in {:.2?}", started.elapsed());
-                    // The "Continue" card may need songs that have only just arrived.
-                    // Unless another account was connected meanwhile.
-                    if let Some(view) = view
-                        .upgrade()
-                        .filter(|v| v.imp().sync_generation.get() == generation)
-                    {
-                        view.refresh_start();
-                        view.refresh_favorites();
-                        // After the songs, not alongside them: a busy server
-                        // answers one big request at a time more reliably.
-                        view.sync_artists();
+                let count = songs.len();
+                let saved = runtime()
+                    // The songs come last: with them stored, the sync is done.
+                    .spawn_blocking(move || {
+                        library::save_songs(&server, &songs)?;
+                        library::mark_synced(&server)
+                    })
+                    .await;
+                match saved {
+                    Ok(Ok(())) => {
+                        eprintln!("Synced {count} songs in {:.2?}", started.elapsed());
+                        // The "Continue" card may need songs that have only just arrived.
+                        // Unless another account was connected meanwhile.
+                        if let Some(view) = view
+                            .upgrade()
+                            .filter(|v| v.imp().sync_generation.get() == generation)
+                        {
+                            view.refresh_start();
+                            view.refresh_favorites();
+                            // After the songs, not alongside them: a busy server
+                            // answers one big request at a time more reliably.
+                            view.sync_artists();
+                        }
                     }
+                    Ok(Err(e)) => eprintln!("Could not save songs: {e}"),
+                    Err(_) => {}
                 }
-                Ok(Err(e)) => eprintln!("Could not save songs: {e}"),
-                Err(_) => {}
-            }
             }
             .await;
             // A newer sync ends on its own; this one must not end it early.
@@ -964,7 +971,12 @@ impl MainView {
                 listed
                     .iter()
                     .map(|a| {
-                        (a.id.clone(), a.name.clone(), a.album_count.unwrap_or(0), a.cover_art.clone())
+                        (
+                            a.id.clone(),
+                            a.name.clone(),
+                            a.album_count.unwrap_or(0),
+                            a.cover_art.clone(),
+                        )
                     })
                     .collect()
             }
@@ -1072,7 +1084,9 @@ impl MainView {
         let generation = self.imp().sync_generation.get();
         let view = self.downgrade();
         glib::spawn_future_local(async move {
-            let result = runtime().spawn(async move { client.playlists().await }).await;
+            let result = runtime()
+                .spawn(async move { client.playlists().await })
+                .await;
             let Some(view) = view
                 .upgrade()
                 .filter(|v| v.imp().sync_generation.get() == generation)
@@ -1100,8 +1114,14 @@ impl MainView {
         imp.favorites.set_show_counts(true);
         // Recently starred, title or artist: the songs are sorted again
         // right away (show_favorites).
-        let sort = adw::ToggleGroup::builder().valign(gtk::Align::Center).build();
-        for label in [gettext("Recently Starred"), gettext("Title"), gettext("Artist")] {
+        let sort = adw::ToggleGroup::builder()
+            .valign(gtk::Align::Center)
+            .build();
+        for label in [
+            gettext("Recently Starred"),
+            gettext("Title"),
+            gettext("Artist"),
+        ] {
             sort.add(adw::Toggle::builder().label(label).build());
         }
         sort.set_active(0);
@@ -1161,13 +1181,20 @@ impl MainView {
     /// songs are sorted by it, and only where there is room for it.
     fn set_favorite_dates(&self) {
         let imp = self.imp();
-        let by_date = imp.favorites_sort.get().is_none_or(|sort| sort.active() == 0);
+        let by_date = imp
+            .favorites_sort
+            .get()
+            .is_none_or(|sort| sort.active() == 0);
         if by_date && !imp.favorites_is_narrow.get() {
             imp.favorites.set_note(Some(|song: &subsonic::Song| {
-                song.starred.as_deref().map(crate::dates::starred_ago).unwrap_or_default()
+                song.starred
+                    .as_deref()
+                    .map(crate::dates::starred_ago)
+                    .unwrap_or_default()
             }));
         } else {
-            imp.favorites.set_note(None::<fn(&subsonic::Song) -> String>);
+            imp.favorites
+                .set_note(None::<fn(&subsonic::Song) -> String>);
         }
     }
 
@@ -1224,7 +1251,11 @@ impl MainView {
         let imp = self.imp();
         let playlists = imp.playlists.borrow().clone();
         let client = imp.client.borrow().clone();
-        let columns: usize = if imp.playlists_two_columns.get() { 2 } else { 1 };
+        let columns: usize = if imp.playlists_two_columns.get() {
+            2
+        } else {
+            1
+        };
 
         while let Some(child) = imp.playlists_grid.first_child() {
             imp.playlists_grid.remove(&child);
@@ -1346,7 +1377,11 @@ impl MainView {
         }
         imp.playlists_page.set_badge_number(playlists.len() as u32);
         imp.playlists_stack
-            .set_visible_child_name(if playlists.is_empty() { "empty" } else { "list" });
+            .set_visible_child_name(if playlists.is_empty() {
+                "empty"
+            } else {
+                "list"
+            });
     }
 
     /// Plays a playlist from its first song, fetched from the server.
@@ -1358,7 +1393,9 @@ impl MainView {
         let command = crate::player::get().command_id();
         glib::spawn_future_local(async move {
             let request = client.clone();
-            let fetched = runtime().spawn(async move { request.playlist(&id).await }).await;
+            let fetched = runtime()
+                .spawn(async move { request.playlist(&id).await })
+                .await;
             let Ok(Ok(playlist)) = fetched else {
                 return;
             };
@@ -1386,7 +1423,10 @@ impl MainView {
         // another copy on top.
         let stack = nav.navigation_stack();
         for i in (0..stack.n_items()).rev() {
-            if let Some(page) = stack.item(i).and_downcast::<crate::playlist_page::PlaylistPage>() {
+            if let Some(page) = stack
+                .item(i)
+                .and_downcast::<crate::playlist_page::PlaylistPage>()
+            {
                 if page.playlist_id() == id {
                     nav.pop_to_page(&page);
                     return;
@@ -1460,8 +1500,12 @@ impl MainView {
         // The results go on top of the library, once; typing more updates them.
         imp.views.set_visible_child_name("library");
         let stack = nav.navigation_stack();
-        let on_stack = (0..stack.n_items())
-            .any(|i| stack.item(i).and_downcast::<crate::search_page::SearchPage>().is_some());
+        let on_stack = (0..stack.n_items()).any(|i| {
+            stack
+                .item(i)
+                .and_downcast::<crate::search_page::SearchPage>()
+                .is_some()
+        });
         if !on_stack {
             nav.push(&page);
         } else if nav.visible_page().as_ref() != Some(page_widget) {
@@ -1660,13 +1704,15 @@ impl MainView {
     /// brings it back if it was open before, or was opened meanwhile.
     fn setup_queue(&self) {
         let was_open = Cell::new(false);
-        self.imp().queue_split.connect_collapsed_notify(move |split| {
-            if split.is_collapsed() {
-                was_open.set(split.shows_sidebar());
-                split.set_show_sidebar(false);
-            } else {
-                split.set_show_sidebar(was_open.get() || split.shows_sidebar());
-            }
-        });
+        self.imp()
+            .queue_split
+            .connect_collapsed_notify(move |split| {
+                if split.is_collapsed() {
+                    was_open.set(split.shows_sidebar());
+                    split.set_show_sidebar(false);
+                } else {
+                    split.set_show_sidebar(was_open.get() || split.shows_sidebar());
+                }
+            });
     }
 }

@@ -104,7 +104,10 @@ pub(crate) fn install_actions(row: &gtk::Widget, current: &Current) {
         "add-to-playlist",
         Box::new(|row, song, client| choose_playlist(row, song, client)),
     );
-    add("play-similar", Box::new(|row, song, client| play_similar(row, song, client)));
+    add(
+        "play-similar",
+        Box::new(|row, song, client| play_similar(row, song, client)),
+    );
     add(
         "go-to-album",
         Box::new(|row, song, _| {
@@ -156,7 +159,10 @@ fn menu(go_to_album: bool) -> gio::Menu {
     let queue = gio::Menu::new();
     queue.append(Some(&gettext("Play Next")), Some("song.play-next"));
     queue.append(Some(&gettext("Add to Queue")), Some("song.add-to-queue"));
-    queue.append(Some(&gettext("Add to Playlist…")), Some("song.add-to-playlist"));
+    queue.append(
+        Some(&gettext("Add to Playlist…")),
+        Some("song.add-to-playlist"),
+    );
     menu.append_section(None, &queue);
     let radio = gio::Menu::new();
     radio.append(Some(&gettext("Play Similar")), Some("song.play-similar"));
@@ -261,7 +267,10 @@ fn choose_playlist(parent: &gtk::Widget, song: subsonic::Song, client: subsonic:
                 match result {
                     Ok(Ok(playlist)) => {
                         // Translators: {name} is the name of a playlist.
-                        toast(&main, &gettext("Added to “{name}”").replace("{name}", &playlist.name));
+                        toast(
+                            &main,
+                            &gettext("Added to “{name}”").replace("{name}", &playlist.name),
+                        );
                         main.sync_playlists();
                     }
                     _ => toast(&main, &gettext("Could not add to the playlist")),
@@ -306,11 +315,16 @@ fn choose_playlist(parent: &gtk::Widget, song: subsonic::Song, client: subsonic:
                 let name = name.clone();
                 glib::spawn_future_local(async move {
                     let result = crate::runtime()
-                        .spawn(async move { request.add_to_playlist(&id, &[song_id.as_str()]).await })
+                        .spawn(
+                            async move { request.add_to_playlist(&id, &[song_id.as_str()]).await },
+                        )
                         .await;
                     match result {
                         Ok(Ok(())) => {
-                            toast(&main, &gettext("Added to “{name}”").replace("{name}", &name));
+                            toast(
+                                &main,
+                                &gettext("Added to “{name}”").replace("{name}", &name),
+                            );
                             main.sync_playlists();
                         }
                         _ => toast(&main, &gettext("Could not add to the playlist")),
@@ -359,14 +373,23 @@ fn show_info(parent: &gtk::Widget, song: &subsonic::Song) {
         gettext("Duration"),
         song.duration.map(|d| format!("{}:{:02}", d / 60, d % 60)),
     );
-    add(gettext("Format"), song.suffix.as_ref().map(|s| s.to_uppercase()));
-    add(gettext("Bit Depth"), song.bit_depth.map(|b| format!("{b} bit")));
+    add(
+        gettext("Format"),
+        song.suffix.as_ref().map(|s| s.to_uppercase()),
+    );
+    add(
+        gettext("Bit Depth"),
+        song.bit_depth.map(|b| format!("{b} bit")),
+    );
     add(
         gettext("Sample Rate"),
         song.sampling_rate
             .map(|r| format!("{} kHz", (r as f64 / 1000.0).to_string().replace('.', ","))),
     );
-    add(gettext("Bit Rate"), song.bit_rate.map(|r| format!("{r} kbps")));
+    add(
+        gettext("Bit Rate"),
+        song.bit_rate.map(|r| format!("{r} kbps")),
+    );
 
     let page = adw::PreferencesPage::new();
     page.add(&group);

@@ -20,7 +20,11 @@ use crate::song_row::SongRow;
 
 /// What a view is asked to show: the albums, the songs and the client for
 /// covers, playing and the song menu.
-type Content = (Vec<Arc<subsonic::Album>>, Vec<subsonic::Song>, Option<subsonic::Client>);
+type Content = (
+    Vec<Arc<subsonic::Album>>,
+    Vec<subsonic::Song>,
+    Option<subsonic::Client>,
+);
 
 /// What a page says about a song on its row; empty for nothing.
 type Note = Rc<dyn Fn(&subsonic::Song) -> String>;
@@ -221,7 +225,9 @@ impl ResultsView {
                 .borrow()
                 .as_ref()
                 .and_then(|(albums, _)| albums.get(child.index() as usize).cloned());
-            let main = child.ancestor(MainView::static_type()).and_downcast::<MainView>();
+            let main = child
+                .ancestor(MainView::static_type())
+                .and_downcast::<MainView>();
             if let (Some(album), Some(main)) = (album, main) {
                 main.open_album_from(child, &album.id, (*album).clone());
             }
@@ -297,7 +303,10 @@ impl ResultsView {
         // list's own row widget must not be touched while it is being filled
         // (GTK has not taken hold of it yet).
         let last = imp.entries.get().map_or(0, |entries| entries.n_items());
-        for (class, on) in [("first", item.position() == 1), ("last", item.position() + 1 == last)] {
+        for (class, on) in [
+            ("first", item.position() == 1),
+            ("last", item.position() + 1 == last),
+        ] {
             if on {
                 row.add_css_class(class);
             } else {
@@ -405,11 +414,19 @@ impl ResultsView {
 
         // The same as on screen: nothing to build.
         let account = client.as_ref().map(|client| client.server_key());
-        let same = imp.shown.borrow().as_ref().is_some_and(|(shown_albums, shown_account)| {
-            *shown_albums == albums
-                && *shown_account == account
-                && imp.songs.borrow().as_deref().is_some_and(|shown| *shown == *songs)
-        });
+        let same = imp
+            .shown
+            .borrow()
+            .as_ref()
+            .is_some_and(|(shown_albums, shown_account)| {
+                *shown_albums == albums
+                    && *shown_account == account
+                    && imp
+                        .songs
+                        .borrow()
+                        .as_deref()
+                        .is_some_and(|shown| *shown == *songs)
+            });
         if same {
             return;
         }
@@ -434,7 +451,12 @@ impl ResultsView {
         if !nothing {
             objects.push(glib::BoxedAnyObject::new(Entry::Header));
         }
-        objects.extend(songs.iter().cloned().map(|song| glib::BoxedAnyObject::new(Entry::Song(song))));
+        objects.extend(
+            songs
+                .iter()
+                .cloned()
+                .map(|song| glib::BoxedAnyObject::new(Entry::Song(song))),
+        );
         imp.songs.replace(Some(songs.into()));
         imp.client.replace(client);
         if let Some(entries) = imp.entries.get() {

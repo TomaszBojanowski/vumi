@@ -1,5 +1,5 @@
-mod album_card;
 mod about;
+mod album_card;
 mod album_page;
 mod artist_card;
 mod artist_page;
@@ -13,24 +13,24 @@ mod library;
 mod login_page;
 mod main_view;
 mod mini_player;
-mod now_playing;
 mod mpris;
+mod now_playing;
 mod player;
 mod playlist_page;
-mod queue_page;
 mod preferences;
+mod queue_page;
 mod results_view;
 mod resume;
 mod search_page;
+mod secrets;
 mod song_menu;
 mod song_row;
 mod start_page;
-mod secrets;
 mod tint;
 mod welcome_page;
 
 use adw::prelude::*;
-use gettextrs::{gettext, LocaleCategory};
+use gettextrs::{LocaleCategory, gettext};
 use gtk::{gio, glib};
 use std::sync::OnceLock;
 use std::time::{Duration, Instant};
@@ -75,7 +75,10 @@ fn main() -> glib::ExitCode {
             }
         });
     });
-    app.connect_shutdown(|_| { resume::save_now(); player::shutdown() });
+    app.connect_shutdown(|_| {
+        resume::save_now();
+        player::shutdown()
+    });
     // Logging out or shutting down: GNOME asks the app first (GTK registers
     // with the session manager by itself, through the portal inside Flatpak),
     // before anything is stopped.
@@ -430,9 +433,15 @@ fn error_message(e: &subsonic::Error) -> String {
     use subsonic::Error::*;
     match e {
         WrongCredentials => gettext("Wrong username or password."),
-        Unreachable(_) => gettext("Cannot reach the server. Check the address and your connection."),
-        InvalidAddress(_) => gettext("Invalid server address. It should start with http:// or https://"),
-        BadResponse(_) => gettext("The server answered, but it does not look like a Subsonic server."),
+        Unreachable(_) => {
+            gettext("Cannot reach the server. Check the address and your connection.")
+        }
+        InvalidAddress(_) => {
+            gettext("Invalid server address. It should start with http:// or https://")
+        }
+        BadResponse(_) => {
+            gettext("The server answered, but it does not look like a Subsonic server.")
+        }
         // Translators: {message} is the error text sent by the server.
         Server { message, .. } => gettext("Server error: {message}").replace("{message}", message),
     }
@@ -465,7 +474,6 @@ fn load_css() {
     }
 }
 
-
 /// The About dialog: what the app is, who made it, what it builds on, and the
 /// versions a bug report needs.
 fn show_about(parent: &impl gtk::prelude::IsA<gtk::Widget>) {
@@ -479,13 +487,18 @@ fn show_about(parent: &impl gtk::prelude::IsA<gtk::Widget>) {
         .issue_url("https://github.com/TomaszBojanowski/vumi/issues")
         .copyright("© 2026 Tomasz Bojanowski")
         .license_type(gtk::License::Gpl30)
-        .comments(gettext("A music player for Navidrome and other Subsonic servers"))
+        .comments(gettext(
+            "A music player for Navidrome and other Subsonic servers",
+        ))
         .translator_credits(gettext("translator-credits"))
         .debug_info(debug_info())
         .debug_info_filename("vumi-debug.txt")
         .build();
     // A way to support the author; it sits with the dialog's other links.
-    dialog.add_link(&gettext("Buy Me a Coffee"), "https://buymeacoffee.com/sojer2005");
+    dialog.add_link(
+        &gettext("Buy Me a Coffee"),
+        "https://buymeacoffee.com/sojer2005",
+    );
     dialog.add_acknowledgement_section(
         Some(&gettext("Built With")),
         &[

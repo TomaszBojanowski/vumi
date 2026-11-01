@@ -3,9 +3,9 @@
 
 use adw::prelude::BreakpointBinExt;
 use adw::subclass::prelude::*;
+use gettextrs::gettext;
 use gtk::glib;
 use gtk::prelude::*;
-use gettextrs::gettext;
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::sync::Arc;
@@ -218,7 +218,12 @@ impl StartPage {
             .filter_map(|id| albums.iter().find(|a| a.id == *id))
             .take(SHELF_SIZE)
             .collect();
-        fill_shelf(&imp.frequent_row, &imp.frequent_ids, &shelf, imp.client.borrow().clone());
+        fill_shelf(
+            &imp.frequent_row,
+            &imp.frequent_ids,
+            &shelf,
+            imp.client.borrow().clone(),
+        );
         imp.frequent_shelf.set_visible(!shelf.is_empty());
     }
 }
@@ -415,7 +420,10 @@ impl StartPage {
 
         // The "Random Album" card: play it in order or shuffled, or go to the
         // suggestion before (‹) or another one (›) without playing.
-        for (button, shuffle) in [(&self.imp().random_play, false), (&self.imp().random_shuffle, true)] {
+        for (button, shuffle) in [
+            (&self.imp().random_play, false),
+            (&self.imp().random_shuffle, true),
+        ] {
             let page = self.downgrade();
             button.connect_clicked(move |_| {
                 if let Some(page) = page.upgrade() {
@@ -529,7 +537,9 @@ impl StartPage {
     /// and the one on the Last Played card.
     fn taken_albums(&self) -> Vec<String> {
         let in_player = album_in_player();
-        let last = self.last_played(in_player.as_deref()).map(|played| played.album_id);
+        let last = self
+            .last_played(in_player.as_deref())
+            .map(|played| played.album_id);
         in_player.into_iter().chain(last).collect()
     }
 
@@ -540,7 +550,10 @@ impl StartPage {
     fn update_top(&self, reload: bool) {
         let in_player = album_in_player();
         let played = self.last_played(in_player.as_deref());
-        let taken = [in_player.as_deref(), played.as_ref().map(|p| p.album_id.as_str())];
+        let taken = [
+            in_player.as_deref(),
+            played.as_ref().map(|p| p.album_id.as_str()),
+        ];
         let random_taken = self
             .imp()
             .random_album
@@ -1022,7 +1035,13 @@ impl StartPage {
             if taken.contains(&id) {
                 continue;
             }
-            let album = self.imp().albums.borrow().iter().find(|a| a.id == id).cloned();
+            let album = self
+                .imp()
+                .albums
+                .borrow()
+                .iter()
+                .find(|a| a.id == id)
+                .cloned();
             if album.is_some() {
                 return album;
             }
