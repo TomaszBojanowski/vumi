@@ -432,6 +432,8 @@ impl ResultsView {
                         .is_some_and(|shown| *shown == *songs)
             });
         if same {
+            // The account connected again: its songs play with the new client.
+            imp.client.replace(client);
             return;
         }
         imp.shown.replace(Some((albums.clone(), account)));

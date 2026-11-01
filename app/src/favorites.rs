@@ -38,7 +38,7 @@ thread_local! {
         Default::default();
     /// Stars changed in this session, by item: older copies of the data (the
     /// queue, a page built earlier) may still carry the old state.
-    static KNOWN: std::cell::RefCell<std::collections::HashMap<String, bool>> = Default::default();
+    static KNOWN: std::cell::RefCell<Known> = Default::default();
     /// Set while buttons are flipped to match: those flips are not sent.
     static SYNCING: Cell<bool> = const { Cell::new(false) };
 }
@@ -46,7 +46,48 @@ thread_local! {
 /// A change the server has confirmed: remembered, and every other star for the
 /// same item follows it.
 fn share(key: &str, starred: bool) {
-    KNOWN.with(|known| known.borrow_mut().insert(key.to_string(), starred));
+    KNOWN.with(|known| known.borrow_mut().record(key, starred));
+    flip_buttons(key, starred);
+}
+
+/// The number of the last star changed in this session; a sync takes it when
+/// it starts (settle).
+pub(crate) fn changes() -> u64 {
+    KNOWN.with(|known| known.borrow().changes())
+}
+
+/// A sync that started at `since` (changes()) has stored the server's stars,
+/// `albums` and `songs` the ids starred there: the stars changed in this
+/// session before it take the server's (another client may have changed them
+/// since), and the buttons on screen follow. Those changed while it ran stay:
+/// the sync may have read the server before them.
+pub(crate) fn settle(
+    since: u64,
+    albums: &std::collections::HashSet<String>,
+    songs: &std::collections::HashSet<String>,
+) {
+    let changed = KNOWN.with(|known| {
+        known
+            .borrow_mut()
+            .settle(since, |key| match key.split_once(':') {
+                Some(("album", id)) => albums.contains(id),
+                Some(("song", id)) => songs.contains(id),
+                _ => false,
+            })
+    });
+    for (key, starred) in changed {
+        flip_buttons(&key, starred);
+    }
+}
+
+/// Logging out: the stars of this session belonged to that account.
+pub(crate) fn forget() {
+    KNOWN.with(|known| known.borrow_mut().clear());
+}
+
+/// Every star button on screen for `key` shows `starred`, without asking the
+/// server.
+fn flip_buttons(key: &str, starred: bool) {
     let buttons: Vec<gtk::ToggleButton> = BUTTONS.with(|buttons| {
         let mut buttons = buttons.borrow_mut();
         let Some(list) = buttons.get_mut(key) else {
@@ -72,7 +113,7 @@ pub(crate) fn star_button(
 ) -> gtk::ToggleButton {
     let key = item.key();
     let starred = KNOWN
-        .with(|known| known.borrow().get(&key).copied())
+        .with(|known| known.borrow().get(&key))
         .unwrap_or(starred);
     let button = gtk::ToggleButton::builder()
         .active(starred)
@@ -163,7 +204,7 @@ pub(crate) fn star_button(
 /// caller's (possibly older) copy of the data says.
 pub(crate) fn is_starred(item: &Favorite, fallback: bool) -> bool {
     KNOWN
-        .with(|known| known.borrow().get(&item.key()).copied())
+        .with(|known| known.borrow().get(&item.key()))
         .unwrap_or(fallback)
 }
 
@@ -226,5 +267,97 @@ fn show_toast(widget: &impl IsA<gtk::Widget>, message: &str) {
         .and_downcast::<adw::ToastOverlay>()
     {
         overlay.add_toast(crate::plain_toast(message));
+    }
+}
+
+/// The stars changed in this session, by item ("song:id", "album:id"), each
+/// with the number of its change: a sync can tell the changes made before it
+/// started from those made while it ran.
+#[derive(Default)]
+struct Known {
+    stars: std::collections::HashMap<String, (bool, u64)>,
+    changes: u64,
+}
+
+impl Known {
+    fn record(&mut self, key: &str, starred: bool) {
+        self.changes += 1;
+        self.stars.insert(key.to_owned(), (starred, self.changes));
+    }
+
+    fn get(&self, key: &str) -> Option<bool> {
+        self.stars.get(key).map(|(starred, _)| *starred)
+    }
+
+    /// The number of the last change; a sync takes it when it starts.
+    fn changes(&self) -> u64 {
+        self.changes
+    }
+
+    /// A sync that started at `since` (changes()) has stored the server's
+    /// stars: the changes made before it take the server's star
+    /// (`starred(key)`), those made while it ran stay. Returns the items whose
+    /// star changed.
+    fn settle(&mut self, since: u64, starred: impl Fn(&str) -> bool) -> Vec<(String, bool)> {
+        let mut changed = Vec::new();
+        for (key, (value, number)) in &mut self.stars {
+            let now = starred(key);
+            if *number <= since && *value != now {
+                *value = now;
+                changed.push((key.clone(), now));
+            }
+        }
+        changed
+    }
+
+    fn clear(&mut self) {
+        self.stars.clear();
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_change_made_before_a_sync_takes_the_servers_star_after_it() {
+        let mut known = Known::default();
+        known.record("song:a", true);
+        known.record("album:b", false);
+        let since = known.changes();
+        // The server: song a not starred (unstarred elsewhere), album b starred.
+        let changed = known.settle(since, |key| key == "album:b");
+        assert_eq!(known.get("song:a"), Some(false));
+        assert_eq!(known.get("album:b"), Some(true));
+        let mut changed = changed;
+        changed.sort();
+        assert_eq!(
+            changed,
+            [("album:b".to_string(), true), ("song:a".to_string(), false)]
+        );
+    }
+
+    #[test]
+    fn a_change_made_while_a_sync_runs_stays() {
+        let mut known = Known::default();
+        known.record("song:a", true);
+        let since = known.changes();
+        // Clicked while the sync runs; the sync read the server before that.
+        known.record("song:b", true);
+        let changed = known.settle(since, |_| false);
+        assert_eq!(known.get("song:a"), Some(false));
+        assert_eq!(known.get("song:b"), Some(true));
+        assert_eq!(changed, [("song:a".to_string(), false)]);
+    }
+
+    #[test]
+    fn an_unchanged_star_is_not_reported_and_logging_out_forgets_all() {
+        let mut known = Known::default();
+        known.record("song:a", true);
+        assert!(known.settle(known.changes(), |_| true).is_empty());
+        assert_eq!(known.get("song:a"), Some(true));
+        known.clear();
+        assert_eq!(known.get("song:a"), None);
+        assert_eq!(known.get("song:c"), None);
     }
 }

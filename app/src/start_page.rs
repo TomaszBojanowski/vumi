@@ -127,6 +127,11 @@ impl StartPage {
     /// Rebuilds the shelves from the albums in the library.
     pub(crate) fn update(&self, albums: &[Arc<subsonic::Album>], client: Option<subsonic::Client>) {
         let imp = self.imp();
+        // No library (logged out): the albums of "Similar to …" belonged to
+        // the account that left.
+        if albums.is_empty() {
+            self.clear_similar();
+        }
 
         // Newest first; albums without a date (not synced yet) are left out.
         let mut recent: Vec<&Arc<subsonic::Album>> =
@@ -601,6 +606,16 @@ impl StartPage {
             };
             page.show_similar(&title, &album_id, songs, client);
         });
+    }
+
+    /// "Similar to …" empty and hidden; an answer still on its way is dropped
+    /// (update_similar compares the seed).
+    fn clear_similar(&self) {
+        let imp = self.imp();
+        imp.similar_seed.replace(String::new());
+        imp.similar.replace(None);
+        fill_shelf(&imp.similar_row, &imp.similar_ids, &[], None);
+        imp.similar_shelf.set_visible(false);
     }
 
     /// One card per album the similar songs come from, most similar first.

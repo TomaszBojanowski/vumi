@@ -186,6 +186,10 @@ mod imp {
         pub reported: Cell<bool>,
         /// The account ("user@url") whose library is on screen, or empty.
         pub server: RefCell<String>,
+        /// The stars changed in this session up to the start of the running
+        /// sync (favorites::changes): once it has stored the server's stars,
+        /// the earlier ones follow them (favorites::settle).
+        pub stars_since: Cell<u64>,
         /// True once the server's own album list was shown (even an empty one):
         /// the local copy read at the same time must not replace it.
         pub synced: Cell<bool>,
@@ -498,6 +502,7 @@ impl MainView {
         // client changes right away, and the older sync drops its results.
         let generation = self.imp().sync_generation.get() + 1;
         self.imp().sync_generation.set(generation);
+        self.imp().stars_since.set(crate::favorites::changes());
         self.set_syncing(true);
         self.imp().client.replace(Some(client.clone()));
         // Covers on the Start page can now come from the server too.
@@ -831,7 +836,9 @@ impl MainView {
                             .filter(|v| v.imp().sync_generation.get() == generation)
                         {
                             view.refresh_start();
-                            view.refresh_favorites();
+                            // The server's stars are stored: the stars this
+                            // session changed before the sync follow them.
+                            view.read_favorites(Some(view.imp().stars_since.get()));
                             // After the songs, not alongside them: a busy server
                             // answers one big request at a time more reliably.
                             view.sync_artists();
@@ -1565,6 +1572,8 @@ impl MainView {
         self.set_connection(Connection::None);
         imp.server.replace(String::new());
         imp.synced.set(false);
+        // The stars changed in this session belonged to that account.
+        crate::favorites::forget();
         imp.artists.replace(Vec::new());
         imp.playlists.replace(Vec::new());
         self.refresh_playlists();
@@ -1607,6 +1616,13 @@ impl MainView {
     /// read in the background; refreshed with the library. Like a search, it
     /// needs no connection (run_search).
     pub(crate) fn refresh_favorites(&self) {
+        self.read_favorites(None);
+    }
+
+    /// refresh_favorites; after a sync that started at `settle`
+    /// (favorites::changes), the stars known in this session settle on the
+    /// stored ones too.
+    fn read_favorites(&self, settle: Option<u64>) {
         let imp = self.imp();
         let server = imp.server.borrow().clone();
         if server.is_empty() {
@@ -1625,6 +1641,11 @@ impl MainView {
             // Another account is on screen now (logged out meanwhile).
             if *view.imp().server.borrow() != account {
                 return;
+            }
+            if let Some(since) = settle {
+                let albums = found.album_ids.iter().cloned().collect();
+                let songs = found.songs.iter().map(|song| song.id.clone()).collect();
+                crate::favorites::settle(since, &albums, &songs);
             }
             let albums: Vec<Arc<subsonic::Album>> = {
                 let current = view.imp().current.borrow();
