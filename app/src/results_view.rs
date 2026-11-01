@@ -213,7 +213,7 @@ impl ResultsView {
             // The header is the first item: the songs start after it.
             let index = (position as usize).checked_sub(1);
             if let (Some(songs), Some(client), Some(index)) = (songs, client, index) {
-                player::get().play(client, songs, index);
+                player::get().play(client, songs, index, player::QueueOf::Songs);
             }
         });
 

@@ -323,6 +323,7 @@ impl AlbumPage {
         let generation = imp.row_generation.get() + 1;
         imp.row_generation.set(generation);
         let builder = Rc::new(RowBuilder {
+            album_id: album.id.clone(),
             queue,
             album_artist: album_artist.map(str::to_owned),
             client: client.clone(),
@@ -413,6 +414,7 @@ pub(crate) struct TrackRow {
 /// the artist only if it differs from the album's, the composer only if it is
 /// not the one named in the header and not one of the track's performers.
 fn track_row(
+    album_id: &str,
     song: &subsonic::Song,
     album_artist: Option<&str>,
     hidden_composer: Option<&str>,
@@ -432,13 +434,19 @@ fn track_row(
     let client_for_play = client.clone();
     let play_queue = queue.clone();
     let song_id = song.id.clone();
+    let album_id = album_id.to_owned();
     row.connect_activated(move |_| {
         let player = player::get();
         // The playing track: pause or resume it instead of starting it again.
         if player.is_active() && player.current().is_some_and(|s| s.id == song_id) {
             player.toggle_pause();
         } else {
-            player.play(client_for_play.clone(), play_queue.clone(), index);
+            player.play(
+                client_for_play.clone(),
+                play_queue.clone(),
+                index,
+                player::QueueOf::Album(album_id.clone()),
+            );
         }
     });
 
@@ -681,6 +689,8 @@ const ROW_BATCH: usize = 15;
 
 /// Where building the track rows has got to (see show_tracks).
 struct RowBuilder {
+    /// The album the queue is started as when a row is played.
+    album_id: String,
     queue: Rc<[subsonic::Song]>,
     album_artist: Option<String>,
     client: subsonic::Client,
@@ -731,6 +741,7 @@ impl AlbumPage {
             }
             if let Some((_, group)) = builder.group.borrow().as_ref() {
                 let track = track_row(
+                    &builder.album_id,
                     song,
                     builder.album_artist.as_deref(),
                     builder.hidden_composer.as_deref(),
@@ -864,12 +875,18 @@ impl AlbumPage {
                 if album_playing && player.is_active() {
                     player.toggle_pause();
                 } else if let Some(queue) = page.imp().queue.borrow().clone() {
-                    player.play(client.clone(), queue, 0);
+                    player.play(
+                        client.clone(),
+                        queue,
+                        0,
+                        player::QueueOf::Album(album_id.clone()),
+                    );
                 }
             });
         }
         {
             let page = self.downgrade();
+            let album_id = album_id.to_owned();
             shuffle_button.connect_clicked(move |_| {
                 let Some(page) = page.upgrade() else {
                     return;
@@ -880,7 +897,13 @@ impl AlbumPage {
                 // A new order needs its own copy, made only when Shuffle is pressed.
                 let mut shuffled = queue.to_vec();
                 fastrand::shuffle(&mut shuffled);
-                player::get().play(client.clone(), shuffled.into(), 0);
+                // Still the album, in another order: it goes into the history.
+                player::get().play(
+                    client.clone(),
+                    shuffled.into(),
+                    0,
+                    player::QueueOf::Album(album_id.clone()),
+                );
             });
         }
         imp.actions.append(&play_button);
@@ -1068,7 +1091,7 @@ impl AlbumPage {
             let seed_id = seed.id.clone();
             let mut songs = vec![seed];
             songs.extend(similar.into_iter().filter(|s| s.id != seed_id));
-            player::get().play(client, songs.into(), 0);
+            player::get().play(client, songs.into(), 0, player::QueueOf::Songs);
         });
     }
 }

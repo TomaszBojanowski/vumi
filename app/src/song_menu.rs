@@ -204,7 +204,7 @@ fn play_similar(row: &gtk::Widget, song: subsonic::Song, client: subsonic::Clien
         let seed_id = song.id.clone();
         let mut songs = vec![song];
         songs.extend(similar.into_iter().filter(|s| s.id != seed_id));
-        player::get().play(client, songs.into(), 0);
+        player::get().play(client, songs.into(), 0, player::QueueOf::Songs);
     });
 }
 

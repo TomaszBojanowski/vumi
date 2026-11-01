@@ -27,6 +27,8 @@ enum State {
 pub(crate) struct Player {
     playbin: gst::Element,
     queue: RefCell<Rc<[subsonic::Song]>>,
+    /// The album the queue was started as (QueueOf::Album), if it was.
+    queue_album: RefCell<Option<String>>,
     position: Cell<usize>,
     state: RefCell<State>,
     client: RefCell<Option<subsonic::Client>>,
@@ -81,6 +83,17 @@ type SeekListener = Box<dyn Fn(f64)>;
 /// Told the track and the second it was at when the player leaves it by hand.
 type LeaveListener = Box<dyn Fn(&subsonic::Song, f64)>;
 
+/// What a queue is started as. Only the songs of an album started as that
+/// album go into the history of played albums (resume.rs); radio, playlists,
+/// Favorites and other lists of songs leave it as it is.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) enum QueueOf {
+    /// The songs of the album with this id.
+    Album(String),
+    /// Any other list of songs.
+    Songs,
+}
+
 /// The one player of the app, created on first use.
 pub(crate) fn get() -> Rc<Player> {
     PLAYER.with(|cell| cell.get_or_init(Player::new).clone())
@@ -129,6 +142,7 @@ impl Player {
             Player {
                 playbin,
                 queue: RefCell::new(Vec::new().into()),
+                queue_album: RefCell::new(None),
                 position: Cell::new(0),
                 state: RefCell::new(State::Idle),
                 client: RefCell::new(None),
@@ -245,13 +259,31 @@ impl Player {
         self.command.set(self.command.get() + 1);
     }
 
-    /// Replaces the queue with `songs` and starts playing the one at `start`.
-    pub(crate) fn play(&self, client: subsonic::Client, songs: Rc<[subsonic::Song]>, start: usize) {
+    /// Replaces the queue with `songs`, started as `of`, and starts playing
+    /// the one at `start`.
+    pub(crate) fn play(
+        &self,
+        client: subsonic::Client,
+        songs: Rc<[subsonic::Song]>,
+        start: usize,
+        of: QueueOf,
+    ) {
         self.leave();
         self.new_command();
         self.client.replace(Some(client));
         self.queue.replace(songs);
+        self.queue_album.replace(match of {
+            QueueOf::Album(id) => Some(id),
+            QueueOf::Songs => None,
+        });
         self.play_at(start);
+    }
+
+    /// True if the queue was started as the album of `song` (QueueOf::Album):
+    /// only then does the song count for the history of played albums.
+    pub(crate) fn is_album_song(&self, song: &subsonic::Song) -> bool {
+        let album = self.queue_album.borrow();
+        album.is_some() && song.album_id.as_deref() == album.as_deref()
     }
 
     /// Like play(), but starts the track at `seconds` (resuming where playback
@@ -269,8 +301,9 @@ impl Player {
         songs: Rc<[subsonic::Song]>,
         start: usize,
         seconds: f64,
+        of: QueueOf,
     ) {
-        self.play(client, songs, start);
+        self.play(client, songs, start, of);
         if seconds > 0.0 {
             self.pending_seek.set(Some(seconds));
             // play() has told the listeners about the track at its start; now
@@ -965,7 +998,7 @@ impl Player {
     pub(crate) fn play_next(&self, client: subsonic::Client, song: subsonic::Song) {
         self.new_command();
         if !self.is_active() && self.failure().is_none() {
-            self.play(client, vec![song].into(), 0);
+            self.play(client, vec![song].into(), 0, QueueOf::Songs);
             return;
         }
         let mut songs = self.queue.borrow().to_vec();
@@ -1032,7 +1065,7 @@ impl Player {
     pub(crate) fn enqueue(&self, client: subsonic::Client, song: subsonic::Song) {
         self.new_command();
         if !self.is_active() && self.failure().is_none() {
-            self.play(client, vec![song].into(), 0);
+            self.play(client, vec![song].into(), 0, QueueOf::Songs);
             return;
         }
         let mut songs = self.queue.borrow().to_vec();
@@ -1056,6 +1089,7 @@ impl Player {
             *next_uri = None;
         }
         self.queue.replace(Vec::new().into());
+        self.queue_album.replace(None);
         self.position.set(0);
         self.client.replace(None);
         self.report_support.set(None);

@@ -1,5 +1,7 @@
 //! Remembers the albums that played lately, newest first, each with the song
-//! and the second it stopped at: the Last Played card resumes from there.
+//! and the second it stopped at: the Start page resumes from there. Only
+//! albums started as albums count (player::QueueOf::Album); radio, playlists
+//! and other lists of songs leave the history as it is.
 //! Saved when the song changes, on pause, when the player leaves a track by
 //! hand (another album, Stop), when the app closes and when the session ends;
 //! not every second, so the disk stays quiet.
@@ -53,7 +55,11 @@ pub(crate) fn watch() {
     }
     // Leaving a track by hand: where it was, read just before the player moves
     // on; the change that follows knows only the new track.
-    player.connect_leaving(move |song, seconds| remember(&settings, song, seconds));
+    player.connect_leaving(move |song, seconds| {
+        if player::get().is_album_song(song) {
+            remember(&settings, song, seconds);
+        }
+    });
 }
 
 /// Saves when the process is told to end (SIGTERM, as when the session ends),
@@ -105,6 +111,9 @@ fn save(settings: &gio::Settings) {
     let Some(song) = player.current() else {
         return;
     };
+    if !player.is_album_song(&song) {
+        return;
+    }
     remember(settings, &song, player.resume_position().unwrap_or(0.0));
 }
 
@@ -128,7 +137,8 @@ fn remember(settings: &gio::Settings, song: &subsonic::Song, seconds: f64) {
 
 #[cfg(test)]
 mod tests {
-    //! Where an album stopped is remembered when the player leaves it by hand.
+    //! Where an album stopped is remembered when the player leaves it by hand,
+    //! and only albums started as albums go into the history.
     //! A real playbin plays a silent WAV from a local HTTP server into a
     //! fakesink; the settings are kept in memory, so nothing outside the test
     //! changes.
@@ -241,6 +251,19 @@ mod tests {
         }
     }
 
+    /// A queue started as the album `id`.
+    fn album(id: &str) -> player::QueueOf {
+        player::QueueOf::Album(id.into())
+    }
+
+    /// The whole history, to compare before and after.
+    fn snapshot() -> Vec<(String, String, u32)> {
+        history()
+            .into_iter()
+            .map(|played| (played.album_id, played.song_id, played.seconds))
+            .collect()
+    }
+
     /// The song and the second remembered for `album`.
     fn remembered(album: &str) -> Option<(String, u32)> {
         history()
@@ -250,7 +273,7 @@ mod tests {
     }
 
     #[test]
-    fn an_album_left_by_hand_keeps_its_place() {
+    fn only_albums_played_as_albums_go_into_the_history_and_keep_their_place() {
         settings_in_memory();
         let context = glib::MainContext::default();
         let _owner = context.acquire().expect("the main context is taken");
@@ -276,8 +299,9 @@ mod tests {
             vec![song("a1", "A"), song("a2", "A")].into(),
             1,
             20.0,
+            album("A"),
         );
-        player.play(client.clone(), vec![song("b1", "B")].into(), 0);
+        player.play(client.clone(), vec![song("b1", "B")].into(), 0, album("B"));
         if remembered("A") != Some(("a2".into(), 20)) {
             failures.push(format!(
                 "resumed and left at once: A is {:?}",
@@ -287,7 +311,7 @@ mod tests {
 
         // Another album by hand, without a pause, after two seconds and more.
         assert!(played_for(2.3), "B did not play");
-        player.play(client.clone(), vec![song("c1", "C")].into(), 0);
+        player.play(client.clone(), vec![song("c1", "C")].into(), 0, album("C"));
         if !remembered("B").is_some_and(|(id, seconds)| id == "b1" && seconds >= 2) {
             failures.push(format!("another album started: B is {:?}", remembered("B")));
         }
@@ -300,7 +324,7 @@ mod tests {
         }
 
         // SIGTERM (the session ends) after two seconds and more.
-        player.play(client.clone(), vec![song("d1", "D")].into(), 0);
+        player.play(client.clone(), vec![song("d1", "D")].into(), 0, album("D"));
         assert!(played_for(2.3), "D did not play");
         let quit = std::rc::Rc::new(std::cell::Cell::new(false));
         save_on_terminate({
@@ -315,6 +339,53 @@ mod tests {
         assert!(run_until(long, || quit.get()), "SIGTERM did not quit");
         if !remembered("D").is_some_and(|(id, seconds)| id == "d1" && seconds >= 2) {
             failures.push(format!("SIGTERM: D is {:?}", remembered("D")));
+        }
+
+        // A radio of three albums, skipped through by hand: the history of
+        // played albums stays as it is.
+        player.stop();
+        let before = snapshot();
+        player.play(
+            client.clone(),
+            vec![song("r1", "R1"), song("r2", "R2"), song("r3", "R3")].into(),
+            0,
+            player::QueueOf::Songs,
+        );
+        for id in ["r1", "r2", "r3"] {
+            if id != "r1" {
+                player.next();
+            }
+            assert!(
+                run_until(long, || player.is_playing()
+                    && player.current().is_some_and(|s| s.id == id)
+                    && player.position_secs().unwrap_or(0.0) >= 0.5),
+                "{id} did not play"
+            );
+        }
+        player.stop();
+        if snapshot() != before {
+            failures.push(format!("a radio changed the history: {:?}", snapshot()));
+        }
+
+        // An album with a song of another album added to the queue: only the
+        // album goes into the history.
+        player.play(client.clone(), vec![song("e1", "E")].into(), 0, album("E"));
+        assert!(played_for(0.5), "E did not play");
+        player.enqueue(client.clone(), song("f1", "F"));
+        player.next();
+        assert!(
+            run_until(long, || player.is_playing()
+                && player.current().is_some_and(|s| s.id == "f1")
+                && player.position_secs().unwrap_or(0.0) >= 0.5),
+            "f1 did not play"
+        );
+        player.stop();
+        if remembered("E").is_none() || remembered("F").is_some() {
+            failures.push(format!(
+                "an added song: E is {:?}, F is {:?}",
+                remembered("E"),
+                remembered("F")
+            ));
         }
 
         assert!(failures.is_empty(), "{}", failures.join("; "));

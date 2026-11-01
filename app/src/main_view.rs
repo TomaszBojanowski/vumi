@@ -1369,7 +1369,12 @@ impl MainView {
             if !crate::player::get().is_current(command) || playlist.entry.is_empty() {
                 return;
             }
-            crate::player::get().play(client, playlist.entry.into(), 0);
+            crate::player::get().play(
+                client,
+                playlist.entry.into(),
+                0,
+                crate::player::QueueOf::Songs,
+            );
         });
     }
 

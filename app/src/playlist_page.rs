@@ -170,9 +170,9 @@ impl PlaylistPage {
             // A new order needs its own copy, made only when Shuffle is pressed.
             let mut shuffled = songs.to_vec();
             fastrand::shuffle(&mut shuffled);
-            player::get().play(client, shuffled.into(), 0);
+            player::get().play(client, shuffled.into(), 0, player::QueueOf::Songs);
         } else {
-            player::get().play(client, songs, 0);
+            player::get().play(client, songs, 0, player::QueueOf::Songs);
         }
     }
 }

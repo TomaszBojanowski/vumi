@@ -186,7 +186,7 @@ impl StartPage {
                 let songs = imp.similar.borrow().clone();
                 let client = imp.client.borrow().clone();
                 if let (Some(songs), Some(client)) = (songs, client) {
-                    crate::player::get().play(client, songs, 0);
+                    crate::player::get().play(client, songs, 0, crate::player::QueueOf::Songs);
                 }
             });
         }
