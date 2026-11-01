@@ -116,6 +116,8 @@ pub struct Starred {
 #[derive(Deserialize)]
 pub struct ApiError {
     pub code: i32,
+    /// Optional in the Subsonic API: some servers send the code alone.
+    #[serde(default)]
     pub message: String,
 }
 
@@ -195,11 +197,7 @@ impl Client {
 
     /// Subsonic token auth: t = md5(password + salt), so the password never goes over the wire.
     fn auth_params(&self) -> Vec<(&'static str, String)> {
-        let nanos = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_nanos();
-        let salt = format!("{nanos:x}");
+        let salt = salt();
         let token = format!("{:x}", md5::compute(format!("{}{}", self.password, salt)));
         vec![
             ("u", self.user.to_string()),
@@ -215,8 +213,19 @@ impl Client {
     fn build_url(&self, endpoint: &str, extra: &[(&'static str, String)]) -> Result<reqwest::Url> {
         let mut params = self.auth_params();
         params.extend_from_slice(extra);
-        reqwest::Url::parse_with_params(&format!("{}/rest/{}", self.base_url, endpoint), &params)
-            .map_err(|e| Error::InvalidAddress(e.to_string()))
+        let url = reqwest::Url::parse_with_params(
+            &format!("{}/rest/{}", self.base_url, endpoint),
+            &params,
+        )
+        .map_err(|e| Error::InvalidAddress(e.to_string()))?;
+        // "localhost:4533" parses too, as the scheme "localhost".
+        if !matches!(url.scheme(), "http" | "https") {
+            return Err(Error::InvalidAddress(format!(
+                "the address must start with http:// or https://, not {}:",
+                url.scheme()
+            )));
+        }
+        Ok(url)
     }
 
     /// Calls a Subsonic endpoint and turns a non-"ok" status into a typed error.
@@ -234,16 +243,23 @@ impl Client {
         if response.status == "ok" {
             return Ok(response);
         }
-        Err(match response.error {
-            Some(e) if e.code == WRONG_CREDENTIALS => Error::WrongCredentials,
-            Some(e) => Error::Server {
-                code: e.code,
-                message: e.message,
-            },
-            None => Error::BadResponse(format!("status {}", response.status)),
-        })
+        Err(failure(response))
     }
+}
 
+/// The error a "failed" response carries.
+fn failure(response: Response) -> Error {
+    match response.error {
+        Some(e) if e.code == WRONG_CREDENTIALS => Error::WrongCredentials,
+        Some(e) => Error::Server {
+            code: e.code,
+            message: e.message,
+        },
+        None => Error::BadResponse(format!("status {}", response.status)),
+    }
+}
+
+impl Client {
     pub async fn ping(&self) -> Result<Response> {
         self.call("ping", &[]).await
     }
@@ -258,18 +274,6 @@ impl Client {
                     ("size", size.to_string()),
                     ("offset", offset.to_string()),
                 ],
-            )
-            .await?;
-        Ok(response.album_list2.map(|l| l.album).unwrap_or_default())
-    }
-
-    /// A list of albums the server ranks: `kind` is a getAlbumList2 type,
-    /// e.g. "frequent" (most played) or "recent" (played last).
-    pub async fn album_list_of(&self, kind: &str, size: u32) -> Result<Vec<Album>> {
-        let response = self
-            .call(
-                "getAlbumList2",
-                &[("type", kind.to_string()), ("size", size.to_string())],
             )
             .await?;
         Ok(response.album_list2.map(|l| l.album).unwrap_or_default())
@@ -372,16 +376,40 @@ impl Client {
             "getCoverArt",
             &[("id", id.to_string()), ("size", size.to_string())],
         )?;
-        let bytes = self
-            .http
-            .get(url)
-            .send()
-            .await?
-            .error_for_status()?
-            .bytes()
-            .await?;
+        let response = self.http.get(url).send().await?.error_for_status()?;
+        // A failure comes like any other, HTTP 200 with the error in a JSON
+        // body, not as an image.
+        let json = response
+            .headers()
+            .get(reqwest::header::CONTENT_TYPE)
+            .and_then(|value| value.to_str().ok())
+            .is_some_and(|value| value.contains("json"));
+        let bytes = response.bytes().await?;
+        if json {
+            let envelope: Envelope =
+                serde_json::from_slice(&bytes).map_err(|e| Error::BadResponse(e.to_string()))?;
+            if envelope.response.status != "ok" {
+                return Err(failure(envelope.response));
+            }
+            return Err(Error::BadResponse("no image in the answer".into()));
+        }
         Ok(bytes.to_vec())
     }
+}
+
+/// A new salt for every request: 128 bits from the operating system's random
+/// source, so it cannot be foreseen. Should that source fail, the time keeps
+/// it at least new.
+fn salt() -> String {
+    let mut bytes = [0u8; 16];
+    if getrandom::fill(&mut bytes).is_err() {
+        let nanos = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map(|d| d.as_nanos())
+            .unwrap_or_default();
+        bytes = nanos.to_le_bytes();
+    }
+    bytes.iter().map(|byte| format!("{byte:02x}")).collect()
 }
 
 /// Identifies one account on one server, e.g. for local caches: "user@url".
@@ -473,7 +501,6 @@ impl Client {
 pub struct AlbumInfo {
     /// HTML text, usually ending with a "Read more on Last.fm" link.
     pub notes: Option<String>,
-    pub last_fm_url: Option<String>,
 }
 
 impl Client {
@@ -578,12 +605,9 @@ pub struct Playlist {
     pub id: String,
     pub name: String,
     pub comment: Option<String>,
-    pub owner: Option<String>,
-    pub public: Option<bool>,
     pub song_count: Option<u32>,
     pub duration: Option<u32>,
     pub created: Option<String>,
-    pub changed: Option<String>,
     pub cover_art: Option<String>,
 }
 

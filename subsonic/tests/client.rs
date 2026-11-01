@@ -211,6 +211,22 @@ mod auth {
     }
 
     #[tokio::test]
+    async fn the_salt_is_128_random_bits() {
+        let (server, client) = start().await;
+        endpoint("ping")
+            .respond_with(fixture!("ping"))
+            .expect(1)
+            .mount(&server)
+            .await;
+
+        client.ping().await.unwrap();
+
+        let salt = params(&received(&server).await[0])["s"].clone();
+        assert_eq!(salt.len(), 32, "salt {salt:?}");
+        assert!(salt.chars().all(|c| c.is_ascii_hexdigit()), "salt {salt:?}");
+    }
+
+    #[tokio::test]
     async fn credentials_with_special_characters_are_encoded() {
         let server = MockServer::start().await;
         let (user, password) = ("anna maria+1&co", "pä ss&wörd=?#%");
@@ -280,7 +296,6 @@ mod auth {
     /// `ping` fails as Unreachable ("builder error") and `stream_url` returns
     /// a URL no player can open.
     #[tokio::test]
-    #[ignore = "bug: host:port without a scheme is not reported as an invalid address"]
     async fn an_address_with_a_port_but_no_scheme_is_invalid() {
         let client = Client::new("localhost:4533", USER, PASSWORD);
         let e = error(client.ping().await);
@@ -381,23 +396,6 @@ mod albums {
     }
 
     #[tokio::test]
-    async fn album_list_of_asks_for_the_kind_without_an_offset() {
-        let (server, client) = start().await;
-        endpoint("getAlbumList2")
-            .and(query_param("type", "frequent"))
-            .and(query_param("size", "6"))
-            .and(query_param_is_missing("offset"))
-            .respond_with(fixture!("getAlbumList2"))
-            .expect(1)
-            .mount(&server)
-            .await;
-
-        let albums = client.album_list_of("frequent", 6).await.unwrap();
-
-        assert_eq!(ids(&albums, |a| &a.id), ["album-1", "album-2"]);
-    }
-
-    #[tokio::test]
     async fn an_empty_or_missing_album_list_is_empty() {
         let (server, client) = start().await;
         // Navidrome sends an empty object when there is nothing to list.
@@ -485,10 +483,6 @@ mod albums {
         let info = client.album_info("album-1").await.unwrap();
 
         assert!(info.notes.unwrap().starts_with("A record about the sea."));
-        assert_eq!(
-            info.last_fm_url.as_deref(),
-            Some("https://www.last.fm/music/The+Nightjars/Low+Tide")
-        );
     }
 
     #[tokio::test]
@@ -776,17 +770,13 @@ mod playlists {
         let full = &playlists[0];
         assert_eq!(full.name, "Sunday Morning");
         assert_eq!(full.comment.as_deref(), Some("Slow and quiet"));
-        assert_eq!(full.owner.as_deref(), Some("anna"));
-        assert_eq!(full.public, Some(true));
         assert_eq!(full.song_count, Some(24));
         assert_eq!(full.duration, Some(5521));
         assert_eq!(full.created.as_deref(), Some("2026-04-12T09:00:00.5Z"));
-        assert_eq!(full.changed.as_deref(), Some("2026-09-30T18:45:10Z"));
         assert_eq!(full.cover_art.as_deref(), Some("pl-playlist-1_66fa0b11"));
         let empty = &playlists[1];
         assert!(empty.comment.is_none());
         assert!(empty.cover_art.is_none());
-        assert_eq!(empty.public, Some(false));
         assert_eq!(empty.song_count, Some(0));
     }
 
@@ -1086,7 +1076,6 @@ mod errors {
     /// requires it: an error without one fails to parse, and the client
     /// reports BadResponse instead of the error the server sent.
     #[tokio::test]
-    #[ignore = "bug: a Subsonic error without a message is not recognised"]
     async fn an_error_without_a_message_keeps_its_code() {
         let (server, client) = start().await;
         endpoint("ping")
@@ -1267,7 +1256,6 @@ mod errors {
     /// password) like any other: HTTP 200 with the error in a JSON body.
     /// `cover_art` returns that body as if it were the image.
     #[tokio::test]
-    #[ignore = "bug: cover_art returns a Subsonic error body as image bytes"]
     async fn cover_art_reports_subsonic_errors() {
         let (server, client) = start().await;
         endpoint("getCoverArt")
