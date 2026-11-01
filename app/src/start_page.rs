@@ -38,7 +38,7 @@ mod imp {
         #[template_child]
         pub tuner: gtk::TemplateChild<crate::tuner::Tuner>,
         #[template_child]
-        pub tuner_narrow: gtk::TemplateChild<adw::Breakpoint>,
+        pub narrow: gtk::TemplateChild<adw::Breakpoint>,
         #[template_child]
         pub continue_shelf: gtk::TemplateChild<gtk::Box>,
         #[template_child]
@@ -462,7 +462,7 @@ impl StartPage {
 
         // On a narrow page the Tuner's buttons go under the year.
         {
-            let narrow = &self.imp().tuner_narrow;
+            let narrow = &self.imp().narrow;
             narrow.connect_apply(glib::clone!(
                 #[weak(rename_to = page)]
                 self,

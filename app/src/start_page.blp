@@ -13,14 +13,18 @@ template $VumiStartPage: Adw.Bin {
     child: ScrolledWindow {
       hscrollbar-policy: never;
 
-      child: Box {
+      // The headings, the tiles and the Tuner stand 24 px from the edges;
+      // the rows of album cards 6 px further out, so their covers line up
+      // with the headings (the cards' own margin is 6 px).
+      child: Box page_box {
         orientation: vertical;
-        spacing: 24;
-        margin-top: 24;
+        // 24 on a narrow page (the breakpoint "narrow").
+        spacing: 40;
+        margin-top: 44;
         // More room at the end, so the last shelf does not touch the edge.
         margin-bottom: 48;
-        margin-start: 24;
-        margin-end: 24;
+        margin-start: 18;
+        margin-end: 18;
 
         // "Recently Played": albums from the history of played albums, each
         // where it stopped (refresh_tiles). Hidden while there are none.
@@ -31,13 +35,15 @@ template $VumiStartPage: Adw.Bin {
 
           Box {
             spacing: 8;
+            margin-start: 6;
+            margin-end: 6;
 
             Label {
               label: _("Recently Played");
               xalign: 0;
 
               styles [
-                "title-4",
+                "title-3",
               ]
             }
 
@@ -50,6 +56,8 @@ template $VumiStartPage: Adw.Bin {
 
           // One row of tiles; it scrolls sideways when they do not all fit.
           ScrolledWindow continue_scroll {
+            margin-start: 6;
+            margin-end: 6;
             vscrollbar-policy: never;
             // The ‹ › buttons move the row; no scrollbar over the tiles.
             hscrollbar-policy: external;
@@ -64,6 +72,8 @@ template $VumiStartPage: Adw.Bin {
         // while no album has a year.
         $VumiTuner tuner {
           visible: false;
+          margin-start: 6;
+          margin-end: 6;
         }
 
         // Hidden until there is something to show.
@@ -74,13 +84,15 @@ template $VumiStartPage: Adw.Bin {
 
           Box {
             spacing: 8;
+            margin-start: 6;
+            margin-end: 6;
 
             Label {
               label: _("Recently Added");
               xalign: 0;
 
               styles [
-                "title-4",
+                "title-3",
               ]
             }
 
@@ -112,13 +124,15 @@ template $VumiStartPage: Adw.Bin {
 
           Box {
             spacing: 8;
+            margin-start: 6;
+            margin-end: 6;
 
             Label similar_title {
               xalign: 0;
               ellipsize: end;
 
               styles [
-                "title-4",
+                "title-3",
               ]
             }
 
@@ -153,9 +167,14 @@ template $VumiStartPage: Adw.Bin {
       };
     };
 
-    // The Tuner puts its buttons under the year (Tuner::set_compact).
-    Adw.Breakpoint tuner_narrow {
+    // A narrow page: less room between the sections, and the Tuner puts its
+    // buttons under the year (Tuner::set_compact).
+    Adw.Breakpoint narrow {
       condition ("max-width: 560sp")
+
+      setters {
+        page_box.spacing: 24;
+      }
     }
   };
 }

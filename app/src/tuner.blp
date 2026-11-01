@@ -8,9 +8,11 @@ translation-domain "vumi";
 // with albums before and after it, "Play This Year", and the row of the
 // year's albums (tuner.rs).
 template $VumiTuner: Adw.Bin {
+  // The text and the scale stand 28 px in from the card's edges, the row of
+  // album cards 6 px further out, so the covers line up with them.
   child: Box card {
     orientation: vertical;
-    spacing: 18;
+    spacing: 22;
 
     styles [
       "card",
@@ -19,7 +21,9 @@ template $VumiTuner: Adw.Bin {
 
     // On a narrow page the buttons go under the year (set_compact).
     Box header {
-      spacing: 12;
+      spacing: 18;
+      margin-start: 6;
+      margin-end: 6;
 
       Box {
         orientation: vertical;
@@ -49,6 +53,7 @@ template $VumiTuner: Adw.Bin {
         Label count_label {
           xalign: 0;
           wrap: true;
+          margin-top: 4;
 
           styles [
             "dim-label",
@@ -56,8 +61,9 @@ template $VumiTuner: Adw.Bin {
         }
       }
 
+      // At the foot of the header, level with the count.
       Box buttons {
-        valign: center;
+        valign: end;
         spacing: 10;
 
         Button prev_button {
@@ -83,7 +89,8 @@ template $VumiTuner: Adw.Bin {
         Button play_button {
           valign: center;
 
-          child: Adw.ButtonContent {
+          // Under the year it may be shortened (set_compact).
+          child: Adw.ButtonContent play_content {
             icon-name: "vumi-radio-symbolic";
             label: _("Play This Year");
           };
@@ -98,6 +105,8 @@ template $VumiTuner: Adw.Bin {
 
     $VumiYearScale scale {
       hexpand: true;
+      margin-start: 6;
+      margin-end: 6;
     }
 
     // The albums of the year: two rows the stack crossfades between, filled

@@ -198,9 +198,8 @@ pub(crate) fn connect_drag(scroll: &gtk::ScrolledWindow) {
 }
 
 /// The space one shelf card takes in its row until a card is measured: the
-/// 160 px cover, the card's margins and the button's padding (6 px a side
-/// each), and the spacing.
-const CARD_STEP: i32 = 196;
+/// 160 px cover, the card's margins (6 px a side) and the spacing.
+const CARD_STEP: i32 = 184;
 
 /// The spacing between the cards of a row, as on the shelves (start_page.blp).
 const ROW_SPACING: i32 = 12;

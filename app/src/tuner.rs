@@ -47,6 +47,8 @@ mod imp {
         #[template_child]
         pub play_button: gtk::TemplateChild<gtk::Button>,
         #[template_child]
+        pub play_content: gtk::TemplateChild<adw::ButtonContent>,
+        #[template_child]
         pub scale: gtk::TemplateChild<YearScale>,
         #[template_child]
         pub rows: gtk::TemplateChild<gtk::Stack>,
@@ -220,12 +222,19 @@ impl Tuner {
         if imp.compact.replace(compact) == compact {
             return;
         }
+        // Under the year the buttons stand closer: the narrowest window
+        // leaves just their width. There "Play This Year" may be shortened
+        // rather than widening the page (large text); beside the year it
+        // keeps its width and the count wraps instead.
+        imp.play_content.set_can_shrink(compact);
         if compact {
             imp.header.set_orientation(gtk::Orientation::Vertical);
             imp.buttons.set_halign(gtk::Align::Start);
+            imp.buttons.set_spacing(6);
         } else {
             imp.header.set_orientation(gtk::Orientation::Horizontal);
             imp.buttons.set_halign(gtk::Align::Fill);
+            imp.buttons.set_spacing(10);
         }
     }
 

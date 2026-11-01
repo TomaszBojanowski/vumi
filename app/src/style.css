@@ -346,9 +346,11 @@ button.album-action {
   min-height: 40px;
 }
 
-/* Album cards on the Start page shelves: a flat button around the card. */
+/* Album cards on the Start page shelves: a flat button around the card,
+   without padding of its own (the card's 6 px margin is enough), so the
+   covers stand 24 px apart. */
 button.shelf-card {
-  padding: 6px;
+  padding: 0;
 }
 
 /* "Recently Played" tiles on the Start page (continue_tile.blp). */
@@ -377,9 +379,10 @@ progressbar.recent-tile-progress > trough > progress {
 }
 
 /* The Tuner card on the Start page (tuner.blp). Its colour comes from the
-   first cover of the year (tint.rs, card_rule) and changes smoothly. */
+   first cover of the year (tint.rs, card_rule) and changes smoothly. The
+   sides are 22 px: the text and the scale add 6 px of their own. */
 .tuner {
-  padding: 24px;
+  padding: 26px 22px 22px;
   transition: background-color 250ms ease;
 }
 
