@@ -4,6 +4,7 @@ mod album_page;
 mod artist_card;
 mod artist_page;
 mod background;
+mod continue_tile;
 mod cover_image;
 mod covers;
 mod dates;

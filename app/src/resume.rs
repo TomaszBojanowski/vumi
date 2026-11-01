@@ -24,12 +24,6 @@ const SIZE: usize = 10;
 pub(crate) struct Played {
     pub(crate) album_id: String,
     pub(crate) song_id: String,
-    // Unread while the Start page has no Continue Listening tiles; `expect`
-    // makes the build fail once they read it again, so this goes with them.
-    #[cfg_attr(
-        not(test),
-        expect(dead_code, reason = "the Continue Listening tiles resume from it")
-    )]
     pub(crate) seconds: u32,
 }
 
@@ -209,7 +203,7 @@ mod tests {
         assert!(status.success(), "the schema does not compile");
         // SAFETY: the first thing this test does, before GStreamer, tokio or
         // GSettings start any thread that reads the environment; it is the only
-        // test of this program.
+        // test of this program that touches settings or the environment.
         unsafe {
             std::env::set_var("GSETTINGS_SCHEMA_DIR", &dir);
             std::env::set_var("GSETTINGS_BACKEND", "memory");

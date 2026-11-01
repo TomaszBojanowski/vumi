@@ -22,6 +22,44 @@ template $VumiStartPage: Adw.Bin {
         margin-start: 24;
         margin-end: 24;
 
+        // "Recently Played": albums from the history of played albums, each
+        // where it stopped (refresh_tiles). Hidden while there are none.
+        Box continue_shelf {
+          orientation: vertical;
+          spacing: 12;
+          visible: false;
+
+          Box {
+            spacing: 8;
+
+            Label {
+              label: _("Recently Played");
+              xalign: 0;
+
+              styles [
+                "title-4",
+              ]
+            }
+
+            // ‹ ›: move the row by what is visible (add_arrows, connect_arrows).
+            Box continue_arrows {
+              hexpand: true;
+              halign: end;
+            }
+          }
+
+          // One row of tiles; it scrolls sideways when they do not all fit.
+          ScrolledWindow continue_scroll {
+            vscrollbar-policy: never;
+            // The ‹ › buttons move the row; no scrollbar over the tiles.
+            hscrollbar-policy: external;
+
+            child: Box continue_row {
+              spacing: 12;
+            };
+          }
+        }
+
         // Hidden until there is something to show.
         Box recent_shelf {
           orientation: vertical;

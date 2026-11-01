@@ -1,0 +1,112 @@
+using Gtk 4.0;
+using Adw 1;
+
+translation-domain "vumi";
+
+// One album of "Recently Played" on the Start page. The whole tile opens the
+// album; the round button resumes it, or pauses the album that plays. The
+// button lies over the tile, beside it rather than inside it, so it is not a
+// button inside a button.
+template $VumiContinueTile: Adw.Bin {
+  width-request: 280;
+
+  child: Overlay {
+    child: Button tile_button {
+      styles [
+        "card",
+        "recent-tile",
+      ]
+
+      child: Box {
+        spacing: 12;
+
+        // A disc until the cover is there; the line at its foot is how far
+        // through the album playback is.
+        Overlay {
+          width-request: 64;
+          height-request: 64;
+          valign: center;
+          overflow: hidden;
+
+          styles [
+            "recent-tile-cover",
+          ]
+
+          child: Image {
+            icon-name: "media-optical-symbolic";
+            pixel-size: 32;
+
+            styles [
+              "dim-label",
+            ]
+          };
+
+          [overlay]
+          $VumiCoverImage cover {}
+
+          [overlay]
+          ProgressBar progress {
+            valign: end;
+            visible: false;
+
+            styles [
+              "recent-tile-progress",
+            ]
+          }
+        }
+
+        Box {
+          orientation: vertical;
+          valign: center;
+          hexpand: true;
+          spacing: 3;
+          // Room for the round button over the end of the tile.
+          margin-end: 44;
+
+          Label now_label {
+            label: _("Now Playing");
+            xalign: 0;
+            visible: false;
+            // A longer translation shortens rather than widening the tile.
+            ellipsize: end;
+
+            styles [
+              "caption-heading",
+              "now-playing-label",
+            ]
+          }
+
+          Label title {
+            xalign: 0;
+            ellipsize: end;
+
+            styles [
+              "heading",
+            ]
+          }
+
+          Label artist {
+            xalign: 0;
+            ellipsize: end;
+
+            styles [
+              "dim-label",
+            ]
+          }
+        }
+      };
+    };
+
+    [overlay]
+    Button play_button {
+      halign: end;
+      valign: center;
+      margin-end: 10;
+      icon-name: "media-playback-start-symbolic";
+
+      styles [
+        "circular",
+      ]
+    }
+  };
+}

@@ -289,12 +289,6 @@ impl Player {
     /// Like play(), but starts the track at `seconds` (resuming where playback
     /// stopped). GStreamer ignores seeks until the track is ready, so the seek
     /// waits for AsyncDone.
-    // Unused while the Start page has no Continue Listening tiles; `expect`
-    // makes the build fail once they use it again, so this goes with them.
-    #[cfg_attr(
-        not(test),
-        expect(dead_code, reason = "the Continue Listening tiles resume with it")
-    )]
     pub(crate) fn play_from(
         &self,
         client: subsonic::Client,
