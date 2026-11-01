@@ -802,7 +802,16 @@ impl Player {
                     .into_iter()
                     .filter(|s| !known.contains(s.id.as_str()))
                     .collect(),
-                _ => Vec::new(),
+                Ok(Err(e)) => {
+                    // Not a playback error: the queue ends as when nothing is
+                    // found, but the window says why.
+                    eprintln!("Could not extend the radio: {e}");
+                    if let Some(handler) = player.error_handler.borrow().as_ref() {
+                        handler(&crate::error_message(&e));
+                    }
+                    Vec::new()
+                }
+                Err(_) => Vec::new(),
             };
             if new.is_empty() {
                 let _ = player.playbin.set_state(gst::State::Null);

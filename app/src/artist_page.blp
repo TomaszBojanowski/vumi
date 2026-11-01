@@ -82,7 +82,7 @@ template $VumiArtistPage: Adw.NavigationPage {
             }
           }
 
-          Label {
+          Label albums_title {
             label: _("Albums");
             xalign: 0;
 
@@ -98,6 +98,16 @@ template $VumiArtistPage: Adw.NavigationPage {
             min-children-per-line: 2;
             max-children-per-line: 8;
             activate-on-single-click: true;
+          }
+
+          // Why the artist could not be shown (show_error).
+          Adw.StatusPage error_status {
+            icon-name: "network-offline-symbolic";
+            visible: false;
+
+            styles [
+              "compact",
+            ]
           }
         };
       };

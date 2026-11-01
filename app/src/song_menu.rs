@@ -191,16 +191,9 @@ fn play_similar(row: &gtk::Widget, song: subsonic::Song, client: subsonic::Clien
         if !player::get().is_current(command) {
             return;
         }
-        let similar = match result {
-            Ok(Ok(songs)) => songs,
-            _ => Vec::new(),
-        };
-        if similar.is_empty() {
-            if let Some(row) = row.upgrade() {
-                toast(&row, &gettext("No similar songs found"));
-            }
+        let Some(similar) = similar_found(row.upgrade().as_ref(), result) else {
             return;
-        }
+        };
         let seed_id = song.id.clone();
         let mut songs = vec![song];
         songs.extend(similar.into_iter().filter(|s| s.id != seed_id));
@@ -400,6 +393,28 @@ fn show_info(parent: &gtk::Widget, song: &subsonic::Song) {
         .child(&toolbar)
         .build();
     dialog.present(Some(parent));
+}
+
+/// The songs a request for similar songs found, or None after a note in the
+/// window near `widget`: why the request failed, or that the server found
+/// none (an album not analysed yet, say).
+pub(crate) fn similar_found(
+    widget: Option<&impl IsA<gtk::Widget>>,
+    result: Result<Result<Vec<subsonic::Song>, subsonic::Error>, tokio::task::JoinError>,
+) -> Option<Vec<subsonic::Song>> {
+    let note = match result {
+        Ok(Ok(songs)) if !songs.is_empty() => return Some(songs),
+        Ok(Ok(_)) => gettext("No similar songs found"),
+        Ok(Err(e)) => {
+            eprintln!("Could not fetch similar songs: {e}");
+            crate::error_message(&e)
+        }
+        Err(_) => gettext("Something went wrong. Please try again."),
+    };
+    if let Some(widget) = widget {
+        toast(widget, &note);
+    }
+    None
 }
 
 /// A short note at the bottom of the window.

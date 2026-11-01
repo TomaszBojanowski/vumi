@@ -110,6 +110,17 @@ template $VumiPlaylistPage: Adw.NavigationPage {
       $VumiResultsView results {
         vexpand: true;
       }
+
+      // Why the tracks could not be shown (show_error).
+      Adw.StatusPage error_status {
+        icon-name: "network-offline-symbolic";
+        vexpand: true;
+        visible: false;
+
+        styles [
+          "compact",
+        ]
+      }
     };
   };
 }

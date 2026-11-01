@@ -399,20 +399,19 @@ fn auto_connect(
     let main = main.clone();
 
     glib::spawn_future_local(async move {
-        // None means there is no usable saved password.
         let result = runtime()
             .spawn(async move {
                 let password = match secrets::load_password(&url, &user).await {
                     Ok(Some(password)) => password,
-                    Ok(None) => return None,
+                    Ok(None) => return Saved::Missing,
                     Err(e) => {
                         eprintln!("Could not read the keyring: {e}");
-                        return None;
+                        return Saved::Unreadable;
                     }
                 };
                 let client = subsonic::Client::new(&url, &user, &password);
                 let ping = client.ping().await;
-                Some((client, ping))
+                Saved::Ping(client, Box::new(ping))
             })
             .await;
 
@@ -422,14 +421,34 @@ fn auto_connect(
             return;
         }
         match result {
-            Ok(Some((client, Ok(response)))) => main.show_connected(&response, client),
-            Ok(Some((_, Err(subsonic::Error::WrongCredentials)))) | Ok(None) => {
+            Ok(Saved::Ping(client, ping)) => match *ping {
+                Ok(response) => main.show_connected(&response, client),
+                Err(subsonic::Error::WrongCredentials) => nav.replace(&[login_page]),
+                Err(e) => main.show_offline(&error_message(&e)),
+            },
+            Ok(Saved::Missing) => nav.replace(&[login_page]),
+            Ok(Saved::Unreadable) => {
+                if let Some(page) = login_page.downcast_ref::<LoginPage>() {
+                    page.show_error(&gettext("Could not read the password from the keyring"));
+                }
                 nav.replace(&[login_page]);
             }
-            Ok(Some((_, Err(e)))) => main.show_offline(&error_message(&e)),
             Err(_) => main.show_offline(&gettext("Something went wrong. Please try again.")),
         }
     });
+}
+
+/// What the saved server, user and keyring password came to.
+enum Saved {
+    /// No password in the keyring: the login page.
+    Missing,
+    /// The keyring could not be read: the login page, saying so.
+    Unreadable,
+    /// The server's answer to the saved password.
+    Ping(
+        subsonic::Client,
+        Box<Result<subsonic::Response, subsonic::Error>>,
+    ),
 }
 
 /// Human-readable message for each kind of connection error.

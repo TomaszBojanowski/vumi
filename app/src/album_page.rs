@@ -397,7 +397,9 @@ impl AlbumPage {
 
     fn show_error(&self, message: &str) {
         let imp = self.imp();
-        imp.error_status.set_description(Some(message));
+        // The description is markup; a server's message may hold "&" or "<".
+        imp.error_status
+            .set_description(Some(&glib::markup_escape_text(message)));
         imp.tracks_stack.set_visible_child_name("error");
     }
 }
@@ -1073,20 +1075,10 @@ impl AlbumPage {
             if !player::get().is_current(command) {
                 return;
             }
-            let similar = match result {
-                Ok(Ok(songs)) => songs,
-                _ => Vec::new(),
-            };
-            if similar.is_empty() {
-                if let Some(toasts) = page
-                    .upgrade()
-                    .and_then(|page| page.ancestor(adw::ToastOverlay::static_type()))
-                    .and_downcast::<adw::ToastOverlay>()
-                {
-                    toasts.add_toast(crate::plain_toast(&gettext("No similar songs found")));
-                }
+            let Some(similar) = crate::song_menu::similar_found(page.upgrade().as_ref(), result)
+            else {
                 return;
-            }
+            };
 
             let seed_id = seed.id.clone();
             let mut songs = vec![seed];

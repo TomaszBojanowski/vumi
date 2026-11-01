@@ -9,7 +9,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use crate::results_view::ResultsView;
-use crate::{covers, player, runtime};
+use crate::{covers, error_message, player, runtime};
 
 mod imp {
     use super::*;
@@ -31,6 +31,8 @@ mod imp {
         pub shuffle_button: gtk::TemplateChild<gtk::Button>,
         #[template_child]
         pub results: gtk::TemplateChild<ResultsView>,
+        #[template_child]
+        pub error_status: gtk::TemplateChild<adw::StatusPage>,
         /// Which playlist this page shows, so an open page can be found again.
         pub playlist_id: RefCell<String>,
         pub client: RefCell<Option<subsonic::Client>>,
@@ -112,11 +114,30 @@ impl PlaylistPage {
             let result = runtime()
                 .spawn(async move { client.playlist(&id).await })
                 .await;
-            let (Some(page), Ok(Ok(playlist))) = (page.upgrade(), result) else {
+            let Some(page) = page.upgrade() else {
                 return;
             };
-            page.show(playlist, client_for_page);
+            match result {
+                Ok(Ok(playlist)) => page.show(playlist, client_for_page),
+                Ok(Err(e)) => {
+                    eprintln!("Could not fetch the playlist: {e}");
+                    page.show_error(&error_message(&e));
+                }
+                Err(_) => page.show_error(&gettext("Something went wrong. Please try again.")),
+            }
         });
+    }
+
+    /// The tracks give way to why they could not be fetched; nothing to play.
+    fn show_error(&self, message: &str) {
+        let imp = self.imp();
+        imp.results.set_visible(false);
+        imp.play_button.set_sensitive(false);
+        imp.shuffle_button.set_sensitive(false);
+        // The description is markup; a server's message may hold "&" or "<".
+        imp.error_status
+            .set_description(Some(&glib::markup_escape_text(message)));
+        imp.error_status.set_visible(true);
     }
 
     fn show(&self, playlist: subsonic::PlaylistWithSongs, client: subsonic::Client) {

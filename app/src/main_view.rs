@@ -447,7 +447,9 @@ impl MainView {
         let text = gettext("Connected to {server} {version}")
             .replace("{server}", r.server_type.as_deref().unwrap_or("server"))
             .replace("{version}", r.server_version.as_deref().unwrap_or(""));
-        imp.status.set_description(Some(&text));
+        // The description is markup; the server names itself.
+        imp.status
+            .set_description(Some(&glib::markup_escape_text(&text)));
         self.sync_albums(client);
     }
 
@@ -1369,13 +1371,27 @@ impl MainView {
         };
         let id = id.to_owned();
         let command = crate::player::get().command_id();
+        let view = self.downgrade();
         glib::spawn_future_local(async move {
             let request = client.clone();
             let fetched = runtime()
                 .spawn(async move { request.playlist(&id).await })
                 .await;
-            let Ok(Ok(playlist)) = fetched else {
-                return;
+            let playlist = match fetched {
+                Ok(Ok(playlist)) => playlist,
+                failed => {
+                    let message = match failed {
+                        Ok(Err(e)) => {
+                            eprintln!("Could not fetch the playlist: {e}");
+                            error_message(&e)
+                        }
+                        _ => gettext("Something went wrong. Please try again."),
+                    };
+                    if let Some(view) = view.upgrade() {
+                        crate::song_menu::toast(&view, &message);
+                    }
+                    return;
+                }
             };
             // Something else was started meanwhile: this answer is stale.
             if !crate::player::get().is_current(command) || playlist.entry.is_empty() {

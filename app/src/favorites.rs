@@ -168,11 +168,14 @@ pub(crate) fn star_button(
             if confirmed {
                 // Confirmed: the local database follows now, whether or not the
                 // button still exists (the page may have been left meanwhile).
-                let _ = runtime()
+                let saved = runtime()
                     .spawn_blocking(move || {
                         crate::library::set_starred(&server, is_album, &id, starred)
                     })
                     .await;
+                if let Ok(Err(e)) = saved {
+                    eprintln!("Could not save the star in the library database: {e}");
+                }
                 // The Favorites page follows the database, without waiting for
                 // the next sync.
                 if let Some(main) = main.as_ref().and_then(|m| m.upgrade()) {
@@ -240,9 +243,12 @@ pub(crate) fn set(
             }
             return;
         }
-        let _ = runtime()
+        let saved = runtime()
             .spawn_blocking(move || crate::library::set_starred(&server, is_album, &id, starred))
             .await;
+        if let Ok(Err(e)) = saved {
+            eprintln!("Could not save the star in the library database: {e}");
+        }
         if let Some(main) = main {
             main.refresh_favorites();
         }

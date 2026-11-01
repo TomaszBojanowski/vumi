@@ -3,12 +3,12 @@
 
 use adw::prelude::*;
 use adw::subclass::prelude::*;
-use gettextrs::ngettext;
+use gettextrs::{gettext, ngettext};
 use gtk::glib;
 use std::cell::RefCell;
 
 use crate::album_card::AlbumCard;
-use crate::{about, covers, runtime};
+use crate::{about, covers, error_message, runtime};
 
 mod imp {
     use super::*;
@@ -30,6 +30,10 @@ mod imp {
         pub about_more: gtk::TemplateChild<gtk::Button>,
         #[template_child]
         pub albums: gtk::TemplateChild<gtk::FlowBox>,
+        #[template_child]
+        pub albums_title: gtk::TemplateChild<gtk::Label>,
+        #[template_child]
+        pub error_status: gtk::TemplateChild<adw::StatusPage>,
         /// The albums in the same order as the cards, to know which one was clicked.
         pub album_list: RefCell<Vec<subsonic::Album>>,
         pub client: RefCell<Option<subsonic::Client>>,
@@ -112,11 +116,29 @@ impl ArtistPage {
             let result = runtime()
                 .spawn(async move { client.artist(&id).await })
                 .await;
-            let (Some(page), Ok(Ok(artist))) = (page.upgrade(), result) else {
+            let Some(page) = page.upgrade() else {
                 return;
             };
-            page.show_artist(artist, client_for_cards);
+            match result {
+                Ok(Ok(artist)) => page.show_artist(artist, client_for_cards),
+                Ok(Err(e)) => {
+                    eprintln!("Could not fetch the artist: {e}");
+                    page.show_error(&error_message(&e));
+                }
+                Err(_) => page.show_error(&gettext("Something went wrong. Please try again.")),
+            }
         });
+    }
+
+    /// The albums give way to why they could not be fetched.
+    fn show_error(&self, message: &str) {
+        let imp = self.imp();
+        imp.albums_title.set_visible(false);
+        imp.albums.set_visible(false);
+        // The description is markup; a server's message may hold "&" or "<".
+        imp.error_status
+            .set_description(Some(&glib::markup_escape_text(message)));
+        imp.error_status.set_visible(true);
     }
 
     fn show_artist(&self, artist: subsonic::ArtistWithAlbums, client: subsonic::Client) {

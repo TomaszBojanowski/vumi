@@ -101,6 +101,14 @@ impl LoginPage {
         page
     }
 
+    /// Shown under the form: why the app is not connected (the saved
+    /// password could not be read, say).
+    pub(crate) fn show_error(&self, message: &str) {
+        let imp = self.imp();
+        imp.error_label.set_label(message);
+        imp.error_label.set_visible(true);
+    }
+
     fn try_connect(
         &self,
         button: &gtk::Button,
@@ -145,9 +153,26 @@ impl LoginPage {
                     // Saved only after success, so a typo is never remembered.
                     let _ = settings.set_string("server-url", &url);
                     let _ = settings.set_string("username", &user);
-                    runtime().spawn(async move {
-                        if let Err(e) = secrets::save_password(&url, &user, &password).await {
-                            eprintln!("Could not save the password: {e}");
+                    // In the background. If the keyring refuses it, the next
+                    // start asks for the password again: the window says so.
+                    let saving = runtime().spawn(async move {
+                        secrets::save_password(&url, &user, &password)
+                            .await
+                            .map_err(|e| e.to_string())
+                    });
+                    let shown = main.downgrade();
+                    glib::spawn_future_local(async move {
+                        let failure = match saving.await {
+                            Ok(Ok(())) => return,
+                            Ok(Err(e)) => e,
+                            Err(e) => e.to_string(),
+                        };
+                        eprintln!("Could not save the password: {failure}");
+                        if let Some(main) = shown.upgrade() {
+                            crate::song_menu::toast(
+                                &main,
+                                &gettext("Could not save the password in the keyring"),
+                            );
                         }
                     });
                     // As at startup: the local copy first, the server after it.
