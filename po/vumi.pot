@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vumi\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-02 00:26+0100\n"
+"POT-Creation-Date: 2026-11-02 00:45+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -82,7 +82,7 @@ msgstr ""
 msgid "Built With"
 msgstr ""
 
-#: app/src/main.rs:559 app/src/preferences.blp:191
+#: app/src/main.rs:559 app/src/preferences.blp:195
 msgid "Playback"
 msgstr ""
 
@@ -178,7 +178,7 @@ msgstr[0] ""
 msgstr[1] ""
 
 #: app/src/main_view.rs:1370 app/src/album_page.rs:669
-#: app/src/album_page.rs:854 app/src/now_playing.rs:259
+#: app/src/album_page.rs:854 app/src/now_playing.rs:257
 #: app/src/mini_player.rs:103 app/src/playlist_page.blp:85
 msgid "Play"
 msgstr ""
@@ -278,7 +278,7 @@ msgstr ""
 msgid "Recently Added"
 msgstr ""
 
-#: app/src/main_view.blp:513 app/src/preferences.blp:194
+#: app/src/main_view.blp:513 app/src/preferences.blp:198
 msgid "Endless Radio"
 msgstr ""
 
@@ -286,11 +286,11 @@ msgstr ""
 msgid "Repeat"
 msgstr ""
 
-#: app/src/main_view.blp:521 app/src/preferences.blp:249
+#: app/src/main_view.blp:521 app/src/preferences.blp:257
 msgid "Off"
 msgstr ""
 
-#: app/src/main_view.blp:527 app/src/now_playing.blp:160
+#: app/src/main_view.blp:527 app/src/now_playing.blp:173
 #: app/src/queue_page.blp:12
 msgid "Queue"
 msgstr ""
@@ -303,7 +303,7 @@ msgstr ""
 msgid "About Vumi"
 msgstr ""
 
-#: app/src/login_page.rs:147 app/src/login_page.blp:7 app/src/login_page.blp:55
+#: app/src/login_page.rs:147 app/src/login_page.blp:7 app/src/login_page.blp:57
 msgid "Connect"
 msgstr ""
 
@@ -439,7 +439,7 @@ msgstr ""
 msgid "{kbps} kbps"
 msgstr ""
 
-#: app/src/album_page.rs:665 app/src/now_playing.rs:254
+#: app/src/album_page.rs:665 app/src/now_playing.rs:252
 #: app/src/mini_player.rs:99 app/src/continue_tile.rs:133
 msgid "Pause"
 msgstr ""
@@ -486,7 +486,6 @@ msgstr ""
 #. Translators: {n} is a number of albums.
 #: app/src/favorites_header.rs:120 app/src/artist_card.rs:80
 #: app/src/artist_page.rs:149 app/src/preferences.rs:384
-#: app/src/year_scale.rs:443
 #, rust-format
 msgid "{n} album"
 msgid_plural "{n} albums"
@@ -585,20 +584,24 @@ msgstr ""
 msgid "Show Less"
 msgstr ""
 
-#: app/src/now_playing.rs:160 app/src/queue_page.rs:651
+#: app/src/now_playing.blp:37 app/src/queue_page.rs:651
 #: app/src/song_menu.rs:170
 msgid "Go to Album"
 msgstr ""
 
-#: app/src/now_playing.blp:174
+#: app/src/now_playing.blp:128
+msgid "Position"
+msgstr ""
+
+#: app/src/now_playing.blp:187
 msgid "Previous"
 msgstr ""
 
-#: app/src/now_playing.blp:195
+#: app/src/now_playing.blp:208
 msgid "Next"
 msgstr ""
 
-#: app/src/now_playing.blp:208
+#: app/src/now_playing.blp:221 app/src/now_playing.blp:236
 msgid "Volume"
 msgstr ""
 
@@ -643,75 +646,75 @@ msgstr ""
 msgid "Style"
 msgstr ""
 
-#: app/src/preferences.blp:171
+#: app/src/preferences.blp:175
 msgid "Follow System"
 msgstr ""
 
-#: app/src/preferences.blp:175
+#: app/src/preferences.blp:179
 msgid "Light"
 msgstr ""
 
-#: app/src/preferences.blp:179
+#: app/src/preferences.blp:183
 msgid "Dark"
 msgstr ""
 
-#: app/src/preferences.blp:185
+#: app/src/preferences.blp:189
 msgid "Cover Colors"
 msgstr ""
 
-#: app/src/preferences.blp:186
+#: app/src/preferences.blp:190
 msgid "Tint the album page and the player with the color of the cover"
 msgstr ""
 
-#: app/src/preferences.blp:195
+#: app/src/preferences.blp:199
 msgid "When the queue ends, keep playing songs similar to the last one"
 msgstr ""
 
-#: app/src/preferences.blp:199
+#: app/src/preferences.blp:203
 msgid "Play After the Window Is Closed"
 msgstr ""
 
-#: app/src/preferences.blp:200
+#: app/src/preferences.blp:204
 msgid "The music goes on; the controls stay in the system menu"
 msgstr ""
 
-#: app/src/preferences.blp:207 app/src/preferences.blp:223
+#: app/src/preferences.blp:211 app/src/preferences.blp:227
 msgid "Volume Normalization"
 msgstr ""
 
-#: app/src/preferences.blp:234
+#: app/src/preferences.blp:238
 msgid "From ReplayGain tags; off keeps the signal unchanged"
 msgstr ""
 
-#: app/src/preferences.blp:253
+#: app/src/preferences.blp:261
 msgid "Per Track"
 msgstr ""
 
-#: app/src/preferences.blp:257
+#: app/src/preferences.blp:265
 msgid "Per Album"
 msgstr ""
 
-#: app/src/preferences.blp:265
+#: app/src/preferences.blp:273
 msgid "Local Data"
 msgstr ""
 
-#: app/src/preferences.blp:268
+#: app/src/preferences.blp:276
 msgid "Cover Cache"
 msgstr ""
 
-#: app/src/preferences.blp:272 app/src/queue_page.rs:376
+#: app/src/preferences.blp:280 app/src/queue_page.rs:376
 msgid "Clear"
 msgstr ""
 
-#: app/src/preferences.blp:279
+#: app/src/preferences.blp:287
 msgid "Privacy"
 msgstr ""
 
-#: app/src/preferences.blp:282
+#: app/src/preferences.blp:290
 msgid "Share Listening Activity"
 msgstr ""
 
-#: app/src/preferences.blp:283
+#: app/src/preferences.blp:291
 msgid ""
 "The server sees what is playing and counts plays; it may pass them on to "
 "Last.fm or ListenBrainz"
@@ -1025,9 +1028,18 @@ msgstr ""
 msgid "Play This Year"
 msgstr ""
 
-#: app/src/year_scale.rs:249
+#: app/src/year_scale.rs:265
 msgid "Year"
 msgstr ""
+
+#. Translators: what a screen reader says of the year chosen on
+#. the scale: the year, and how many albums the library has from it.
+#: app/src/year_scale.rs:461
+#, rust-format
+msgid "{year}, {n} album"
+msgid_plural "{year}, {n} albums"
+msgstr[0] ""
+msgstr[1] ""
 
 #: app/src/playlist_page.rs:89
 msgid "No Tracks"

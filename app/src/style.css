@@ -171,6 +171,18 @@ box.song-row.playing label.title {
   background-color: alpha(currentColor, 0.12);
 }
 
+/* The cover of the sidebar card is a button (it opens the album) that looks
+   like the cover alone: no padding, no background of its own, only the
+   focus ring of the keyboard. */
+button.cover-button,
+button.cover-button:hover,
+button.cover-button:active {
+  padding: 0;
+  border-radius: 8px;
+  background: none;
+  box-shadow: none;
+}
+
 .pill-play {
   background-color: alpha(currentColor, 0.15);
 }

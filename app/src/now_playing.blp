@@ -31,29 +31,38 @@ template $VumiNowPlaying: Adw.Bin {
 
         // A square cover as wide as the sidebar. The sidebar is 300 wide and
         // the card has 12 + 12 of margins on each side, so the height is fixed
-        // too: the card keeps its size before the cover arrives.
-        AspectFrame cover_frame {
-          ratio: 1;
-          obey-child: false;
-          height-request: 252;
+        // too: the card keeps its size before the cover arrives. A button,
+        // so the keyboard reaches it too: it opens the album that plays.
+        Button cover_button {
+          tooltip-text: _("Go to Album");
 
-          child: Overlay {
-            overflow: hidden;
+          styles [
+            "cover-button",
+          ]
 
-            styles [
-              "pill-cover",
-            ]
+          child: AspectFrame cover_frame {
+            ratio: 1;
+            obey-child: false;
+            height-request: 252;
 
-            child: Image {
-              icon-name: "audio-x-generic-symbolic";
-              pixel-size: 48;
-              opacity: 0.6;
+            child: Overlay {
+              overflow: hidden;
+
+              styles [
+                "pill-cover",
+              ]
+
+              child: Image {
+                icon-name: "audio-x-generic-symbolic";
+                pixel-size: 48;
+                opacity: 0.6;
+              };
+
+              [overlay]
+              Picture cover {
+                content-fit: contain;
+              }
             };
-
-            [overlay]
-            Picture cover {
-              content-fit: contain;
-            }
           };
         }
 
@@ -115,6 +124,10 @@ template $VumiNowPlaying: Adw.Bin {
         margin-end: 12;
 
         Scale progress {
+          accessibility {
+            label: _("Position");
+          }
+
           styles [
             "pill-progress",
           ]
@@ -219,6 +232,10 @@ template $VumiNowPlaying: Adw.Bin {
               ]
 
               child: Scale volume_scale {
+                accessibility {
+                  label: _("Volume");
+                }
+
                 orientation: vertical;
                 inverted: true;
                 height-request: 100;

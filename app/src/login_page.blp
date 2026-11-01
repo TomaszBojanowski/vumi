@@ -41,7 +41,9 @@ template $VumiLoginPage: Adw.NavigationPage {
           }
 
           // Hidden until a connection attempt fails.
+          // An alert: a screen reader says it as it appears.
           Label error_label {
+            accessible-role: alert;
             wrap: true;
             justify: center;
             visible: false;

@@ -191,6 +191,8 @@ mod imp {
         const NAME: &'static str = "VumiYearScale";
         type Type = super::YearScale;
         type ParentType = gtk::Widget;
+        // A screen reader can set the value too (set_current_value).
+        type Interfaces = (gtk::AccessibleRange,);
 
         fn class_init(klass: &mut Self::Class) {
             klass.set_css_name("yearscale");
@@ -231,6 +233,20 @@ mod imp {
             self.obj().draw(snapshot);
         }
     }
+
+    impl AccessibleImpl for YearScale {}
+
+    impl AccessibleRangeImpl for YearScale {
+        /// A screen reader sets a value: the nearest year with albums.
+        fn set_current_value(&self, value: f64) -> bool {
+            let obj = self.obj();
+            if obj.range().is_none() {
+                return false;
+            }
+            obj.set_year(value.round() as i32, true);
+            true
+        }
+    }
 }
 
 /// Told the year after every change.
@@ -239,7 +255,7 @@ pub(crate) type Listener = Box<dyn Fn(i32)>;
 glib::wrapper! {
     pub struct YearScale(ObjectSubclass<imp::YearScale>)
         @extends gtk::Widget,
-        @implements gtk::Accessible, gtk::Buildable, gtk::ConstraintTarget;
+        @implements gtk::Accessible, gtk::AccessibleRange, gtk::Buildable, gtk::ConstraintTarget;
 }
 
 impl YearScale {
@@ -440,8 +456,11 @@ impl YearScale {
         let text;
         if let Some(year) = self.year() {
             let n = self.count(year) as u32;
-            let albums = ngettext("{n} album", "{n} albums", n).replace("{n}", &n.to_string());
-            text = format!("{year}, {albums}");
+            // Translators: what a screen reader says of the year chosen on
+            // the scale: the year, and how many albums the library has from it.
+            text = ngettext("{year}, {n} album", "{year}, {n} albums", n)
+                .replace("{year}", &year.to_string())
+                .replace("{n}", &n.to_string());
             properties.push(gtk::accessible::Property::ValueNow(f64::from(year)));
             properties.push(gtk::accessible::Property::ValueText(&text));
         }

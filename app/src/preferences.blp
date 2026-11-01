@@ -160,12 +160,16 @@ template $VumiPreferences: Adw.PreferencesDialog {
       title: _("Appearance");
 
       // The toggles in the order of the "color-scheme" setting (0, 1, 2).
-      Adw.ActionRow {
+      Adw.ActionRow style_row {
         title: _("Style");
 
         [suffix]
         Adw.ToggleGroup color_scheme {
           valign: center;
+
+          accessibility {
+            labelled-by: style_row;
+          }
 
           Adw.Toggle {
             label: _("Follow System");
@@ -219,7 +223,7 @@ template $VumiPreferences: Adw.PreferencesDialog {
             orientation: vertical;
             spacing: 3;
 
-            Label {
+            Label replay_gain_title {
               label: _("Volume Normalization");
               xalign: 0;
               wrap: true;
@@ -244,6 +248,10 @@ template $VumiPreferences: Adw.PreferencesDialog {
 
           Adw.ToggleGroup replay_gain {
             homogeneous: true;
+
+            accessibility {
+              labelled-by: replay_gain_title;
+            }
 
             Adw.Toggle {
               label: _("Off");

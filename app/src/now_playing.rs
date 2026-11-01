@@ -27,6 +27,8 @@ mod imp {
         #[template_child]
         pub cover: gtk::TemplateChild<gtk::Picture>,
         #[template_child]
+        pub cover_button: gtk::TemplateChild<gtk::Button>,
+        #[template_child]
         pub cover_frame: gtk::TemplateChild<gtk::AspectFrame>,
         #[template_child]
         pub title: gtk::TemplateChild<gtk::Label>,
@@ -123,10 +125,9 @@ impl NowPlaying {
             }
         });
 
-        // A click on the cover opens the album that is playing.
-        let click = gtk::GestureClick::new();
+        // The cover opens the album that is playing.
         let bar_weak = bar.downgrade();
-        click.connect_released(move |_, _, _, _| {
+        imp.cover_button.connect_clicked(move |_| {
             let Some(bar) = bar_weak.upgrade() else {
                 return;
             };
@@ -154,10 +155,7 @@ impl NowPlaying {
                 main.open_album(&album_id, fallback);
             }
         });
-        imp.cover_frame.add_controller(click);
-        imp.cover_frame.set_cursor_from_name(Some("pointer"));
-        imp.cover_frame
-            .set_tooltip_text(Some(&gettext("Go to Album")));
+        imp.cover_button.set_cursor_from_name(Some("pointer"));
 
         // Only a drag by the user seeks; updates from the timer do not. The seek
         // waits until the drag pauses for a moment: seeking on every step
