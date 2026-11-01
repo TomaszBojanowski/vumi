@@ -22,6 +22,12 @@ const SIZE: usize = 10;
 pub(crate) struct Played {
     pub(crate) album_id: String,
     pub(crate) song_id: String,
+    // Unread while the Start page has no Continue Listening tiles; `expect`
+    // makes the build fail once they read it again, so this goes with them.
+    #[cfg_attr(
+        not(test),
+        expect(dead_code, reason = "the Continue Listening tiles resume from it")
+    )]
     pub(crate) seconds: u32,
 }
 

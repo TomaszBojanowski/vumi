@@ -5,8 +5,8 @@ translation-domain "vumi";
 
 // The Start page: shelves that answer "what shall I listen to now".
 template $VumiStartPage: Adw.Bin {
-  // Lets the page react to its own width (see the breakpoint at the end).
-  child: Adw.BreakpointBin breakpoint_bin {
+  // Keeps the page's minimum size; breakpoints for its own width go here.
+  child: Adw.BreakpointBin {
     width-request: 300;
     height-request: 200;
 
@@ -21,186 +21,6 @@ template $VumiStartPage: Adw.Bin {
         margin-bottom: 48;
         margin-start: 24;
         margin-end: 24;
-
-        // The two cards at the top: "Last Played" and a random album, side by
-        // side, or one under the other (the breakpoints below). Neither shows
-        // the album in the player: the sidebar shows that one.
-        Box top_row {
-          spacing: 18;
-
-          // "Last Played": the newest album played other than the one in the
-          // player, resumed where it stopped. Hidden while there is none.
-          Box continue_card {
-            spacing: 18;
-            hexpand: true;
-            visible: false;
-
-            styles [
-              "card",
-              "continue-card",
-            ]
-
-            Overlay continue_cover_frame {
-              width-request: 160;
-              height-request: 160;
-              valign: center;
-              overflow: hidden;
-
-              styles [
-                "continue-cover",
-              ]
-
-              child: Image {
-                icon-name: "audio-x-generic-symbolic";
-                pixel-size: 64;
-
-                styles [
-                  "dim-label",
-                ]
-              };
-
-              [overlay]
-              Picture continue_cover {
-                content-fit: contain;
-              }
-            }
-
-            Box {
-              orientation: vertical;
-              valign: center;
-              spacing: 4;
-              hexpand: true;
-
-              Label {
-                label: _("Last Played");
-                xalign: 0;
-
-                styles [
-                  "caption",
-                  "dim-label",
-                ]
-              }
-
-              Label continue_title {
-                xalign: 0;
-                ellipsize: end;
-
-                styles [
-                  "title-1",
-                ]
-              }
-
-              Label continue_subtitle {
-                xalign: 0;
-                ellipsize: end;
-
-                styles [
-                  "dim-label",
-                ]
-              }
-
-              Button continue_button {
-                halign: start;
-                margin-top: 8;
-
-                styles [
-                  "pill",
-                ]
-
-                child: Adw.ButtonContent {
-                  icon-name: "media-playback-start-symbolic";
-                  label: _("Resume");
-                };
-              }
-            }
-          }
-
-          // "Random Album": an album from the library to listen to next. Its
-          // place in the row (beside or under the Last Played card, or the
-          // whole width when alone) is set in start_page.rs, place_random_card.
-          Box random_card {
-            spacing: 18;
-            halign: start;
-            width-request: 380;
-            visible: false;
-
-            styles [
-              "card",
-              "continue-card",
-            ]
-
-            // The cover and the names come in two copies, made in
-            // start_page.rs (RandomFace): a new pick goes into the hidden copy
-            // and both stacks crossfade to it.
-            Stack random_covers {
-              width-request: 100;
-              height-request: 100;
-              valign: center;
-              transition-type: crossfade;
-              transition-duration: 250;
-            }
-
-            Box {
-              orientation: vertical;
-              valign: center;
-              spacing: 4;
-              hexpand: true;
-
-              // The heading, and at its end ‹ ›, the same as on the shelves
-              // (add_arrows): the suggestion before, and another one; neither
-              // plays anything.
-              Box {
-                spacing: 6;
-
-                Label {
-                  label: _("Random Album");
-                  xalign: 0;
-                  hexpand: true;
-
-                  styles [
-                    "caption",
-                    "dim-label",
-                  ]
-                }
-
-                Box random_arrows {}
-              }
-
-              Stack random_names {
-                transition-type: crossfade;
-                transition-duration: 250;
-              }
-
-              // Either puts the album into the player; the card then picks
-              // the next one.
-              Box {
-                spacing: 8;
-                margin-top: 8;
-
-                Button random_play {
-                  styles [
-                    "pill",
-                  ]
-
-                  child: Adw.ButtonContent {
-                    icon-name: "media-playback-start-symbolic";
-                    label: _("Play");
-                  };
-                }
-
-                Button random_shuffle {
-                  icon-name: "media-playlist-shuffle-symbolic";
-                  tooltip-text: _("Shuffle");
-                  valign: center;
-
-                  styles [
-                    "circular",
-                  ]
-                }
-              }
-            }
-          }
-        }
 
         // Hidden until there is something to show.
         Box recent_shelf {
@@ -234,43 +54,6 @@ template $VumiStartPage: Adw.Bin {
             hscrollbar-policy: external;
 
             child: Box recent_row {
-              spacing: 12;
-            };
-          }
-        }
-
-        // "Most Played": the albums the server ranks by plays.
-        Box frequent_shelf {
-          orientation: vertical;
-          spacing: 12;
-          visible: false;
-
-          Box {
-            spacing: 8;
-
-            Label {
-              label: _("Most Played");
-              xalign: 0;
-
-              styles [
-                "title-4",
-              ]
-            }
-
-            // ‹ ›: move the row by what is visible (add_arrows, connect_arrows).
-            Box frequent_arrows {
-              hexpand: true;
-              halign: end;
-            }
-          }
-
-          // One row of albums; it scrolls sideways when the window is narrow.
-          ScrolledWindow frequent_scroll {
-            vscrollbar-policy: never;
-            // The ‹ › buttons move the row; no scrollbar over the album names.
-            hscrollbar-policy: external;
-
-            child: Box frequent_row {
               spacing: 12;
             };
           }
@@ -326,34 +109,5 @@ template $VumiStartPage: Adw.Bin {
       };
     };
 
-    // Medium: the hero and the random album card do not fit side by side, so
-    // they go one under the other. The conditions do not overlap, so only one
-    // breakpoint applies at a time.
-    Adw.Breakpoint {
-      condition ("max-width: 900sp and min-width: 621sp")
-
-      setters {
-        top_row.orientation: vertical;
-      }
-    }
-
-    // Narrow: the random album card takes the width there is instead of its
-    // usual 380 px (place_random_card fills it), and the covers shrink. So
-    // does the gap after the cover: with the usual one the Polish "Play"
-    // button made the random album card 1 px wider than the narrowest window.
-    Adw.Breakpoint narrow_breakpoint {
-      condition ("max-width: 620sp")
-
-      setters {
-        top_row.orientation: vertical;
-        continue_card.spacing: 12;
-        random_card.spacing: 12;
-        continue_cover_frame.width-request: 80;
-        continue_cover_frame.height-request: 80;
-        random_card.width-request: -1;
-        random_covers.width-request: 80;
-        random_covers.height-request: 80;
-      }
-    }
   };
 }

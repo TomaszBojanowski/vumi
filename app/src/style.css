@@ -351,24 +351,6 @@ button.shelf-card {
   padding: 6px;
 }
 
-/* The two cards at the top of the Start page, Last Played and Random Album.
-   The cover colour (tint.rs) fades to the next album's instead of jumping. */
-.continue-card {
-  padding: 14px;
-  transition: background-image 250ms ease-out;
-}
-
-.continue-cover {
-  border-radius: 8px;
-  background-color: alpha(currentColor, 0.08);
-}
-
-/* The theme gives progress bars a minimum width of about 150 px; in the
-   Continue card that would keep it from fitting narrow windows. */
-.continue-card progressbar > trough {
-  min-width: 40px;
-}
-
 /* The sync button: its refresh icon turns in place while a sync runs. */
 button.syncing > image {
   animation: sync-turn 1s linear infinite;
