@@ -8,7 +8,7 @@ use gettextrs::{gettext, ngettext};
 use gtk::glib;
 use gtk::prelude::*;
 use std::cell::{Cell, OnceCell, RefCell};
-use std::collections::{BTreeMap, HashSet};
+use std::collections::BTreeMap;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -388,17 +388,13 @@ impl Tuner {
     }
 
     /// "Play This Year": YEAR_SONGS songs at random from the year's albums,
-    /// read from the database, as a list of songs (not an album, so the
+    /// picked by the database, as a list of songs (not an album, so the
     /// history of played albums stays as it is).
     fn play_year(&self) {
         let imp = self.imp();
         let (Some(year), Some(client)) = (self.year(), imp.client.borrow().clone()) else {
             return;
         };
-        let ids: Vec<String> = albums_of_year(&imp.albums.borrow(), year)
-            .iter()
-            .map(|album| album.id.clone())
-            .collect();
         let server = client.server_key();
         let player = crate::player::get();
         let command = player.command_id();
@@ -407,7 +403,9 @@ impl Tuner {
         let tuner = self.downgrade();
         glib::spawn_future_local(async move {
             let read = crate::runtime()
-                .spawn_blocking(move || crate::library::load_songs_of_albums(&server, &ids))
+                .spawn_blocking(move || {
+                    crate::library::random_songs_of_year(&server, year, YEAR_SONGS)
+                })
                 .await;
             let songs = read
                 .map_err(|error| error.to_string())
@@ -426,7 +424,6 @@ impl Tuner {
             if !player.is_current(command) {
                 return;
             }
-            let songs = pick_songs(songs, YEAR_SONGS, |n| fastrand::usize(..n));
             if songs.is_empty() {
                 crate::song_menu::toast(&tuner, &gettext("Could not play this year"));
                 return;
@@ -462,28 +459,6 @@ pub(crate) fn albums_of_year(
     of_year
 }
 
-/// Up to `n` songs picked at random from `songs`, each song once (by id).
-/// `random(k)` gives a number below `k`.
-pub(crate) fn pick_songs(
-    songs: Vec<subsonic::Song>,
-    n: usize,
-    mut random: impl FnMut(usize) -> usize,
-) -> Vec<subsonic::Song> {
-    let mut seen = HashSet::new();
-    let mut songs: Vec<subsonic::Song> = songs
-        .into_iter()
-        .filter(|song| seen.insert(song.id.clone()))
-        .collect();
-    let n = n.min(songs.len());
-    // The first n places of a shuffle (Fisher-Yates).
-    for i in 0..n {
-        let j = i + random(songs.len() - i);
-        songs.swap(i, j);
-    }
-    songs.truncate(n);
-    songs
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -505,27 +480,6 @@ mod tests {
             starred: None,
             cover_art: None,
         })
-    }
-
-    fn song(id: &str) -> subsonic::Song {
-        subsonic::Song {
-            id: id.into(),
-            title: id.into(),
-            artist: None,
-            track: None,
-            disc_number: None,
-            album: None,
-            album_id: None,
-            artist_id: None,
-            duration: None,
-            suffix: None,
-            bit_rate: None,
-            cover_art: None,
-            bit_depth: None,
-            sampling_rate: None,
-            starred: None,
-            composer: None,
-        }
     }
 
     fn ids(albums: &[Arc<subsonic::Album>]) -> Vec<&str> {
@@ -574,37 +528,5 @@ mod tests {
             ids(&albums_of_year(&albums, 2000)),
             ["l", "n", "o", "p", "none", "blank"]
         );
-    }
-
-    #[test]
-    fn picked_songs_are_at_most_n_different_ones_from_the_list() {
-        let songs: Vec<_> = (0..200).map(|n| song(&n.to_string())).collect();
-        let all: HashSet<String> = songs.iter().map(|s| s.id.clone()).collect();
-        let mut rng = fastrand::Rng::with_seed(7);
-        let picked = pick_songs(songs, 50, |k| rng.usize(..k));
-        assert_eq!(picked.len(), 50);
-        let unique: HashSet<String> = picked.iter().map(|s| s.id.clone()).collect();
-        assert_eq!(unique.len(), 50);
-        assert!(unique.is_subset(&all));
-    }
-
-    #[test]
-    fn fewer_songs_than_n_are_all_picked_once() {
-        let songs = vec![song("a"), song("b"), song("a"), song("c")];
-        let mut rng = fastrand::Rng::with_seed(3);
-        let picked = pick_songs(songs, 50, |k| rng.usize(..k));
-        let mut picked: Vec<_> = picked.iter().map(|s| s.id.as_str()).collect();
-        picked.sort();
-        assert_eq!(picked, ["a", "b", "c"]);
-        assert!(pick_songs(Vec::new(), 50, |_| 0).is_empty());
-    }
-
-    #[test]
-    fn the_pick_follows_the_random_numbers() {
-        let songs: Vec<_> = ["a", "b", "c", "d"].into_iter().map(song).collect();
-        // Always the first one left: the list's own order.
-        let picked = pick_songs(songs, 3, |_| 0);
-        let picked: Vec<_> = picked.iter().map(|s| s.id.as_str()).collect();
-        assert_eq!(picked, ["a", "b", "c"]);
     }
 }

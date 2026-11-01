@@ -237,13 +237,10 @@ impl StartPage {
             // asked for again and again.
             let read = crate::runtime()
                 .spawn_blocking(move || {
-                    missing
-                        .into_iter()
-                        .map(|id| {
-                            let songs = crate::library::load_album_songs(&server, &id);
-                            (id, songs.unwrap_or_default())
-                        })
-                        .collect::<Vec<_>>()
+                    crate::library::load_songs_by_album(&server, &missing).unwrap_or_else(|e| {
+                        eprintln!("Could not read the songs of the tiles: {e}");
+                        missing.into_iter().map(|id| (id, Vec::new())).collect()
+                    })
                 })
                 .await;
             let (Some(page), Ok(read)) = (page.upgrade(), read) else {

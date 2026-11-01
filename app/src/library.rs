@@ -8,35 +8,71 @@
 
 use gtk::glib;
 use rusqlite::{Connection, params};
-use std::path::PathBuf;
-use std::sync::Arc;
+use std::cell::RefCell;
+use std::path::{Path, PathBuf};
+use std::sync::{Arc, Mutex, PoisonError};
 
 /// Inside Flatpak this is ~/.var/app/<app id>/data/vumi/library.db
 fn db_path() -> PathBuf {
+    #[cfg(test)]
+    if let Some(path) = tests::DATABASE.with(|path| path.borrow().clone()) {
+        return path;
+    }
     glib::user_data_dir().join("vumi").join("library.db")
 }
 
-fn open() -> rusqlite::Result<Connection> {
+thread_local! {
+    /// This thread's connection, opened at its first query and kept. Each
+    /// worker thread has its own: a sync writing thousands of songs in one
+    /// transaction does not hold up the reads of other threads (WAL).
+    static CONNECTION: RefCell<Option<(PathBuf, Connection)>> = const { RefCell::new(None) };
+}
+
+/// The databases whose schema is up to date: checked and migrated once in
+/// the life of the process, by the first connection (at startup, when the
+/// local library is read).
+static PREPARED: Mutex<Vec<PathBuf>> = Mutex::new(Vec::new());
+
+/// Runs `f` with this thread's connection to the database.
+fn with_connection<T>(
+    f: impl FnOnce(&mut Connection) -> rusqlite::Result<T>,
+) -> rusqlite::Result<T> {
     let path = db_path();
+    CONNECTION.with(|cell| {
+        let mut cell = cell.borrow_mut();
+        let open = cell.as_ref().is_some_and(|(open, _)| *open == path);
+        if !open {
+            *cell = Some((path.clone(), connect(&path)?));
+        }
+        let (_, conn) = cell.as_mut().expect("the connection was just opened");
+        f(conn)
+    })
+}
+
+fn connect(path: &Path) -> rusqlite::Result<Connection> {
     if let Some(dir) = path.parent() {
         let _ = std::fs::create_dir_all(dir);
     }
     let mut conn = Connection::open(path)?;
-    conn.execute_batch(
-        "PRAGMA journal_mode = WAL;
-         CREATE TABLE IF NOT EXISTS albums (
-             server     TEXT NOT NULL,
-             position   INTEGER NOT NULL,
-             id         TEXT NOT NULL,
-             name       TEXT NOT NULL,
-             artist     TEXT,
-             year       INTEGER,
-             song_count INTEGER,
-             cover_art  TEXT,
-             PRIMARY KEY (server, id)
-         );",
-    )?;
-    migrate(&mut conn)?;
+    let mut prepared = PREPARED.lock().unwrap_or_else(PoisonError::into_inner);
+    if !prepared.iter().any(|done| done == path) {
+        conn.execute_batch(
+            "PRAGMA journal_mode = WAL;
+             CREATE TABLE IF NOT EXISTS albums (
+                 server     TEXT NOT NULL,
+                 position   INTEGER NOT NULL,
+                 id         TEXT NOT NULL,
+                 name       TEXT NOT NULL,
+                 artist     TEXT,
+                 year       INTEGER,
+                 song_count INTEGER,
+                 cover_art  TEXT,
+                 PRIMARY KEY (server, id)
+             );",
+        )?;
+        migrate(&mut conn)?;
+        prepared.push(path.to_path_buf());
+    }
     Ok(conn)
 }
 
@@ -146,13 +182,14 @@ fn migrate(conn: &mut Connection) -> rusqlite::Result<()> {
 
 /// Notes that the library of `server` was synced just now.
 pub(crate) fn mark_synced(server: &str) -> rusqlite::Result<()> {
-    let conn = open()?;
-    conn.execute(
-        "INSERT OR REPLACE INTO sync_state (server, synced_at)
-         VALUES (?1, CAST(strftime('%s', 'now') AS INTEGER))",
-        params![server],
-    )?;
-    Ok(())
+    with_connection(|conn| {
+        conn.execute(
+            "INSERT OR REPLACE INTO sync_state (server, synced_at)
+             VALUES (?1, CAST(strftime('%s', 'now') AS INTEGER))",
+            params![server],
+        )?;
+        Ok(())
+    })
 }
 
 /// What the local library of one server holds.
@@ -164,20 +201,21 @@ pub(crate) struct Stats {
 }
 
 pub(crate) fn stats(server: &str) -> rusqlite::Result<Stats> {
-    let conn = open()?;
-    conn.query_row(
-        "SELECT (SELECT COUNT(*) FROM albums WHERE server = ?1),
-                (SELECT COUNT(*) FROM songs WHERE server = ?1),
-                (SELECT synced_at FROM sync_state WHERE server = ?1)",
-        params![server],
-        |row| {
-            Ok(Stats {
-                albums: row.get(0)?,
-                songs: row.get(1)?,
-                synced_at: row.get(2)?,
-            })
-        },
-    )
+    with_connection(|conn| {
+        conn.query_row(
+            "SELECT (SELECT COUNT(*) FROM albums WHERE server = ?1),
+                    (SELECT COUNT(*) FROM songs WHERE server = ?1),
+                    (SELECT synced_at FROM sync_state WHERE server = ?1)",
+            params![server],
+            |row| {
+                Ok(Stats {
+                    albums: row.get(0)?,
+                    songs: row.get(1)?,
+                    synced_at: row.get(2)?,
+                })
+            },
+        )
+    })
 }
 
 /// Text for the search index and for queries: lower case, and Polish letters as
@@ -213,31 +251,39 @@ fn fts_query(query: &str) -> Option<String> {
 
 /// Albums of one server, in the order the server listed them.
 pub(crate) fn load_albums(server: &str) -> rusqlite::Result<Vec<subsonic::Album>> {
-    let conn = open()?;
-    let mut stmt = conn.prepare(
-        "SELECT id, name, artist, year, song_count, cover_art, created, artist_id, starred
-         FROM albums WHERE server = ?1 ORDER BY position",
-    )?;
-    let rows = stmt.query_map(params![server], |row| {
-        Ok(subsonic::Album {
-            id: row.get(0)?,
-            name: row.get(1)?,
-            artist: row.get(2)?,
-            year: row.get(3)?,
-            song_count: row.get(4)?,
-            cover_art: row.get(5)?,
-            created: row.get(6)?,
-            artist_id: row.get(7)?,
-            starred: row.get(8)?,
-        })
-    })?;
-    rows.collect::<rusqlite::Result<Vec<_>>>()
+    with_connection(|conn| {
+        let mut stmt = conn.prepare_cached(
+            "SELECT id, name, artist, year, song_count, cover_art, created, artist_id, starred
+             FROM albums WHERE server = ?1 ORDER BY position",
+        )?;
+        let rows = stmt.query_map(params![server], |row| {
+            Ok(subsonic::Album {
+                id: row.get(0)?,
+                name: row.get(1)?,
+                artist: row.get(2)?,
+                year: row.get(3)?,
+                song_count: row.get(4)?,
+                cover_art: row.get(5)?,
+                created: row.get(6)?,
+                artist_id: row.get(7)?,
+                starred: row.get(8)?,
+            })
+        })?;
+        rows.collect::<rusqlite::Result<Vec<_>>>()
+    })
 }
 
 /// Replaces the stored albums of one server, and their search index, in a
 /// single transaction.
 pub(crate) fn save_albums(server: &str, albums: &[Arc<subsonic::Album>]) -> rusqlite::Result<()> {
-    let mut conn = open()?;
+    with_connection(|conn| save_albums_with(conn, server, albums))
+}
+
+fn save_albums_with(
+    conn: &mut Connection,
+    server: &str,
+    albums: &[Arc<subsonic::Album>],
+) -> rusqlite::Result<()> {
     let tx = conn.transaction()?;
     tx.execute("DELETE FROM albums WHERE server = ?1", params![server])?;
     tx.execute("DELETE FROM albums_fts WHERE server = ?1", params![server])?;
@@ -274,7 +320,14 @@ pub(crate) fn save_albums(server: &str, albums: &[Arc<subsonic::Album>]) -> rusq
 /// Replaces the stored songs of one server, and their search index, in a
 /// single transaction.
 pub(crate) fn save_songs(server: &str, songs: &[subsonic::Song]) -> rusqlite::Result<()> {
-    let mut conn = open()?;
+    with_connection(|conn| save_songs_with(conn, server, songs))
+}
+
+fn save_songs_with(
+    conn: &mut Connection,
+    server: &str,
+    songs: &[subsonic::Song],
+) -> rusqlite::Result<()> {
     let tx = conn.transaction()?;
     tx.execute("DELETE FROM songs WHERE server = ?1", params![server])?;
     tx.execute("DELETE FROM songs_fts WHERE server = ?1", params![server])?;
@@ -351,27 +404,53 @@ pub(crate) fn load_album_songs(
     server: &str,
     album_id: &str,
 ) -> rusqlite::Result<Vec<subsonic::Song>> {
-    let conn = open()?;
-    let mut stmt = conn.prepare(ALBUM_SONGS)?;
-    let rows = stmt.query_map(params![server, album_id], song_from_row)?;
-    rows.collect::<rusqlite::Result<Vec<_>>>()
+    with_connection(|conn| {
+        let mut stmt = conn.prepare_cached(ALBUM_SONGS)?;
+        let rows = stmt.query_map(params![server, album_id], song_from_row)?;
+        rows.collect::<rusqlite::Result<Vec<_>>>()
+    })
 }
 
-/// The songs of the albums `album_ids`, album after album, each in its order,
-/// read over one connection (the Tuner reads those of a whole year).
-pub(crate) fn load_songs_of_albums(
+/// The songs of each album of `album_ids`, in the album's order, read
+/// together (the Start page asks for the albums of its tiles at once).
+pub(crate) fn load_songs_by_album(
     server: &str,
     album_ids: &[String],
+) -> rusqlite::Result<Vec<(String, Vec<subsonic::Song>)>> {
+    with_connection(|conn| {
+        let mut stmt = conn.prepare_cached(ALBUM_SONGS)?;
+        album_ids
+            .iter()
+            .map(|album_id| {
+                let songs = stmt
+                    .query_map(params![server, album_id], song_from_row)?
+                    .collect::<rusqlite::Result<Vec<_>>>()?;
+                Ok((album_id.clone(), songs))
+            })
+            .collect()
+    })
+}
+
+/// Up to `count` songs picked at random from the albums of `year`, each once
+/// ("Play This Year").
+pub(crate) fn random_songs_of_year(
+    server: &str,
+    year: i32,
+    count: usize,
 ) -> rusqlite::Result<Vec<subsonic::Song>> {
-    let conn = open()?;
-    let mut stmt = conn.prepare(ALBUM_SONGS)?;
-    let mut songs = Vec::new();
-    for album_id in album_ids {
-        for song in stmt.query_map(params![server, album_id], song_from_row)? {
-            songs.push(song?);
-        }
-    }
-    Ok(songs)
+    with_connection(|conn| {
+        let mut stmt = conn.prepare_cached(
+            "SELECT id, title, artist, track, disc_number, album, album_id, duration,
+                    suffix, bit_rate, cover_art, bit_depth, sampling_rate, starred, artist_id,
+                    composer
+             FROM songs
+             WHERE server = ?1
+               AND album_id IN (SELECT id FROM albums WHERE server = ?1 AND year = ?2)
+             ORDER BY random() LIMIT ?3",
+        )?;
+        let rows = stmt.query_map(params![server, year, count as i64], song_from_row)?;
+        rows.collect::<rusqlite::Result<Vec<_>>>()
+    })
 }
 
 /// The songs of one album, in the album's order.
@@ -398,9 +477,16 @@ pub(crate) fn search(server: &str, query: &str, limit: usize) -> rusqlite::Resul
             songs: Vec::new(),
         });
     };
-    let conn = open()?;
+    with_connection(|conn| search_with(conn, server, &fts, limit))
+}
 
-    let mut stmt = conn.prepare(
+fn search_with(
+    conn: &Connection,
+    server: &str,
+    fts: &str,
+    limit: usize,
+) -> rusqlite::Result<SearchResults> {
+    let mut stmt = conn.prepare_cached(
         "SELECT id FROM albums_fts
          WHERE albums_fts MATCH ?2 AND server = ?1
          ORDER BY rank LIMIT ?3",
@@ -409,7 +495,7 @@ pub(crate) fn search(server: &str, query: &str, limit: usize) -> rusqlite::Resul
         .query_map(params![server, fts, limit as i64], |row| row.get(0))?
         .collect::<rusqlite::Result<Vec<String>>>()?;
 
-    let mut stmt = conn.prepare(
+    let mut stmt = conn.prepare_cached(
         "SELECT s.id, s.title, s.artist, s.track, s.disc_number, s.album, s.album_id,
                 s.duration, s.suffix, s.bit_rate, s.cover_art, s.bit_depth,
                 s.sampling_rate, s.starred, s.artist_id, s.composer
@@ -426,8 +512,11 @@ pub(crate) fn search(server: &str, query: &str, limit: usize) -> rusqlite::Resul
 
 /// Starred albums and songs of one server, most recently starred first.
 pub(crate) fn load_starred(server: &str) -> rusqlite::Result<SearchResults> {
-    let conn = open()?;
-    let mut stmt = conn.prepare(
+    with_connection(|conn| load_starred_with(conn, server))
+}
+
+fn load_starred_with(conn: &Connection, server: &str) -> rusqlite::Result<SearchResults> {
+    let mut stmt = conn.prepare_cached(
         "SELECT id FROM albums WHERE server = ?1 AND starred IS NOT NULL
          ORDER BY starred DESC",
     )?;
@@ -435,7 +524,7 @@ pub(crate) fn load_starred(server: &str) -> rusqlite::Result<SearchResults> {
         .query_map(params![server], |row| row.get(0))?
         .collect::<rusqlite::Result<Vec<String>>>()?;
 
-    let mut stmt = conn.prepare(
+    let mut stmt = conn.prepare_cached(
         "SELECT id, title, artist, track, disc_number, album, album_id, duration,
                 suffix, bit_rate, cover_art, bit_depth, sampling_rate, starred, artist_id,
                 composer
@@ -457,7 +546,6 @@ pub(crate) fn set_starred(
     id: &str,
     starred: bool,
 ) -> rusqlite::Result<()> {
-    let conn = open()?;
     let table = if album { "albums" } else { "songs" };
     // The server keeps the date of the star; here any non-null value marks it.
     let value: Option<String> = starred.then(|| {
@@ -467,9 +555,270 @@ pub(crate) fn set_starred(
             .map(|s| s.to_string())
             .unwrap_or_else(|| "1".to_string())
     });
-    conn.execute(
-        &format!("UPDATE {table} SET starred = ?1 WHERE server = ?2 AND id = ?3"),
-        params![value, server, id],
-    )?;
-    Ok(())
+    with_connection(|conn| {
+        conn.execute(
+            &format!("UPDATE {table} SET starred = ?1 WHERE server = ?2 AND id = ?3"),
+            params![value, server, id],
+        )?;
+        Ok(())
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    thread_local! {
+        /// The database of the test running on this thread (db_path).
+        pub(super) static DATABASE: RefCell<Option<PathBuf>> = const { RefCell::new(None) };
+    }
+
+    /// A database file of this test alone, in a directory removed afterwards.
+    struct Temporary(PathBuf);
+
+    impl Temporary {
+        fn new(name: &str) -> Self {
+            let dir =
+                std::env::temp_dir().join(format!("vumi-library-{}-{name}", std::process::id()));
+            let _ = std::fs::remove_dir_all(&dir);
+            std::fs::create_dir_all(&dir).expect("no temporary directory");
+            DATABASE.with(|path| path.replace(Some(dir.join("library.db"))));
+            Self(dir)
+        }
+    }
+
+    impl Drop for Temporary {
+        fn drop(&mut self) {
+            DATABASE.with(|path| path.replace(None));
+            CONNECTION.with(|cell| cell.replace(None));
+            let _ = std::fs::remove_dir_all(&self.0);
+        }
+    }
+
+    const SERVER: &str = "user@http://server";
+
+    fn album(id: &str, name: &str, artist: &str, year: i32) -> Arc<subsonic::Album> {
+        Arc::new(subsonic::Album {
+            id: id.into(),
+            name: name.into(),
+            artist: Some(artist.into()),
+            year: Some(year),
+            song_count: None,
+            created: None,
+            artist_id: None,
+            starred: None,
+            cover_art: None,
+        })
+    }
+
+    fn song(id: &str, title: &str, album_id: &str, disc: u32, track: u32) -> subsonic::Song {
+        subsonic::Song {
+            id: id.into(),
+            title: title.into(),
+            artist: Some("Artist".into()),
+            track: Some(track),
+            disc_number: Some(disc),
+            album: Some(album_id.to_uppercase()),
+            album_id: Some(album_id.into()),
+            artist_id: None,
+            duration: Some(100),
+            suffix: None,
+            bit_rate: None,
+            cover_art: None,
+            bit_depth: None,
+            sampling_rate: None,
+            starred: None,
+            composer: None,
+        }
+    }
+
+    fn ids(songs: &[subsonic::Song]) -> Vec<&str> {
+        songs.iter().map(|song| song.id.as_str()).collect()
+    }
+
+    #[test]
+    fn a_version_0_database_is_brought_up_to_date_and_keeps_its_albums() {
+        let temporary = Temporary::new("migrations");
+        // The first schema: albums only, no user_version.
+        let old = Connection::open(temporary.0.join("library.db")).unwrap();
+        old.execute_batch(
+            "CREATE TABLE albums (
+                 server TEXT NOT NULL, position INTEGER NOT NULL, id TEXT NOT NULL,
+                 name TEXT NOT NULL, artist TEXT, year INTEGER, song_count INTEGER,
+                 cover_art TEXT, PRIMARY KEY (server, id)
+             );
+             INSERT INTO albums VALUES ('user@http://server', 0, 'a', 'Żółw', 'Artist', 1999, 3, 'c');",
+        )
+        .unwrap();
+        drop(old);
+
+        let albums = load_albums(SERVER).unwrap();
+        assert_eq!(albums.len(), 1);
+        assert_eq!(albums[0].name, "Żółw");
+        assert_eq!(albums[0].year, Some(1999));
+        assert_eq!(albums[0].created, None);
+        with_connection(|conn| {
+            let version: i64 = conn.query_row("PRAGMA user_version", [], |row| row.get(0))?;
+            assert_eq!(version, 7);
+            let mode: String = conn.query_row("PRAGMA journal_mode", [], |row| row.get(0))?;
+            assert_eq!(mode, "wal");
+            Ok(())
+        })
+        .unwrap();
+        // Every later table is there and works.
+        save_songs(SERVER, &[song("s", "Song", "a", 1, 1)]).unwrap();
+        mark_synced(SERVER).unwrap();
+        let stats = stats(SERVER).unwrap();
+        assert_eq!((stats.albums, stats.songs), (1, 1));
+        assert!(stats.synced_at.is_some());
+    }
+
+    #[test]
+    fn albums_and_songs_come_back_in_their_order() {
+        let _temporary = Temporary::new("order");
+        save_albums(
+            SERVER,
+            &[album("b", "B", "X", 2000), album("a", "A", "X", 2000)],
+        )
+        .unwrap();
+        let names: Vec<_> = load_albums(SERVER)
+            .unwrap()
+            .into_iter()
+            .map(|a| a.name)
+            .collect();
+        assert_eq!(names, ["B", "A"]);
+        save_songs(
+            SERVER,
+            &[
+                song("2-1", "Two one", "a", 2, 1),
+                song("1-2", "One two", "a", 1, 2),
+                song("1-1", "One one", "a", 1, 1),
+                song("b-1", "Other", "b", 1, 1),
+            ],
+        )
+        .unwrap();
+        assert_eq!(
+            ids(&load_album_songs(SERVER, "a").unwrap()),
+            ["1-1", "1-2", "2-1"]
+        );
+        // Saving again replaces, it does not add.
+        save_songs(SERVER, &[song("1-1", "One one", "a", 1, 1)]).unwrap();
+        assert_eq!(ids(&load_album_songs(SERVER, "a").unwrap()), ["1-1"]);
+        assert!(
+            load_album_songs("other@http://server", "a")
+                .unwrap()
+                .is_empty()
+        );
+    }
+
+    #[test]
+    fn songs_by_album_come_album_after_album() {
+        let _temporary = Temporary::new("grouped");
+        save_songs(
+            SERVER,
+            &[
+                song("a2", "A two", "a", 1, 2),
+                song("b1", "B one", "b", 1, 1),
+                song("a1", "A one", "a", 1, 1),
+            ],
+        )
+        .unwrap();
+        let wanted = ["b".to_string(), "none".to_string(), "a".to_string()];
+        let found = load_songs_by_album(SERVER, &wanted).unwrap();
+        let found: Vec<(&str, Vec<&str>)> = found
+            .iter()
+            .map(|(album, songs)| (album.as_str(), ids(songs)))
+            .collect();
+        assert_eq!(
+            found,
+            [("b", vec!["b1"]), ("none", vec![]), ("a", vec!["a1", "a2"])]
+        );
+    }
+
+    #[test]
+    fn random_songs_of_a_year_are_different_and_of_that_year_only() {
+        let _temporary = Temporary::new("year");
+        save_albums(
+            SERVER,
+            &[album("a", "A", "X", 1965), album("b", "B", "X", 1966)],
+        )
+        .unwrap();
+        let mut songs: Vec<_> = (0..30)
+            .map(|n| song(&format!("a{n}"), "S", "a", 1, n))
+            .collect();
+        songs.extend((0..30).map(|n| song(&format!("b{n}"), "S", "b", 1, n)));
+        save_songs(SERVER, &songs).unwrap();
+
+        let picked = random_songs_of_year(SERVER, 1965, 20).unwrap();
+        assert_eq!(picked.len(), 20);
+        assert!(
+            picked
+                .iter()
+                .all(|song| song.album_id.as_deref() == Some("a"))
+        );
+        let unique: std::collections::HashSet<_> = picked.iter().map(|s| &s.id).collect();
+        assert_eq!(unique.len(), 20);
+        // Fewer songs than asked for: all of them.
+        assert_eq!(random_songs_of_year(SERVER, 1966, 50).unwrap().len(), 30);
+        assert!(random_songs_of_year(SERVER, 1967, 50).unwrap().is_empty());
+    }
+
+    #[test]
+    fn search_folds_polish_letters_and_matches_the_start_of_words() {
+        let _temporary = Temporary::new("search");
+        save_albums(
+            SERVER,
+            &[
+                album("z", "Żółw", "Łukasz", 2000),
+                album("o", "Other", "Nobody", 2000),
+            ],
+        )
+        .unwrap();
+        save_songs(SERVER, &[song("s", "Chasing Pavements", "o", 1, 1)]).unwrap();
+        assert_eq!(search(SERVER, "zolw", 10).unwrap().album_ids, ["z"]);
+        assert_eq!(search(SERVER, "luka", 10).unwrap().album_ids, ["z"]);
+        assert_eq!(ids(&search(SERVER, "chas pav", 10).unwrap().songs), ["s"]);
+        assert!(
+            search(SERVER, "pavements chasing x", 10)
+                .unwrap()
+                .songs
+                .is_empty()
+        );
+        assert!(search(SERVER, "  ", 10).unwrap().album_ids.is_empty());
+        // Quotes are text, not query syntax.
+        assert!(search(SERVER, "\"", 10).unwrap().album_ids.is_empty());
+    }
+
+    #[test]
+    fn stars_are_set_locally_and_read_newest_first() {
+        let _temporary = Temporary::new("stars");
+        save_albums(
+            SERVER,
+            &[album("a", "A", "X", 2000), album("b", "B", "X", 2000)],
+        )
+        .unwrap();
+        let mut older = song("s1", "Older", "a", 1, 1);
+        older.starred = Some("2020-01-01T00:00:00Z".into());
+        let mut newer = song("s2", "Newer", "a", 1, 2);
+        newer.starred = Some("2024-01-01T00:00:00Z".into());
+        save_songs(SERVER, &[older, newer, song("s3", "Not", "a", 1, 3)]).unwrap();
+        assert_eq!(ids(&load_starred(SERVER).unwrap().songs), ["s2", "s1"]);
+
+        set_starred(SERVER, true, "b", true).unwrap();
+        set_starred(SERVER, false, "s2", false).unwrap();
+        let starred = load_starred(SERVER).unwrap();
+        assert_eq!(starred.album_ids, ["b"]);
+        assert_eq!(ids(&starred.songs), ["s1"]);
+    }
+
+    #[test]
+    fn folding_and_queries() {
+        assert_eq!(fold("Łódź ĄĆĘŃÓŚŹŻ"), "lodz acenoszz");
+        assert_eq!(
+            fts_query("chas  pav").as_deref(),
+            Some("\"chas\"* \"pav\"*")
+        );
+        assert_eq!(fts_query("a\"b").as_deref(), Some("\"ab\"*"));
+        assert_eq!(fts_query("   "), None);
+    }
 }
