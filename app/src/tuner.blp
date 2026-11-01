@@ -1,0 +1,87 @@
+using Gtk 4.0;
+using Adw 1;
+
+translation-domain "vumi";
+
+// The Tuner card of the Start page: the year chosen on the scale of years
+// (year_scale.rs), how many albums the library has from it, and ‹ › for the
+// year with albums before and after it.
+template $VumiTuner: Adw.Bin {
+  child: Box {
+    orientation: vertical;
+    spacing: 18;
+
+    styles [
+      "card",
+      "tuner",
+    ]
+
+    Box {
+      spacing: 12;
+
+      Box {
+        orientation: vertical;
+        hexpand: true;
+        valign: end;
+        spacing: 2;
+
+        Label {
+          label: _("Tuner");
+          xalign: 0;
+
+          styles [
+            "caption-heading",
+            "dim-label",
+          ]
+        }
+
+        Label year_label {
+          xalign: 0;
+
+          styles [
+            "tuner-year",
+          ]
+        }
+
+        // A longer text wraps rather than widening the card.
+        Label count_label {
+          xalign: 0;
+          wrap: true;
+
+          styles [
+            "dim-label",
+          ]
+        }
+      }
+
+      Box {
+        valign: center;
+        spacing: 10;
+
+        Button prev_button {
+          icon-name: "go-previous-symbolic";
+          tooltip-text: _("Previous Year");
+          valign: center;
+
+          styles [
+            "circular",
+          ]
+        }
+
+        Button next_button {
+          icon-name: "go-next-symbolic";
+          tooltip-text: _("Next Year");
+          valign: center;
+
+          styles [
+            "circular",
+          ]
+        }
+      }
+    }
+
+    $VumiYearScale scale {
+      hexpand: true;
+    }
+  };
+}

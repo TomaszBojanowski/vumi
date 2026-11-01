@@ -376,6 +376,51 @@ progressbar.recent-tile-progress > trough > progress {
   background-color: white;
 }
 
+/* The Tuner card on the Start page (tuner.blp). */
+.tuner {
+  padding: 24px;
+}
+
+/* The year chosen: large figures of one width, in the orange of a radio
+   dial (GNOME palette: orange 5 in the light style, orange 1 in the dark). */
+.tuner-year {
+  font-family: monospace;
+  font-weight: bold;
+  font-size: 4.4em;
+  font-feature-settings: "tnum";
+  line-height: 1;
+  color: #c64600;
+}
+
+/* The scale of years (year_scale.rs): small labels, figures of one width. */
+yearscale {
+  font-size: smaller;
+  font-feature-settings: "tnum";
+}
+
+yearscale:focus-visible {
+  outline: 2px solid alpha(var(--accent-color), 0.5);
+  outline-offset: 4px;
+  border-radius: 6px;
+}
+
+/* The needle on the year chosen (GNOME palette: orange 4 in the light
+   style, orange 3 in the dark). */
+yearscale > .needle {
+  min-width: 3px;
+  border-radius: 2px;
+  background-color: #e66100;
+}
+
+/* The dark style as the app shows it (tuner.rs, follow_style). */
+.tuner-dark .tuner-year {
+  color: #ffbe6f;
+}
+
+.tuner-dark yearscale > .needle {
+  background-color: #ff7800;
+}
+
 /* "Now Playing" over the title of the album in the player (Adwaita's
    caption-heading, in the accent colour). */
 .now-playing-label {

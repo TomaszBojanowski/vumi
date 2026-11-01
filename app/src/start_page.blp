@@ -60,6 +60,12 @@ template $VumiStartPage: Adw.Bin {
           }
         }
 
+        // "Tuner": the scale of years of the library (tuner.blp). Hidden
+        // while no album has a year.
+        $VumiTuner tuner {
+          visible: false;
+        }
+
         // Hidden until there is something to show.
         Box recent_shelf {
           orientation: vertical;

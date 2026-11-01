@@ -36,6 +36,8 @@ mod imp {
     #[template(file = "src/start_page.blp")]
     pub struct StartPage {
         #[template_child]
+        pub tuner: gtk::TemplateChild<crate::tuner::Tuner>,
+        #[template_child]
         pub continue_shelf: gtk::TemplateChild<gtk::Box>,
         #[template_child]
         pub continue_row: gtk::TemplateChild<gtk::Box>,
@@ -94,6 +96,7 @@ mod imp {
         type ParentType = adw::Bin;
 
         fn class_init(klass: &mut Self::Class) {
+            crate::tuner::Tuner::static_type();
             klass.bind_template();
         }
 
@@ -138,11 +141,42 @@ impl StartPage {
         // The library may have changed (a sync, another account): the albums'
         // songs are read again.
         self.refresh_tiles(true);
+        self.update_tuner();
         imp.recent_shelf.set_visible(!recent.is_empty());
     }
 }
 
 impl StartPage {
+    /// The Tuner after the library: its years, and the year it starts on the
+    /// first time there are any (again after another account): that of the
+    /// album in the player, else of the newest album of the history, else a
+    /// random year with albums. Later the year stays where it is.
+    fn update_tuner(&self) {
+        let imp = self.imp();
+        let albums = imp.albums.borrow();
+        let counts = crate::year_scale::year_counts(&albums);
+        imp.tuner.set_visible(!counts.is_empty());
+        let first_fill = imp.tuner.year().is_none();
+        imp.tuner.set_counts(counts.clone());
+        if !first_fill {
+            return;
+        }
+        let year_of = |id: &str| albums.iter().find(|album| album.id == id)?.year;
+        let player_year = crate::player::get()
+            .current()
+            .and_then(|song| song.album_id)
+            .and_then(|id| year_of(&id));
+        let history_years = crate::resume::history()
+            .into_iter()
+            .map(|played| year_of(&played.album_id));
+        let start = crate::year_scale::start_year(&counts, player_year, history_years, |n| {
+            fastrand::usize(..n)
+        });
+        if let Some(year) = start {
+            imp.tuner.set_year(year);
+        }
+    }
+
     /// Refreshes "Recently Played" once the current change of the player is
     /// handled: resume.rs writes the history on that change after this page.
     fn schedule_tiles(&self) {

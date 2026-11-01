@@ -28,7 +28,9 @@ mod song_menu;
 mod song_row;
 mod start_page;
 mod tint;
+mod tuner;
 mod welcome_page;
+mod year_scale;
 
 use adw::prelude::*;
 use gettextrs::{LocaleCategory, gettext};

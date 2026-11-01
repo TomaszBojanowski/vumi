@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vumi\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-01 19:53+0100\n"
+"POT-Creation-Date: 2026-11-01 20:19+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -30,93 +30,93 @@ msgstr ""
 msgid "music;player;navidrome;subsonic;"
 msgstr ""
 
-#: app/src/main.rs:371
+#: app/src/main.rs:373
 msgid "Playback Stopped"
 msgstr ""
 
-#: app/src/main.rs:427 app/src/login_page.rs:164 app/src/album_page.rs:226
+#: app/src/main.rs:429 app/src/login_page.rs:164 app/src/album_page.rs:226
 msgid "Something went wrong. Please try again."
 msgstr ""
 
-#: app/src/main.rs:436
+#: app/src/main.rs:438
 msgid "Wrong username or password."
 msgstr ""
 
-#: app/src/main.rs:438
+#: app/src/main.rs:440
 msgid "Cannot reach the server. Check the address and your connection."
 msgstr ""
 
-#: app/src/main.rs:441
+#: app/src/main.rs:443
 msgid "Invalid server address. It should start with http:// or https://"
 msgstr ""
 
-#: app/src/main.rs:444
+#: app/src/main.rs:446
 msgid "The server answered, but it does not look like a Subsonic server."
 msgstr ""
 
 #. Translators: {message} is the error text sent by the server.
-#: app/src/main.rs:447
+#: app/src/main.rs:449
 #, rust-format
 msgid "Server error: {message}"
 msgstr ""
 
-#: app/src/main.rs:492
+#: app/src/main.rs:494
 msgid "A music player for Navidrome and other Subsonic servers"
 msgstr ""
 
-#: app/src/main.rs:494
+#: app/src/main.rs:496
 msgid "translator-credits"
 msgstr ""
 
-#: app/src/main.rs:500
+#: app/src/main.rs:502
 msgid "Buy Me a Coffee"
 msgstr ""
 
-#: app/src/main.rs:504
+#: app/src/main.rs:506
 msgid "Built With"
 msgstr ""
 
-#: app/src/main.rs:534 app/src/preferences.blp:191
+#: app/src/main.rs:536 app/src/preferences.blp:191
 msgid "Playback"
 msgstr ""
 
-#: app/src/main.rs:536
+#: app/src/main.rs:538
 msgid "Play or Pause"
 msgstr ""
 
-#: app/src/main.rs:537
+#: app/src/main.rs:539
 msgid "Previous Track"
 msgstr ""
 
-#: app/src/main.rs:538
+#: app/src/main.rs:540
 msgid "Next Track"
 msgstr ""
 
-#: app/src/main.rs:542 app/src/main_view.blp:132 app/src/preferences.blp:143
+#: app/src/main.rs:544 app/src/main_view.blp:132 app/src/preferences.blp:143
 msgid "Library"
 msgstr ""
 
-#: app/src/main.rs:544
+#: app/src/main.rs:546
 msgid "Search Library"
 msgstr ""
 
-#: app/src/main.rs:545 app/src/main_view.blp:46 app/src/main_view.blp:542
+#: app/src/main.rs:547 app/src/main_view.blp:46 app/src/main_view.blp:542
 msgid "Sync Library"
 msgstr ""
 
-#: app/src/main.rs:549 app/src/preferences.blp:13
+#: app/src/main.rs:551 app/src/preferences.blp:13
 msgid "General"
 msgstr ""
 
-#: app/src/main.rs:551 app/src/main_view.blp:549
+#: app/src/main.rs:553 app/src/main_view.blp:549
 msgid "Preferences"
 msgstr ""
 
-#: app/src/main.rs:552 app/src/main_view.blp:554
+#: app/src/main.rs:554 app/src/main_view.blp:554
 msgid "Keyboard Shortcuts"
 msgstr ""
 
-#: app/src/main.rs:553 app/src/main_view.blp:564
+#: app/src/main.rs:555 app/src/main_view.blp:564
 msgid "Quit"
 msgstr ""
 
@@ -262,7 +262,7 @@ msgstr ""
 msgid "Year (Oldest)"
 msgstr ""
 
-#: app/src/main_view.blp:502 app/src/start_page.blp:73
+#: app/src/main_view.blp:502 app/src/start_page.blp:79
 msgid "Recently Added"
 msgstr ""
 
@@ -466,6 +466,7 @@ msgstr ""
 
 #: app/src/favorites_header.rs:120 app/src/artist_card.rs:81
 #: app/src/artist_page.rs:128 app/src/preferences.rs:379
+#: app/src/year_scale.rs:443
 #, rust-format
 msgid "{n} album"
 msgid_plural "{n} albums"
@@ -592,7 +593,7 @@ msgstr ""
 msgid "Recently Played"
 msgstr ""
 
-#: app/src/start_page.blp:121
+#: app/src/start_page.blp:127
 msgid "Play Similar Songs"
 msgstr ""
 
@@ -953,21 +954,44 @@ msgstr ""
 msgid "Try other words"
 msgstr ""
 
-#: app/src/start_page.rs:464
+#: app/src/start_page.rs:498
 msgid "Previous Albums"
 msgstr ""
 
-#: app/src/start_page.rs:464
+#: app/src/start_page.rs:498
 msgid "Next Albums"
 msgstr ""
 
-#: app/src/start_page.rs:629
+#: app/src/start_page.rs:663
 #, rust-format
 msgid "Similar to “{title}”"
 msgstr ""
 
 #: app/src/continue_tile.blp:67
 msgid "Now Playing"
+msgstr ""
+
+#: app/src/tuner.rs:109
+#, rust-format
+msgid "{n} album from this year in the library"
+msgid_plural "{n} albums from this year in the library"
+msgstr[0] ""
+msgstr[1] ""
+
+#: app/src/tuner.blp:29
+msgid "Tuner"
+msgstr ""
+
+#: app/src/tuner.blp:63
+msgid "Previous Year"
+msgstr ""
+
+#: app/src/tuner.blp:73
+msgid "Next Year"
+msgstr ""
+
+#: app/src/year_scale.rs:249
+msgid "Year"
 msgstr ""
 
 #: app/src/playlist_page.rs:87
