@@ -48,6 +48,12 @@ pub(crate) struct Player {
     replay_gain_mode: std::cell::Cell<Option<u32>>,
     /// Volume as on the slider (0 to 1); GStreamer gets its cube.
     volume: std::cell::Cell<f64>,
+    /// Told about every change of the volume, and only of it (the sidebar
+    /// card, MPRIS): the listeners of track and state changes have nothing
+    /// to do with the many steps of a slider drag.
+    volume_listeners: RefCell<Vec<VolumeListener>>,
+    /// The volume waits to be written (VOLUME_SAVE_DELAY).
+    volume_save: RefCell<Option<gst::glib::SourceId>>,
     /// Told about every jump of the position, with the new position in
     /// seconds (MPRIS sends Seeked, the sidebar card moves its slider).
     seek_listeners: RefCell<Vec<SeekListener>>,
@@ -80,6 +86,13 @@ type Listener = Box<dyn Fn()>;
 type ErrorHandler = Box<dyn Fn(&str)>;
 /// Told the new position, in seconds, after a jump.
 type SeekListener = Box<dyn Fn(f64)>;
+/// Told the new volume (0 to 1, as on the slider).
+type VolumeListener = Box<dyn Fn(f64)>;
+
+/// How long the volume has to stay put before it is written to the settings:
+/// each write replaces the whole settings file (in Flatpak a key file), on
+/// the main thread, and a slider drag is many steps.
+const VOLUME_SAVE_DELAY: std::time::Duration = std::time::Duration::from_millis(500);
 /// Told the track and the second it was at when the player leaves it by hand.
 type LeaveListener = Box<dyn Fn(&subsonic::Song, f64)>;
 
@@ -154,6 +167,8 @@ impl Player {
                 report_support: std::cell::Cell::new(None),
                 replay_gain_mode: std::cell::Cell::new(None),
                 volume: std::cell::Cell::new(saved_volume()),
+                volume_listeners: RefCell::new(Vec::new()),
+                volume_save: RefCell::new(None),
                 seek_listeners: RefCell::new(Vec::new()),
                 leave_listeners: RefCell::new(Vec::new()),
                 command: Cell::new(0),
@@ -507,6 +522,7 @@ impl Player {
 pub(crate) fn shutdown() {
     PLAYER.with(|cell| {
         if let Some(player) = cell.get() {
+            player.save_volume_now();
             let _ = player.playbin.set_state(gst::State::Null);
         }
     });
@@ -695,7 +711,8 @@ impl Player {
         self.volume.get()
     }
 
-    /// From the slider, the scroll wheel or MPRIS; remembered for next time.
+    /// From the slider, the scroll wheel or MPRIS; remembered for next time,
+    /// once it stays put.
     pub(crate) fn set_volume(&self, volume: f64) {
         let volume = volume.clamp(0.0, 1.0);
         if (self.volume.get() - volume).abs() < 1e-4 {
@@ -703,9 +720,36 @@ impl Player {
         }
         self.volume.set(volume);
         self.apply_volume();
-        use gtk::gio::prelude::*;
-        let _ = gtk::gio::Settings::new(crate::APP_ID).set_double("volume", volume);
-        self.notify();
+        self.notify_volume(volume);
+        if let Some(source) = self.volume_save.take() {
+            source.remove();
+        }
+        let source = gst::glib::timeout_add_local_once(VOLUME_SAVE_DELAY, || {
+            let player = get();
+            // This source is ending: forget it rather than remove it.
+            player.volume_save.take();
+            write_volume(player.volume.get());
+        });
+        self.volume_save.replace(Some(source));
+    }
+
+    /// Writes the volume now if it still waits (the app is closing).
+    pub(crate) fn save_volume_now(&self) {
+        if let Some(source) = self.volume_save.take() {
+            source.remove();
+            write_volume(self.volume.get());
+        }
+    }
+
+    /// Registers `f`, told every new volume.
+    pub(crate) fn connect_volume_changed(&self, f: impl Fn(f64) + 'static) {
+        self.volume_listeners.borrow_mut().push(Box::new(f));
+    }
+
+    fn notify_volume(&self, volume: f64) {
+        for listener in self.volume_listeners.borrow().iter() {
+            listener(volume);
+        }
     }
 
     /// The slider is perceptual, GStreamer's volume linear: the cube makes half
@@ -715,6 +759,11 @@ impl Player {
         self.playbin
             .set_property("volume", self.volume.get().powi(3));
     }
+}
+
+fn write_volume(volume: f64) {
+    use gtk::gio::prelude::*;
+    let _ = gtk::gio::Settings::new(crate::APP_ID).set_double("volume", volume);
 }
 
 /// The volume left last time.

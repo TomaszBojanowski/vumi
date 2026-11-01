@@ -382,6 +382,33 @@ mod tests {
             ));
         }
 
+        // Twenty volume steps (a slider drag): the listeners of track and
+        // state changes hear nothing of them, and the setting, which rewrites
+        // the whole settings file, is written after the steps, not at each.
+        let settings = gio::Settings::new(APP_ID);
+        let changes = std::rc::Rc::new(std::cell::Cell::new(0));
+        let counted = changes.clone();
+        let listener = player.connect_changed(move || counted.set(counted.get() + 1));
+        let saved = settings.double("volume");
+        for step in 1..=20 {
+            player.set_volume(0.3 + 0.01 * f64::from(step));
+        }
+        if changes.get() != 0 {
+            failures.push(format!(
+                "volume steps told {} change listeners",
+                changes.get()
+            ));
+        }
+        if settings.double("volume") != saved {
+            failures.push("the volume was written at every step".into());
+        }
+        if !run_until(Duration::from_secs(2), || {
+            (settings.double("volume") - 0.5).abs() < 1e-9
+        }) {
+            failures.push("the volume was not written after the steps".into());
+        }
+        player.disconnect(listener);
+
         assert!(failures.is_empty(), "{}", failures.join("; "));
     }
 }

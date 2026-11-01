@@ -187,6 +187,14 @@ impl NowPlaying {
                 bar.update();
             }
         });
+        // The volume, whoever changed it (here, the scroll wheel, MPRIS).
+        let bar_weak = bar.downgrade();
+        player::get().connect_volume_changed(move |volume| {
+            if let Some(bar) = bar_weak.upgrade() {
+                bar.show_volume(volume);
+            }
+        });
+        bar.show_volume(player::get().volume());
         // A jump while paused: the timer is not running, and the player
         // still answers with the old position until the seek has landed.
         let bar_weak = bar.downgrade();
@@ -198,12 +206,9 @@ impl NowPlaying {
         bar
     }
 
-    fn update(&self) {
+    /// The slider and the icon of the volume button.
+    fn show_volume(&self, volume: f64) {
         let imp = self.imp();
-        let player = player::get();
-
-        // The volume, whoever changed it (here, the scroll wheel, MPRIS).
-        let volume = player.volume();
         if (imp.volume_scale.value() - volume).abs() > 1e-4 {
             imp.volume_scale.set_value(volume);
         }
@@ -213,6 +218,11 @@ impl NowPlaying {
             v if v < 0.67 => "audio-volume-medium-symbolic",
             _ => "audio-volume-high-symbolic",
         });
+    }
+
+    fn update(&self) {
+        let imp = self.imp();
+        let player = player::get();
         let Some(song) = player.current() else {
             imp.revealer.set_reveal_child(false);
             self.stop_timer();

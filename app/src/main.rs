@@ -86,7 +86,10 @@ fn main() -> glib::ExitCode {
     // Logging out or shutting down: GNOME asks the app first (GTK registers
     // with the session manager by itself, through the portal inside Flatpak),
     // before anything is stopped.
-    app.connect_query_end(|_| resume::save_now());
+    app.connect_query_end(|_| {
+        resume::save_now();
+        player::get().save_volume_now();
+    });
     app.connect_activate(build_ui);
     app.run()
 }

@@ -118,8 +118,10 @@ fn register(connection: &gio::DBusConnection, app: glib::WeakRef<adw::Applicatio
         let _ = cell.set(connection.clone());
     });
 
-    // Every change of track or state goes out to GNOME Shell and the others.
+    // Every change of track or state goes out to GNOME Shell and the others;
+    // a change of the volume goes out alone.
     player::get().connect_changed(emit_changed);
+    player::get().connect_volume_changed(emit_volume);
 }
 
 fn handle_method(
@@ -310,6 +312,30 @@ fn emit_changed() {
         // The cover of a new track is often still downloading at this point:
         // fetch it, and send the metadata again once it is there.
         fetch_missing_cover();
+    });
+}
+
+/// PropertiesChanged with the volume alone (the slider, the scroll wheel, a
+/// client).
+fn emit_volume(volume: f64) {
+    CONNECTION.with(|cell| {
+        let Some(connection) = cell.get() else {
+            return;
+        };
+        let changed = glib::VariantDict::new(None);
+        changed.insert_value("Volume", &volume.to_variant());
+        let params = glib::Variant::tuple_from_iter([
+            PLAYER.to_variant(),
+            changed.end(),
+            Vec::<String>::new().to_variant(),
+        ]);
+        let _ = connection.emit_signal(
+            None,
+            PATH,
+            "org.freedesktop.DBus.Properties",
+            "PropertiesChanged",
+            Some(&params),
+        );
     });
 }
 
