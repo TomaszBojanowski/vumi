@@ -351,9 +351,11 @@ button.shelf-card {
   padding: 6px;
 }
 
-/* "Continue listening" card on the Start page. */
+/* The two cards at the top of the Start page, Last Played and Random Album.
+   The cover colour (tint.rs) fades to the next album's instead of jumping. */
 .continue-card {
   padding: 14px;
+  transition: background-image 250ms ease-out;
 }
 
 .continue-cover {

@@ -6,7 +6,7 @@ translation-domain "vumi";
 // The Start page: shelves that answer "what shall I listen to now".
 template $VumiStartPage: Adw.Bin {
   // Lets the page react to its own width (see the breakpoint at the end).
-  child: Adw.BreakpointBin {
+  child: Adw.BreakpointBin breakpoint_bin {
     width-request: 300;
     height-request: 200;
 
@@ -23,13 +23,13 @@ template $VumiStartPage: Adw.Bin {
         margin-end: 24;
 
         // The two cards at the top: "Last Played" and a random album, side by
-        // side, or one under the other (the breakpoints below).
+        // side, or one under the other (the breakpoints below). Neither shows
+        // the album in the player: the sidebar shows that one.
         Box top_row {
           spacing: 18;
 
-          // "Continue listening": the album that played last, resumed where it
-          // stopped. Hidden until something has played. 560 px wide, or the
-          // whole width on narrow windows (the breakpoint below).
+          // "Last Played": the newest album played other than the one in the
+          // player, resumed where it stopped. Hidden while there is none.
           Box continue_card {
             spacing: 18;
             hexpand: true;
@@ -107,15 +107,17 @@ template $VumiStartPage: Adw.Bin {
                   "pill",
                 ]
 
-                child: Adw.ButtonContent continue_content {
+                child: Adw.ButtonContent {
                   icon-name: "media-playback-start-symbolic";
-                  label: _("Continue");
+                  label: _("Resume");
                 };
               }
             }
           }
 
-          // "Random Album": something from the library to listen to next.
+          // "Random Album": an album from the library to listen to next. Its
+          // place in the row (beside or under the Last Played card, or the
+          // whole width when alone) is set in start_page.rs, place_random_card.
           Box random_card {
             spacing: 18;
             halign: start;
@@ -127,29 +129,15 @@ template $VumiStartPage: Adw.Bin {
               "continue-card",
             ]
 
-            Overlay random_cover_frame {
+            // The cover and the names come in two copies, made in
+            // start_page.rs (RandomFace): a new pick goes into the hidden copy
+            // and both stacks crossfade to it.
+            Stack random_covers {
               width-request: 100;
               height-request: 100;
               valign: center;
-              overflow: hidden;
-
-              styles [
-                "continue-cover",
-              ]
-
-              child: Image {
-                icon-name: "media-optical-symbolic";
-                pixel-size: 40;
-
-                styles [
-                  "dim-label",
-                ]
-              };
-
-              [overlay]
-              Picture random_cover {
-                content-fit: contain;
-              }
+              transition-type: crossfade;
+              transition-duration: 250;
             }
 
             Box {
@@ -158,38 +146,33 @@ template $VumiStartPage: Adw.Bin {
               spacing: 4;
               hexpand: true;
 
-              Label {
-                label: _("Random Album");
-                xalign: 0;
+              // The heading, and at its end ‹ ›, the same as on the shelves
+              // (add_arrows): the suggestion before, and another one; neither
+              // plays anything.
+              Box {
+                spacing: 6;
 
-                styles [
-                  "caption",
-                  "dim-label",
-                ]
+                Label {
+                  label: _("Random Album");
+                  xalign: 0;
+                  hexpand: true;
+
+                  styles [
+                    "caption",
+                    "dim-label",
+                  ]
+                }
+
+                Box random_arrows {}
               }
 
-              Label random_title {
-                xalign: 0;
-                ellipsize: end;
-                // Long names shorten, so the card never grows past its width.
-                max-width-chars: 24;
-
-                styles [
-                  "title-3",
-                ]
+              Stack random_names {
+                transition-type: crossfade;
+                transition-duration: 250;
               }
 
-              Label random_subtitle {
-                xalign: 0;
-                ellipsize: end;
-                // Long names shorten, so the card never grows past its width.
-                max-width-chars: 24;
-
-                styles [
-                  "dim-label",
-                ]
-              }
-
+              // Either puts the album into the player; the card then picks
+              // the next one.
               Box {
                 spacing: 8;
                 margin-top: 8;
@@ -205,9 +188,9 @@ template $VumiStartPage: Adw.Bin {
                   };
                 }
 
-                Button random_next {
+                Button random_shuffle {
                   icon-name: "media-playlist-shuffle-symbolic";
-                  tooltip-text: _("Another Random Album");
+                  tooltip-text: _("Shuffle");
                   valign: center;
 
                   styles [
@@ -237,33 +220,10 @@ template $VumiStartPage: Adw.Bin {
               ]
             }
 
-            // ‹ ›: move the row by what is visible (see connect_arrows).
-            Box {
+            // ‹ ›: move the row by what is visible (add_arrows, connect_arrows).
+            Box recent_arrows {
               hexpand: true;
               halign: end;
-              spacing: 6;
-
-              Button recent_prev {
-                icon-name: "go-previous-symbolic";
-                tooltip-text: _("Previous Albums");
-                valign: center;
-
-                styles [
-                  "circular",
-                  "flat",
-                ]
-              }
-
-              Button recent_next {
-                icon-name: "go-next-symbolic";
-                tooltip-text: _("Next Albums");
-                valign: center;
-
-                styles [
-                  "circular",
-                  "flat",
-                ]
-              }
             }
           }
 
@@ -297,33 +257,10 @@ template $VumiStartPage: Adw.Bin {
               ]
             }
 
-            // ‹ ›: move the row by what is visible (see connect_arrows).
-            Box {
+            // ‹ ›: move the row by what is visible (add_arrows, connect_arrows).
+            Box frequent_arrows {
               hexpand: true;
               halign: end;
-              spacing: 6;
-
-              Button frequent_prev {
-                icon-name: "go-previous-symbolic";
-                tooltip-text: _("Previous Albums");
-                valign: center;
-
-                styles [
-                  "circular",
-                  "flat",
-                ]
-              }
-
-              Button frequent_next {
-                icon-name: "go-next-symbolic";
-                tooltip-text: _("Next Albums");
-                valign: center;
-
-                styles [
-                  "circular",
-                  "flat",
-                ]
-              }
             }
           }
 
@@ -369,33 +306,10 @@ template $VumiStartPage: Adw.Bin {
               ]
             }
 
-            // ‹ ›: move the row by what is visible (see connect_arrows).
-            Box {
+            // ‹ ›: move the row by what is visible (add_arrows, connect_arrows).
+            Box similar_arrows {
               hexpand: true;
               halign: end;
-              spacing: 6;
-
-              Button similar_prev {
-                icon-name: "go-previous-symbolic";
-                tooltip-text: _("Previous Albums");
-                valign: center;
-
-                styles [
-                  "circular",
-                  "flat",
-                ]
-              }
-
-              Button similar_next {
-                icon-name: "go-next-symbolic";
-                tooltip-text: _("Next Albums");
-                valign: center;
-
-                styles [
-                  "circular",
-                  "flat",
-                ]
-              }
             }
           }
 
@@ -424,10 +338,10 @@ template $VumiStartPage: Adw.Bin {
     }
 
     // Narrow: the random album card takes the width there is instead of its
-    // usual 380 px, and the covers shrink. So does the gap after the cover:
-    // with the usual one the Polish "Play" button made the random album card
-    // 1 px wider than the narrowest window.
-    Adw.Breakpoint {
+    // usual 380 px (place_random_card fills it), and the covers shrink. So
+    // does the gap after the cover: with the usual one the Polish "Play"
+    // button made the random album card 1 px wider than the narrowest window.
+    Adw.Breakpoint narrow_breakpoint {
       condition ("max-width: 620sp")
 
       setters {
@@ -437,9 +351,8 @@ template $VumiStartPage: Adw.Bin {
         continue_cover_frame.width-request: 80;
         continue_cover_frame.height-request: 80;
         random_card.width-request: -1;
-        random_card.halign: fill;
-        random_cover_frame.width-request: 80;
-        random_cover_frame.height-request: 80;
+        random_covers.width-request: 80;
+        random_covers.height-request: 80;
       }
     }
   };

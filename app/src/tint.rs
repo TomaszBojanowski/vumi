@@ -153,7 +153,7 @@ pub(crate) fn reload() {
 }
 
 /// A style class whose colour can change over time (the now-playing pill,
-/// the Last Played card, the Favorites page).
+/// the two cards at the top of the Start page, the Favorites page).
 /// Unlike apply(), the same widget keeps one class and its rule is rewritten.
 pub struct Dynamic {
     id: u64,
@@ -191,7 +191,8 @@ impl Dynamic {
     }
 
     /// A gradient of the cover colour across the widget, strongest at its
-    /// start (the Last Played card); the widget's own background shows through.
+    /// start (the cards at the top of the Start page); the widget's own
+    /// background shows through.
     pub(crate) fn set_gradient(&self, (r, g, b): (u8, u8, u8)) {
         let c = &self.class;
         let rule = format!(
@@ -200,6 +201,15 @@ impl Dynamic {
         );
         RULES.with(|rules| rules.borrow_mut().insert(self.id, rule));
         reload();
+    }
+
+    /// set_gradient in the colour of `texture`; no colour without a cover,
+    /// or for a cover with no colour to take.
+    pub(crate) fn set_gradient_from(&self, texture: Option<&gdk::Texture>) {
+        match texture.and_then(dominant_color) {
+            Some(color) => self.set_gradient(color),
+            None => self.clear(),
+        }
     }
 
     /// The colour behind the top of a page, as on album pages (apply), for a

@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vumi\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-03 01:22+0200\n"
+"POT-Creation-Date: 2026-11-01 18:37+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -30,93 +30,93 @@ msgstr ""
 msgid "music;player;navidrome;subsonic;"
 msgstr ""
 
-#: app/src/main.rs:353
+#: app/src/main.rs:367
 msgid "Playback Stopped"
 msgstr ""
 
-#: app/src/main.rs:409 app/src/login_page.rs:155 app/src/album_page.rs:212
+#: app/src/main.rs:423 app/src/login_page.rs:155 app/src/album_page.rs:212
 msgid "Something went wrong. Please try again."
 msgstr ""
 
-#: app/src/main.rs:418
+#: app/src/main.rs:432
 msgid "Wrong username or password."
 msgstr ""
 
-#: app/src/main.rs:419
+#: app/src/main.rs:433
 msgid "Cannot reach the server. Check the address and your connection."
 msgstr ""
 
-#: app/src/main.rs:420
+#: app/src/main.rs:434
 msgid "Invalid server address. It should start with http:// or https://"
 msgstr ""
 
-#: app/src/main.rs:421
+#: app/src/main.rs:435
 msgid "The server answered, but it does not look like a Subsonic server."
 msgstr ""
 
 #. Translators: {message} is the error text sent by the server.
-#: app/src/main.rs:423
+#: app/src/main.rs:437
 #, rust-format
 msgid "Server error: {message}"
 msgstr ""
 
-#: app/src/main.rs:468
+#: app/src/main.rs:482
 msgid "A music player for Navidrome and other Subsonic servers"
 msgstr ""
 
-#: app/src/main.rs:469
+#: app/src/main.rs:483
 msgid "translator-credits"
 msgstr ""
 
-#: app/src/main.rs:474
+#: app/src/main.rs:488
 msgid "Buy Me a Coffee"
 msgstr ""
 
-#: app/src/main.rs:476
+#: app/src/main.rs:490
 msgid "Built With"
 msgstr ""
 
-#: app/src/main.rs:506 app/src/preferences.blp:191
+#: app/src/main.rs:520 app/src/preferences.blp:191
 msgid "Playback"
 msgstr ""
 
-#: app/src/main.rs:508
+#: app/src/main.rs:522
 msgid "Play or Pause"
 msgstr ""
 
-#: app/src/main.rs:509
+#: app/src/main.rs:523
 msgid "Previous Track"
 msgstr ""
 
-#: app/src/main.rs:510
+#: app/src/main.rs:524
 msgid "Next Track"
 msgstr ""
 
-#: app/src/main.rs:514 app/src/main_view.blp:132 app/src/preferences.blp:143
+#: app/src/main.rs:528 app/src/main_view.blp:132 app/src/preferences.blp:143
 msgid "Library"
 msgstr ""
 
-#: app/src/main.rs:516
+#: app/src/main.rs:530
 msgid "Search Library"
 msgstr ""
 
-#: app/src/main.rs:517 app/src/main_view.blp:46 app/src/main_view.blp:542
+#: app/src/main.rs:531 app/src/main_view.blp:46 app/src/main_view.blp:542
 msgid "Sync Library"
 msgstr ""
 
-#: app/src/main.rs:521 app/src/preferences.blp:13
+#: app/src/main.rs:535 app/src/preferences.blp:13
 msgid "General"
 msgstr ""
 
-#: app/src/main.rs:523 app/src/main_view.blp:549
+#: app/src/main.rs:537 app/src/main_view.blp:549
 msgid "Preferences"
 msgstr ""
 
-#: app/src/main.rs:524 app/src/main_view.blp:554
+#: app/src/main.rs:538 app/src/main_view.blp:554
 msgid "Keyboard Shortcuts"
 msgstr ""
 
-#: app/src/main.rs:525 app/src/main_view.blp:564
+#: app/src/main.rs:539 app/src/main_view.blp:564
 msgid "Quit"
 msgstr ""
 
@@ -169,7 +169,7 @@ msgstr[1] ""
 
 #: app/src/main_view.rs:1303 app/src/album_page.rs:628
 #: app/src/album_page.rs:810 app/src/now_playing.rs:246
-#: app/src/mini_player.rs:101 app/src/start_page.blp:204
+#: app/src/mini_player.rs:101 app/src/start_page.blp:187
 #: app/src/playlist_page.blp:85
 msgid "Play"
 msgstr ""
@@ -265,7 +265,7 @@ msgstr ""
 msgid "Year (Oldest)"
 msgstr ""
 
-#: app/src/main_view.blp:502 app/src/start_page.blp:232
+#: app/src/main_view.blp:502 app/src/start_page.blp:215
 msgid "Recently Added"
 msgstr ""
 
@@ -420,11 +420,11 @@ msgid "{whole}.{fraction} kHz"
 msgstr ""
 
 #: app/src/album_page.rs:624 app/src/now_playing.rs:242
-#: app/src/mini_player.rs:98 app/src/start_page.rs:483
+#: app/src/mini_player.rs:98
 msgid "Pause"
 msgstr ""
 
-#: app/src/album_page.rs:626 app/src/start_page.rs:485
+#: app/src/album_page.rs:626 app/src/start_page.blp:112
 msgid "Resume"
 msgstr ""
 
@@ -439,7 +439,7 @@ msgid "Radio"
 msgstr ""
 
 #: app/src/album_page.rs:817 app/src/favorites_header.blp:101
-#: app/src/playlist_page.blp:96
+#: app/src/start_page.blp:193 app/src/playlist_page.blp:96
 msgid "Shuffle"
 msgstr ""
 
@@ -583,11 +583,11 @@ msgstr ""
 msgid "Volume"
 msgstr ""
 
-#: app/src/player.rs:270 app/src/player.rs:408
+#: app/src/player.rs:301 app/src/player.rs:445
 msgid "Could not play the track"
 msgstr ""
 
-#: app/src/player.rs:289 app/src/player.rs:333
+#: app/src/player.rs:320 app/src/player.rs:364
 msgid "Could not start playback"
 msgstr ""
 
@@ -595,33 +595,15 @@ msgstr ""
 msgid "Last Played"
 msgstr ""
 
-#: app/src/start_page.blp:112 app/src/start_page.rs:487
-msgid "Continue"
-msgstr ""
-
-#: app/src/start_page.blp:162
+#: app/src/start_page.blp:156
 msgid "Random Album"
 msgstr ""
 
-#: app/src/start_page.blp:210
-msgid "Another Random Album"
-msgstr ""
-
-#: app/src/start_page.blp:248 app/src/start_page.blp:308
-#: app/src/start_page.blp:380
-msgid "Previous Albums"
-msgstr ""
-
-#: app/src/start_page.blp:259 app/src/start_page.blp:319
-#: app/src/start_page.blp:391
-msgid "Next Albums"
-msgstr ""
-
-#: app/src/start_page.blp:292
+#: app/src/start_page.blp:252
 msgid "Most Played"
 msgstr ""
 
-#: app/src/start_page.blp:363
+#: app/src/start_page.blp:300
 msgid "Play Similar Songs"
 msgstr ""
 
@@ -985,7 +967,23 @@ msgstr ""
 msgid "Try other words"
 msgstr ""
 
-#: app/src/start_page.rs:568
+#: app/src/start_page.rs:368
+msgid "Previous Albums"
+msgstr ""
+
+#: app/src/start_page.rs:368
+msgid "Next Albums"
+msgstr ""
+
+#: app/src/start_page.rs:429
+msgid "Show Previous Suggestion"
+msgstr ""
+
+#: app/src/start_page.rs:430
+msgid "Show Next Suggestion"
+msgstr ""
+
+#: app/src/start_page.rs:791
 #, rust-format
 msgid "Similar to “{title}”"
 msgstr ""

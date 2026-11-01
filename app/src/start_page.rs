@@ -1,11 +1,11 @@
 //! The Start page: shelves that answer "what shall I listen to now".
 //! For now "Recently added"; "Continue" and "Similar to…" come next.
 
+use adw::prelude::BreakpointBinExt;
 use adw::subclass::prelude::*;
 use gtk::glib;
 use gtk::prelude::*;
 use gettextrs::gettext;
-use gtk::gio;
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::sync::Arc;
@@ -16,6 +16,15 @@ use crate::main_view::MainView;
 /// How many albums one shelf shows.
 const SHELF_SIZE: usize = 12;
 
+/// How many times the "Random Album" card draws before it takes an album it
+/// should not show (one in the player or on a card): enough for a library of
+/// more than a few albums, and a small library cannot hold it up.
+const RANDOM_TRIES: usize = 5;
+
+/// How many suggestions of the "Random Album" card ‹ can go back to, and ›
+/// forward to again. Kept in memory only, for this run.
+const RANDOM_HISTORY: usize = 10;
+
 mod imp {
     use super::*;
 
@@ -23,15 +32,17 @@ mod imp {
     #[template(file = "src/start_page.blp")]
     pub struct StartPage {
         #[template_child]
+        pub breakpoint_bin: gtk::TemplateChild<adw::BreakpointBin>,
+        #[template_child]
+        pub narrow_breakpoint: gtk::TemplateChild<adw::Breakpoint>,
+        #[template_child]
         pub recent_shelf: gtk::TemplateChild<gtk::Box>,
         #[template_child]
         pub recent_row: gtk::TemplateChild<gtk::Box>,
         #[template_child]
         pub recent_scroll: gtk::TemplateChild<gtk::ScrolledWindow>,
         #[template_child]
-        pub recent_prev: gtk::TemplateChild<gtk::Button>,
-        #[template_child]
-        pub recent_next: gtk::TemplateChild<gtk::Button>,
+        pub recent_arrows: gtk::TemplateChild<gtk::Box>,
         /// The albums on each shelf now, so an unchanged shelf is not rebuilt.
         pub recent_ids: RefCell<Vec<String>>,
         pub frequent_ids: RefCell<Vec<String>>,
@@ -43,9 +54,7 @@ mod imp {
         #[template_child]
         pub frequent_scroll: gtk::TemplateChild<gtk::ScrolledWindow>,
         #[template_child]
-        pub frequent_prev: gtk::TemplateChild<gtk::Button>,
-        #[template_child]
-        pub frequent_next: gtk::TemplateChild<gtk::Button>,
+        pub frequent_arrows: gtk::TemplateChild<gtk::Box>,
         /// The ids of the most played albums, as the server ranks them.
         pub frequent: RefCell<Vec<String>>,
         #[template_child]
@@ -59,8 +68,6 @@ mod imp {
         #[template_child]
         pub continue_button: gtk::TemplateChild<gtk::Button>,
         #[template_child]
-        pub continue_content: gtk::TemplateChild<adw::ButtonContent>,
-        #[template_child]
         pub similar_shelf: gtk::TemplateChild<gtk::Box>,
         #[template_child]
         pub similar_title: gtk::TemplateChild<gtk::Label>,
@@ -71,30 +78,39 @@ mod imp {
         #[template_child]
         pub similar_scroll: gtk::TemplateChild<gtk::ScrolledWindow>,
         #[template_child]
-        pub similar_prev: gtk::TemplateChild<gtk::Button>,
-        #[template_child]
-        pub similar_next: gtk::TemplateChild<gtk::Button>,
+        pub similar_arrows: gtk::TemplateChild<gtk::Box>,
         #[template_child]
         pub random_card: gtk::TemplateChild<gtk::Box>,
         #[template_child]
-        pub random_cover: gtk::TemplateChild<gtk::Picture>,
+        pub random_covers: gtk::TemplateChild<gtk::Stack>,
         #[template_child]
-        pub random_title: gtk::TemplateChild<gtk::Label>,
-        #[template_child]
-        pub random_subtitle: gtk::TemplateChild<gtk::Label>,
+        pub random_names: gtk::TemplateChild<gtk::Stack>,
         #[template_child]
         pub random_play: gtk::TemplateChild<gtk::Button>,
         #[template_child]
-        pub random_next: gtk::TemplateChild<gtk::Button>,
+        pub random_shuffle: gtk::TemplateChild<gtk::Button>,
+        #[template_child]
+        pub random_arrows: gtk::TemplateChild<gtk::Box>,
         /// The album on the "Random Album" card.
         pub random_album: RefCell<Option<Arc<subsonic::Album>>>,
-        /// The tint of the hero card, after its cover (tint.rs).
-        pub(crate) hero_tint: std::cell::OnceCell<crate::tint::Dynamic>,
+        /// The card's suggestions as ids, like a browser's history: before the
+        /// one shown (oldest first) and after it, once ‹ has gone back (the
+        /// nearest last); at most RANDOM_HISTORY each. Its ‹ button is greyed
+        /// out when none before can be shown.
+        pub random_back: RefCell<Vec<String>>,
+        pub random_forward: RefCell<Vec<String>>,
+        pub random_prev: std::cell::OnceCell<gtk::Button>,
+        /// The card's two copies of cover and names, and which one is shown.
+        pub(crate) random_faces: std::cell::OnceCell<[super::RandomFace; 2]>,
+        pub random_face: std::cell::Cell<usize>,
+        /// The tints of the two cards, after their covers (tint.rs).
+        pub(crate) continue_tint: std::cell::OnceCell<crate::tint::Dynamic>,
+        pub(crate) random_tint: std::cell::OnceCell<crate::tint::Dynamic>,
         /// The similar songs, played by the radio button next to the shelf title.
         pub similar: RefCell<Option<Rc<[subsonic::Song]>>>,
         /// The song they are similar to, so the server is asked once per song.
         pub similar_seed: RefCell<String>,
-        /// What "Continue" plays: the album's songs, the track, the second.
+        /// What "Resume" plays: the album's songs, the track, the second.
         pub(crate) resume: RefCell<Option<super::Resume>>,
         /// The album on the card and its songs as last read from the database,
         /// so a change that keeps the album (pause, the next track, the volume)
@@ -103,7 +119,7 @@ mod imp {
         /// Bumped by every show_continue; a database answer for an older call
         /// is dropped.
         pub continue_generation: std::cell::Cell<u32>,
-        /// The library and the client, so the card can follow the player.
+        /// The library and the client, so the cards can follow the player.
         pub albums: RefCell<Vec<Arc<subsonic::Album>>>,
         pub client: RefCell<Option<subsonic::Client>>,
         /// The album on the card, so its cover is reloaded only when it changes.
@@ -161,6 +177,8 @@ impl StartPage {
         // hidden after logging in again with the same album still remembered.
         if albums.is_empty() {
             imp.random_album.replace(None);
+            imp.random_back.borrow_mut().clear();
+            imp.random_forward.borrow_mut().clear();
         }
         // A new pick only when there is none yet, or it left the library.
         let keep = imp
@@ -175,7 +193,9 @@ impl StartPage {
             // a cover that was not on disk then can be fetched now.
             self.load_random_cover();
         }
-        self.update_continue();
+        // The library may have changed (a sync, another account), so the Last
+        // Played card reads its album's songs from the database again.
+        self.update_top(true);
         imp.recent_shelf.set_visible(!recent.is_empty());
     }
 }
@@ -255,7 +275,7 @@ fn fill_shelf(
     }
 }
 
-/// Where "Continue" picks up: the album's songs, the track and the second.
+/// Where "Resume" picks up: the album's songs, the track and the second.
 pub(crate) struct Resume {
     client: subsonic::Client,
     songs: Rc<[subsonic::Song]>,
@@ -263,38 +283,167 @@ pub(crate) struct Resume {
     seconds: f64,
 }
 
+/// The two cards at the top of the page.
+#[derive(Clone, Copy)]
+enum Card {
+    Continue,
+    Random,
+}
+
+/// One copy of what the "Random Album" card shows of its album: the cover in
+/// its frame, the title and the artist. The card has two, one part in each
+/// of its stacks (start_page.blp): a new pick goes into the hidden copy and
+/// the stacks crossfade to it.
+pub(crate) struct RandomFace {
+    frame: gtk::Overlay,
+    cover: gtk::Picture,
+    names: gtk::Box,
+    title: gtk::Label,
+    subtitle: gtk::Label,
+}
+
+impl RandomFace {
+    /// Makes one copy and adds its cover and its names to the two stacks.
+    fn new(covers: &gtk::Stack, names_stack: &gtk::Stack) -> Self {
+        // A disc until the cover is there; the stack sets the frame's size.
+        let placeholder = gtk::Image::builder()
+            .icon_name("media-optical-symbolic")
+            .pixel_size(40)
+            .css_classes(["dim-label"])
+            .build();
+        let cover = gtk::Picture::builder()
+            .content_fit(gtk::ContentFit::Contain)
+            .build();
+        let frame = gtk::Overlay::builder()
+            .child(&placeholder)
+            .overflow(gtk::Overflow::Hidden)
+            .css_classes(["continue-cover"])
+            .build();
+        frame.add_overlay(&cover);
+
+        // Long names shorten, so the card never grows past its width.
+        let label = |class: &str| {
+            gtk::Label::builder()
+                .xalign(0.0)
+                .ellipsize(gtk::pango::EllipsizeMode::End)
+                .max_width_chars(24)
+                .css_classes([class])
+                .build()
+        };
+        let title = label("title-3");
+        let subtitle = label("dim-label");
+        let names = gtk::Box::builder()
+            .orientation(gtk::Orientation::Vertical)
+            .spacing(4)
+            .build();
+        names.append(&title);
+        names.append(&subtitle);
+
+        covers.add_child(&frame);
+        names_stack.add_child(&names);
+        Self {
+            frame,
+            cover,
+            names,
+            title,
+            subtitle,
+        }
+    }
+}
+
+/// The album in the player, if there is one: the sidebar shows it, so the
+/// cards at the top never do.
+fn album_in_player() -> Option<String> {
+    crate::player::get()
+        .current()
+        .and_then(|song| song.album_id)
+        .filter(|id| !id.is_empty())
+}
+
 impl StartPage {
-    /// Connects the Continue button (once, when the page is created).
+    /// Connects the buttons and the player (once, when the page is created).
     fn setup(&self) {
         {
             let imp = self.imp();
-            connect_arrows(&imp.recent_scroll, &imp.recent_prev, &imp.recent_next);
-            connect_arrows(&imp.frequent_scroll, &imp.frequent_prev, &imp.frequent_next);
-            connect_arrows(&imp.similar_scroll, &imp.similar_prev, &imp.similar_next);
+            let (previous, next) = (gettext("Previous Albums"), gettext("Next Albums"));
+            for (place, scroll) in [
+                (&imp.recent_arrows, &imp.recent_scroll),
+                (&imp.frequent_arrows, &imp.frequent_scroll),
+                (&imp.similar_arrows, &imp.similar_scroll),
+            ] {
+                let (prev_button, next_button) = add_arrows(place, &previous, &next);
+                connect_arrows(scroll, &prev_button, &next_button);
+            }
             connect_wheel(&imp.recent_scroll);
             connect_wheel(&imp.frequent_scroll);
             connect_wheel(&imp.similar_scroll);
             connect_drag(&imp.recent_scroll);
             connect_drag(&imp.frequent_scroll);
             connect_drag(&imp.similar_scroll);
-            // The hero card takes the colour of its cover (tint_hero).
-            let tint = imp.hero_tint.get_or_init(crate::tint::Dynamic::new);
-            imp.continue_card.add_css_class(tint.class());
+            // Both cards take the colour of their cover (show_card_cover).
+            for (card, tint) in [
+                (&imp.continue_card, &imp.continue_tint),
+                (&imp.random_card, &imp.random_tint),
+            ] {
+                card.add_css_class(tint.get_or_init(crate::tint::Dynamic::new).class());
+            }
+            let _ = imp.random_faces.set([
+                RandomFace::new(&imp.random_covers, &imp.random_names),
+                RandomFace::new(&imp.random_covers, &imp.random_names),
+            ]);
         }
 
-        // The "Random Album" card: play it, or pick another one.
-        let page = self.downgrade();
-        self.imp().random_play.connect_clicked(move |_| {
-            if let Some(page) = page.upgrade() {
-                page.play_random();
-            }
-        });
-        let page = self.downgrade();
-        self.imp().random_next.connect_clicked(move |_| {
-            if let Some(page) = page.upgrade() {
-                page.show_random();
-            }
-        });
+        // Where the random album card goes depends on the Last Played card
+        // and on the width (place_random_card).
+        {
+            let page = self.downgrade();
+            self.imp().continue_card.connect_visible_notify(move |_| {
+                if let Some(page) = page.upgrade() {
+                    page.place_random_card();
+                }
+            });
+            let page = self.downgrade();
+            self.imp()
+                .breakpoint_bin
+                .connect_current_breakpoint_notify(move |_| {
+                    if let Some(page) = page.upgrade() {
+                        page.place_random_card();
+                    }
+                });
+            self.place_random_card();
+        }
+
+        // The "Random Album" card: play it in order or shuffled, or go to the
+        // suggestion before (‹) or another one (›) without playing.
+        for (button, shuffle) in [(&self.imp().random_play, false), (&self.imp().random_shuffle, true)] {
+            let page = self.downgrade();
+            button.connect_clicked(move |_| {
+                if let Some(page) = page.upgrade() {
+                    page.play_random(shuffle);
+                }
+            });
+        }
+        {
+            let (prev_button, next_button) = add_arrows(
+                &self.imp().random_arrows,
+                &gettext("Show Previous Suggestion"),
+                &gettext("Show Next Suggestion"),
+            );
+            prev_button.set_sensitive(false);
+            let page = self.downgrade();
+            prev_button.connect_clicked(move |_| {
+                if let Some(page) = page.upgrade() {
+                    page.previous_random();
+                }
+            });
+            let page = self.downgrade();
+            next_button.connect_clicked(move |_| {
+                if let Some(page) = page.upgrade() {
+                    page.next_random();
+                }
+            });
+            let _ = self.imp().random_prev.set(prev_button);
+        }
         // The radio button next to "Similar to …" plays all the similar songs.
         {
             let page = self.downgrade();
@@ -311,24 +460,18 @@ impl StartPage {
             });
         }
 
-        // The card follows the player: what plays now, or what played last.
+        // The cards follow the player: neither may show the album in it.
+        // "Similar to …" follows what plays now.
         {
             let page = self.downgrade();
             let listener = crate::player::get().connect_changed(move || {
                 let Some(page) = page.upgrade() else {
                     return;
                 };
-                // The song and where in it at the moment of the change (a new
-                // song, pause, resume); the sidebar card has the live progress.
-                let player = crate::player::get();
-                if let Some(song) = player.current() {
-                    let seconds = player.position_secs().unwrap_or(0.0);
-                    page.show_continue(
-                        song.album_id.as_deref().unwrap_or(""),
-                        &song.id,
-                        seconds,
-                        false,
-                    );
+                page.update_top(false);
+                let client = page.imp().client.borrow().clone();
+                if let (Some(song), Some(client)) = (crate::player::get().current(), client) {
+                    page.update_similar(&song, client);
                 }
             });
             self.connect_destroy(move |_| crate::player::get().disconnect(listener));
@@ -347,48 +490,75 @@ impl StartPage {
                 .borrow()
                 .as_ref()
                 .map(|r| (r.client.clone(), r.songs.clone(), r.index, r.seconds));
+            // The card never shows the album in the player, so this always
+            // starts its album again, from the song and the second it stopped at.
             if let Some((client, songs, index, seconds)) = resume {
-                let player = crate::player::get();
-                // Playing or paused in the player: the card is a pause button
-                // then, as its label says. Starting over would rewind the track
-                // and replace whatever queue is playing with the album. After the
-                // end of the queue or an error the label is "Continue", and
-                // toggle_pause() would start the queue from its first track.
-                let in_player = player
-                    .current()
-                    .is_some_and(|now| songs.get(index).is_some_and(|song| song.id == now.id));
-                if in_player && player.is_active() {
-                    player.toggle_pause();
-                } else {
-                    player.play_from(client, songs, index, seconds);
-                }
+                crate::player::get().play_from(client, songs, index, seconds);
             }
         });
     }
 
-    /// The "Continue" card after startup: what played last, as resume.rs saved it.
-    fn update_continue(&self) {
-        // Called when the library may have changed (a sync, another account),
-        // so the songs are read from the database again (reload).
-        // Something plays: that, rather than what was saved a while ago.
-        let player = crate::player::get();
-        if let Some(song) = player.current() {
-            let seconds = player.position_secs().unwrap_or(0.0);
-            self.show_continue(song.album_id.as_deref().unwrap_or(""), &song.id, seconds, true);
-            return;
-        }
-        let settings = gio::Settings::new(crate::APP_ID);
-        let album_id = settings.string("last-album-id");
-        let song_id = settings.string("last-song-id");
-        let seconds = settings.uint("last-position") as f64;
-        self.show_continue(&album_id, &song_id, seconds, true);
+    /// The random album card beside or under the Last Played card at its own
+    /// width, or across the whole row: when it is alone there, and in narrow
+    /// windows. Set here rather than by the breakpoints, which know only the
+    /// width and would put back their own value when they stop applying.
+    fn place_random_card(&self) {
+        let imp = self.imp();
+        let alone = !imp.continue_card.is_visible();
+        let narrow =
+            imp.breakpoint_bin.current_breakpoint().as_ref() == Some(&*imp.narrow_breakpoint);
+        imp.random_card.set_hexpand(alone);
+        imp.random_card.set_halign(if alone || narrow {
+            gtk::Align::Fill
+        } else {
+            gtk::Align::Start
+        });
     }
 
-    /// Fills the "Continue" card with a song of an album from the library, or
-    /// hides it if the album or the song cannot be found. The album's songs
-    /// are read from the database only for another album than last time, or
-    /// when `reload` asks for it.
-    fn show_continue(&self, album_id: &str, song_id: &str, seconds: f64, reload: bool) {
+    /// What the Last Played card shows: the newest album played that is not
+    /// `in_player` and is in the library.
+    fn last_played(&self, in_player: Option<&str>) -> Option<crate::resume::Played> {
+        let albums = self.imp().albums.borrow();
+        crate::resume::history().into_iter().find(|played| {
+            Some(played.album_id.as_str()) != in_player
+                && albums.iter().any(|album| album.id == played.album_id)
+        })
+    }
+
+    /// The albums the "Random Album" card must not show: the one in the player
+    /// and the one on the Last Played card.
+    fn taken_albums(&self) -> Vec<String> {
+        let in_player = album_in_player();
+        let last = self.last_played(in_player.as_deref()).map(|played| played.album_id);
+        in_player.into_iter().chain(last).collect()
+    }
+
+    /// Both cards at the top, after a change in the player or in the library
+    /// (`reload`: read the Last Played album's songs again). The Last Played
+    /// card moves on to the newest album other than the one in the player, and
+    /// a random album that is now in the player or on that card gives way.
+    fn update_top(&self, reload: bool) {
+        let in_player = album_in_player();
+        let played = self.last_played(in_player.as_deref());
+        let taken = [in_player.as_deref(), played.as_ref().map(|p| p.album_id.as_str())];
+        let random_taken = self
+            .imp()
+            .random_album
+            .borrow()
+            .as_ref()
+            .is_some_and(|album| taken.contains(&Some(album.id.as_str())));
+        self.show_continue(played.as_ref(), reload);
+        if random_taken {
+            self.show_random();
+        }
+        self.update_random_arrows();
+    }
+
+    /// Fills the Last Played card with `played`, or hides it when there is
+    /// none or its song is not in the library. The album's songs are read from
+    /// the database only for another album than last time, or when `reload`
+    /// asks for it.
+    fn show_continue(&self, played: Option<&crate::resume::Played>, reload: bool) {
         let imp = self.imp();
         // This call is the newest now: an answer still on its way from the
         // database belongs to an older one and must not replace the card.
@@ -403,10 +573,21 @@ impl StartPage {
             imp.continue_card.set_visible(false);
             return;
         };
-        let Some(album) = imp.albums.borrow().iter().find(|a| a.id == album_id).cloned() else {
+        let Some(played) = played else {
             imp.continue_card.set_visible(false);
             return;
         };
+        let Some(album) = imp
+            .albums
+            .borrow()
+            .iter()
+            .find(|a| a.id == played.album_id)
+            .cloned()
+        else {
+            imp.continue_card.set_visible(false);
+            return;
+        };
+        let seconds = played.seconds as f64;
         let remembered = imp
             .continue_songs
             .borrow()
@@ -414,13 +595,13 @@ impl StartPage {
             .filter(|(id, _)| !reload && *id == album.id)
             .map(|(_, songs)| songs.clone());
         if let Some(songs) = remembered {
-            self.fill_continue(&album, client, songs, song_id, seconds);
+            self.fill_continue(&album, client, songs, &played.song_id, seconds);
             return;
         }
         // The songs come from the database in the background; the rest of the
         // card follows once they are there.
         let page = self.downgrade();
-        let song_id = song_id.to_owned();
+        let song_id = played.song_id.clone();
         let server = client.server_key();
         let album_id = album.id.clone();
         glib::spawn_future_local(async move {
@@ -467,7 +648,7 @@ impl StartPage {
         };
 
         imp.continue_title.set_label(&album.name);
-        // What plays: the song with its artist.
+        // Where it stopped: the song with its artist.
         let song = &songs[index];
         let artist = song.artist.as_deref().or(album.artist.as_deref());
         let subtitle = match artist {
@@ -475,33 +656,18 @@ impl StartPage {
             None => song.title.clone(),
         };
         imp.continue_subtitle.set_label(&subtitle);
-        // The button says what a click does: pause or resume the song while it
-        // is in the player, otherwise continue from where it stopped.
-        let player = crate::player::get();
-        let in_player = player.current().is_some_and(|now| now.id == song.id);
-        let (icon, label) = if in_player && player.is_playing() {
-            ("media-playback-pause-symbolic", gettext("Pause"))
-        } else if in_player && player.is_paused() {
-            ("media-playback-start-symbolic", gettext("Resume"))
-        } else {
-            ("media-playback-start-symbolic", gettext("Continue"))
-        };
-        imp.continue_content.set_icon_name(icon);
-        imp.continue_content.set_label(&label);
-        self.update_similar(song.id.clone(), song.title.clone(), client.clone());
+        // With nothing in the player, "Similar to …" follows this song, the one
+        // that played last; otherwise the one in the player (setup).
+        if crate::player::get().current().is_none() {
+            self.update_similar(song, client.clone());
+        }
 
-        // A new cover only for a new album: no flicker between its tracks.
+        // A new cover only for a new album: no flicker when the card refreshes.
         let new_album = *imp.continue_album.borrow() != album.id;
         imp.continue_album.replace(album.id.clone());
         if new_album {
             crate::covers::show(&imp.continue_cover, None);
-            self.tint_hero(None);
-        }
-        if let Some(cover) = album.cover_art.clone().filter(|_| new_album) {
-            crate::covers::load_for(self, Some(client.clone()), cover, |page, texture| {
-                crate::covers::show(&page.imp().continue_cover, texture.as_ref());
-                page.tint_hero(texture.as_ref());
-            });
+            self.show_card_cover(Card::Continue, &imp.continue_cover, album);
         }
 
         imp.resume.replace(Some(Resume {
@@ -512,18 +678,69 @@ impl StartPage {
         }));
         imp.continue_card.set_visible(true);
     }
+
+    /// Shows `album`'s cover in `picture`, on one of the two cards at the top,
+    /// and colours that card after it. The card keeps its old colour until the
+    /// cover is there, so the colour changes once; a cover that arrives after
+    /// the card has moved on to another album is dropped.
+    fn show_card_cover(&self, card: Card, picture: &gtk::Picture, album: &subsonic::Album) {
+        let Some(cover) = album.cover_art.clone() else {
+            if let Some(tint) = self.card_tint(card) {
+                tint.set_gradient_from(None);
+            }
+            return;
+        };
+        let client = self.imp().client.borrow().clone();
+        let album_id = album.id.clone();
+        let picture = picture.downgrade();
+        crate::covers::load_for(self, client, cover, move |page, texture| {
+            if !page.card_shows(card, &album_id) {
+                return;
+            }
+            if let Some(picture) = picture.upgrade() {
+                crate::covers::show(&picture, texture.as_ref());
+            }
+            if let Some(tint) = page.card_tint(card) {
+                tint.set_gradient_from(texture.as_ref());
+            }
+        });
+    }
+
+    fn card_tint(&self, card: Card) -> Option<&crate::tint::Dynamic> {
+        let imp = self.imp();
+        match card {
+            Card::Continue => imp.continue_tint.get(),
+            Card::Random => imp.random_tint.get(),
+        }
+    }
+
+    /// True if `card` still shows the album `album_id`.
+    fn card_shows(&self, card: Card, album_id: &str) -> bool {
+        let imp = self.imp();
+        match card {
+            Card::Continue => *imp.continue_album.borrow() == album_id,
+            Card::Random => imp
+                .random_album
+                .borrow()
+                .as_ref()
+                .is_some_and(|album| album.id == album_id),
+        }
+    }
 }
 
 impl StartPage {
-    /// "Similar to …": asks the server for songs that sound like `song_id` and
+    /// "Similar to …": asks the server for songs that sound like `song` and
     /// shows the albums they come from. Asked once per song, not on every refresh.
-    fn update_similar(&self, song_id: String, title: String, client: subsonic::Client) {
+    fn update_similar(&self, song: &subsonic::Song, client: subsonic::Client) {
         let imp = self.imp();
-        if *imp.similar_seed.borrow() == song_id {
+        if *imp.similar_seed.borrow() == song.id {
             return;
         }
-        imp.similar_seed.replace(song_id.clone());
+        imp.similar_seed.replace(song.id.clone());
 
+        let song_id = song.id.clone();
+        let title = song.title.clone();
+        let album_id = song.album_id.clone().unwrap_or_default();
         let page = self.downgrade();
         glib::spawn_future_local(async move {
             let request = client.clone();
@@ -543,21 +760,27 @@ impl StartPage {
                 Ok(Ok(songs)) => songs,
                 _ => Vec::new(),
             };
-            page.show_similar(&title, songs, client);
+            page.show_similar(&title, &album_id, songs, client);
         });
     }
 
     /// One card per album the similar songs come from, most similar first.
-    fn show_similar(&self, title: &str, songs: Vec<subsonic::Song>, client: subsonic::Client) {
+    fn show_similar(
+        &self,
+        title: &str,
+        album_id: &str,
+        songs: Vec<subsonic::Song>,
+        client: subsonic::Client,
+    ) {
         let imp = self.imp();
         let albums = imp.albums.borrow();
-        // The album already on the "Continue" card is left out: it is right there.
-        let current_album = imp.continue_album.borrow().clone();
+        // The album of the song itself is left out: it is right there, in the
+        // player or on the Last Played card.
         let mut seen = std::collections::HashSet::new();
         let shelf: Vec<&Arc<subsonic::Album>> = songs
             .iter()
             .filter_map(|s| s.album_id.as_deref())
-            .filter(|id| *id != current_album)
+            .filter(|id| *id != album_id)
             .filter(|id| seen.insert(id.to_string()))
             .filter_map(|id| albums.iter().find(|a| a.id == id))
             .take(SHELF_SIZE)
@@ -571,6 +794,35 @@ impl StartPage {
         let songs: Rc<[subsonic::Song]> = songs.into();
         imp.similar.replace(Some(songs));
     }
+}
+
+/// Puts `id` on top of a history stack of the "Random Album" card; the oldest
+/// entries go beyond RANDOM_HISTORY.
+fn keep(stack: &RefCell<Vec<String>>, id: String) {
+    let mut stack = stack.borrow_mut();
+    stack.push(id);
+    let extra = stack.len().saturating_sub(RANDOM_HISTORY);
+    stack.drain(..extra);
+}
+
+/// Adds the ‹ › pair to `place`, the same on every shelf and on the "Random
+/// Album" card: flat round buttons with the arrows of the icon theme.
+fn add_arrows(place: &gtk::Box, previous: &str, next: &str) -> (gtk::Button, gtk::Button) {
+    place.set_spacing(6);
+    let button = |icon: &str, tooltip: &str| {
+        let button = gtk::Button::builder()
+            .icon_name(icon)
+            .tooltip_text(tooltip)
+            .valign(gtk::Align::Center)
+            .css_classes(["circular", "flat"])
+            .build();
+        place.append(&button);
+        button
+    };
+    (
+        button("go-previous-symbolic", previous),
+        button("go-next-symbolic", next),
+    )
 }
 
 /// The ‹ › buttons of a shelf: each moves the row by what is visible, and is
@@ -674,72 +926,164 @@ fn connect_drag(scroll: &gtk::ScrolledWindow) {
 }
 
 impl StartPage {
-    /// Fills the "Random Album" card with an album from the library, other
-    /// than the one it shows now.
-    /// Loads the cover of the album already on the "Random Album" card.
+    /// Loads the cover of the album already on the "Random Album" card again.
     fn load_random_cover(&self) {
         let imp = self.imp();
-        let Some(cover) = imp
-            .random_album
-            .borrow()
-            .as_ref()
-            .and_then(|album| album.cover_art.clone())
-        else {
-            return;
-        };
-        crate::covers::load_for(
-            &imp.random_cover.get(),
-            imp.client.borrow().clone(),
-            cover,
-            |picture, texture| crate::covers::show(picture, texture.as_ref()),
-        );
+        let album = imp.random_album.borrow().clone();
+        let cover = imp
+            .random_faces
+            .get()
+            .map(|faces| faces[imp.random_face.get()].cover.clone());
+        if let (Some(album), Some(cover)) = (album, cover) {
+            self.show_card_cover(Card::Random, &cover, &album);
+        }
     }
 
+    /// Puts a newly drawn album from the library on the "Random Album" card. It
+    /// is drawn again when it is the one on the card now, the one in the player
+    /// or the one on the Last Played card, up to RANDOM_TRIES draws. The album
+    /// it replaces is kept for ‹; the suggestions ‹ had gone back from are
+    /// dropped, as a browser drops its forward history.
     fn show_random(&self) {
         let imp = self.imp();
-        let albums = imp.albums.borrow().clone();
-        let current = imp.random_album.borrow().as_ref().map(|a| a.id.clone());
-        let choices: Vec<&Arc<subsonic::Album>> = albums
-            .iter()
-            .filter(|a| Some(&a.id) != current.as_ref())
-            .collect();
-        if choices.is_empty() {
-            imp.random_card.set_visible(!albums.is_empty());
+        let mut avoid = self.taken_albums();
+        let shown = imp.random_album.borrow().as_ref().map(|a| a.id.clone());
+        avoid.extend(shown.clone());
+        let album = {
+            let albums = imp.albums.borrow();
+            if albums.is_empty() {
+                drop(albums);
+                imp.random_album.replace(None);
+                imp.random_back.borrow_mut().clear();
+                imp.random_forward.borrow_mut().clear();
+                imp.random_card.set_visible(false);
+                self.update_random_arrows();
+                return;
+            }
+            let mut album = &albums[0];
+            for _ in 0..RANDOM_TRIES {
+                album = &albums[fastrand::usize(..albums.len())];
+                if !avoid.contains(&album.id) {
+                    break;
+                }
+            }
+            Arc::clone(album)
+        };
+        // Every draw gave the album on the card (a library of one or two):
+        // it stays, without fading into itself.
+        if shown.as_ref() == Some(&album.id) {
+            imp.random_card.set_visible(true);
             return;
         }
-        let pick = glib::random_int_range(0, choices.len() as i32) as usize;
-        let album = Arc::clone(choices[pick]);
-
-        imp.random_title.set_label(&album.name);
-        imp.random_subtitle
-            .set_label(album.artist.as_deref().unwrap_or_default());
-        crate::covers::show(&imp.random_cover, None);
-        if let Some(cover) = album.cover_art.clone() {
-            crate::covers::load_for(
-                &imp.random_cover.get(),
-                imp.client.borrow().clone(),
-                cover,
-                |picture, texture| crate::covers::show(picture, texture.as_ref()),
-            );
+        imp.random_forward.borrow_mut().clear();
+        if let Some(shown) = shown {
+            keep(&imp.random_back, shown);
         }
-        imp.random_album.replace(Some(album));
+        self.put_random(album);
+        self.update_random_arrows();
+    }
+
+    /// ›: forward again to the suggestion ‹ went back from, or, at the end of
+    /// the history, a newly drawn album.
+    fn next_random(&self) {
+        let imp = self.imp();
+        match self.usable(&imp.random_forward) {
+            Some(album) => {
+                if let Some(shown) = imp.random_album.borrow().as_ref().map(|a| a.id.clone()) {
+                    keep(&imp.random_back, shown);
+                }
+                self.put_random(album);
+                self.update_random_arrows();
+            }
+            None => self.show_random(),
+        }
+    }
+
+    /// ‹: back to the suggestion before; the one shown now can be reached
+    /// again with ›.
+    fn previous_random(&self) {
+        let imp = self.imp();
+        if let Some(album) = self.usable(&imp.random_back) {
+            if let Some(shown) = imp.random_album.borrow().as_ref().map(|a| a.id.clone()) {
+                keep(&imp.random_forward, shown);
+            }
+            self.put_random(album);
+        }
+        self.update_random_arrows();
+    }
+
+    /// Takes the nearest suggestion off `stack` that can be shown: one that is
+    /// now in the player or on the Last Played card, or no longer in the
+    /// library, is skipped and forgotten.
+    fn usable(&self, stack: &RefCell<Vec<String>>) -> Option<Arc<subsonic::Album>> {
+        let taken = self.taken_albums();
+        loop {
+            let id = stack.borrow_mut().pop()?;
+            if taken.contains(&id) {
+                continue;
+            }
+            let album = self.imp().albums.borrow().iter().find(|a| a.id == id).cloned();
+            if album.is_some() {
+                return album;
+            }
+        }
+    }
+
+    /// ‹ is greyed out when none of the earlier suggestions can be shown.
+    fn update_random_arrows(&self) {
+        let imp = self.imp();
+        let Some(prev_button) = imp.random_prev.get() else {
+            return;
+        };
+        let taken = self.taken_albums();
+        let albums = imp.albums.borrow();
+        let possible = imp
+            .random_back
+            .borrow()
+            .iter()
+            .any(|id| !taken.contains(id) && albums.iter().any(|a| a.id == *id));
+        prev_button.set_sensitive(possible);
+    }
+
+    /// Shows `album` on the "Random Album" card: it goes into the copy of
+    /// cover and names that is hidden now, and the stacks fade over to it.
+    fn put_random(&self, album: Arc<subsonic::Album>) {
+        let imp = self.imp();
+        let Some(faces) = imp.random_faces.get() else {
+            return;
+        };
+        let next = 1 - imp.random_face.get();
+        let face = &faces[next];
+        face.title.set_label(&album.name);
+        face.subtitle
+            .set_label(album.artist.as_deref().unwrap_or_default());
+        crate::covers::show(&face.cover, None);
+        imp.random_album.replace(Some(Arc::clone(&album)));
+        self.show_card_cover(Card::Random, &face.cover, &album);
+        imp.random_covers.set_visible_child(&face.frame);
+        imp.random_names.set_visible_child(&face.names);
+        imp.random_face.set(next);
         imp.random_card.set_visible(true);
     }
 
-    /// Plays the album on the "Random Album" card from its first song. The
+    /// Puts the album on the "Random Album" card into the player, from its
+    /// first song or shuffled, and another album on the card right away. The
     /// songs come from the database in the background.
-    fn play_random(&self) {
+    fn play_random(&self, shuffle: bool) {
         let imp = self.imp();
         let album = imp.random_album.borrow().clone();
         let client = imp.client.borrow().clone();
         let (Some(album), Some(client)) = (album, client) else {
             return;
         };
+        // The album played is the card's own now, so the next draw leaves it
+        // out; once it plays, the player has it.
+        self.show_random();
         let server = client.server_key();
         let command = crate::player::get().command_id();
         glib::spawn_future_local(async move {
             let album_id = album.id.clone();
-            let songs = crate::runtime()
+            let mut songs = crate::runtime()
                 .spawn_blocking(move || crate::library::load_album_songs(&server, &album_id))
                 .await
                 .ok()
@@ -749,20 +1093,10 @@ impl StartPage {
             if songs.is_empty() || !crate::player::get().is_current(command) {
                 return;
             }
+            if shuffle {
+                fastrand::shuffle(&mut songs);
+            }
             crate::player::get().play(client, songs.into(), 0);
         });
-    }
-}
-
-impl StartPage {
-    /// Colours the hero card after its cover (tint.rs); no cover, no colour.
-    fn tint_hero(&self, texture: Option<&gtk::gdk::Texture>) {
-        let Some(tint) = self.imp().hero_tint.get() else {
-            return;
-        };
-        match texture.and_then(crate::tint::dominant_color) {
-            Some(color) => tint.set_gradient(color),
-            None => tint.clear(),
-        }
     }
 }
