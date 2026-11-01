@@ -376,9 +376,27 @@ progressbar.recent-tile-progress > trough > progress {
   background-color: white;
 }
 
-/* The Tuner card on the Start page (tuner.blp). */
+/* The Tuner card on the Start page (tuner.blp). Its colour comes from the
+   first cover of the year (tint.rs, card_rule) and changes smoothly. */
 .tuner {
   padding: 24px;
+  transition: background-color 250ms ease;
+}
+
+/* "Play This Year": a pill in the orange of the year, with dark text in
+   both styles. */
+button.tuner-play {
+  padding: 6px 18px;
+  background-color: #ffbe6f;
+  color: #241f31;
+}
+
+button.tuner-play:hover {
+  background-color: color-mix(in srgb, #ffbe6f 88%, #241f31);
+}
+
+button.tuner-play:active {
+  background-color: color-mix(in srgb, #ffbe6f 78%, #241f31);
 }
 
 /* The year chosen: large figures of one width, in the orange of a radio

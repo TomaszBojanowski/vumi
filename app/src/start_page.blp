@@ -153,5 +153,9 @@ template $VumiStartPage: Adw.Bin {
       };
     };
 
+    // The Tuner puts its buttons under the year (Tuner::set_compact).
+    Adw.Breakpoint tuner_narrow {
+      condition ("max-width: 560sp")
+    }
   };
 }

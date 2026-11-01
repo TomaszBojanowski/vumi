@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vumi\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-01 20:19+0100\n"
+"POT-Creation-Date: 2026-11-01 21:04+0100\n"
 "PO-Revision-Date: 2026-09-27 20:40+0200\n"
 "Last-Translator: Tomasz Bojanowski <tomasz@bojanowski.me>\n"
 "Language-Team: Polish\n"
@@ -29,95 +29,95 @@ msgstr "Szybki odtwarzacz muzyki z serwerów Navidrome i Subsonic"
 msgid "music;player;navidrome;subsonic;"
 msgstr "muzyka;odtwarzacz;navidrome;subsonic;music;player;"
 
-#: app/src/main.rs:373
+#: app/src/main.rs:374
 msgid "Playback Stopped"
 msgstr "Odtwarzanie przerwane"
 
-#: app/src/main.rs:429 app/src/login_page.rs:164 app/src/album_page.rs:226
+#: app/src/main.rs:430 app/src/login_page.rs:164 app/src/album_page.rs:226
 msgid "Something went wrong. Please try again."
 msgstr "Wystąpił nieoczekiwany błąd. Spróbuj ponownie."
 
-#: app/src/main.rs:438
+#: app/src/main.rs:439
 msgid "Wrong username or password."
 msgstr "Nieprawidłowa nazwa użytkownika lub hasło."
 
-#: app/src/main.rs:440
+#: app/src/main.rs:441
 msgid "Cannot reach the server. Check the address and your connection."
 msgstr ""
 "Nie uzyskano połączenia z serwerem. Sprawdź adres i połączenie sieciowe."
 
-#: app/src/main.rs:443
+#: app/src/main.rs:444
 msgid "Invalid server address. It should start with http:// or https://"
 msgstr ""
 "Nieprawidłowy adres serwera. Adres musi zaczynać się od http:// lub https://"
 
-#: app/src/main.rs:446
+#: app/src/main.rs:447
 msgid "The server answered, but it does not look like a Subsonic server."
 msgstr "Serwer odpowiedział, ale nie wygląda na serwer zgodny z Subsonic."
 
 #. Translators: {message} is the error text sent by the server.
-#: app/src/main.rs:449
+#: app/src/main.rs:450
 #, rust-format
 msgid "Server error: {message}"
 msgstr "Błąd serwera: {message}"
 
-#: app/src/main.rs:494
+#: app/src/main.rs:495
 msgid "A music player for Navidrome and other Subsonic servers"
 msgstr "Odtwarzacz muzyki dla serwera Navidrome i innych serwerów Subsonic"
 
-#: app/src/main.rs:496
+#: app/src/main.rs:497
 msgid "translator-credits"
 msgstr "Tomasz Bojanowski <tomasz@bojanowski.me>"
 
-#: app/src/main.rs:502
+#: app/src/main.rs:503
 msgid "Buy Me a Coffee"
 msgstr "Postaw kawę"
 
-#: app/src/main.rs:506
+#: app/src/main.rs:507
 msgid "Built With"
 msgstr "Wykorzystane projekty"
 
-#: app/src/main.rs:536 app/src/preferences.blp:191
+#: app/src/main.rs:537 app/src/preferences.blp:191
 msgid "Playback"
 msgstr "Odtwarzanie"
 
-#: app/src/main.rs:538
+#: app/src/main.rs:539
 msgid "Play or Pause"
 msgstr "Odtworzenie lub wstrzymanie"
 
-#: app/src/main.rs:539
+#: app/src/main.rs:540
 msgid "Previous Track"
 msgstr "Poprzedni utwór"
 
-#: app/src/main.rs:540
+#: app/src/main.rs:541
 msgid "Next Track"
 msgstr "Następny utwór"
 
-#: app/src/main.rs:544 app/src/main_view.blp:132 app/src/preferences.blp:143
+#: app/src/main.rs:545 app/src/main_view.blp:132 app/src/preferences.blp:143
 msgid "Library"
 msgstr "Biblioteka"
 
-#: app/src/main.rs:546
+#: app/src/main.rs:547
 msgid "Search Library"
 msgstr "Wyszukiwanie w bibliotece"
 
-#: app/src/main.rs:547 app/src/main_view.blp:46 app/src/main_view.blp:542
+#: app/src/main.rs:548 app/src/main_view.blp:46 app/src/main_view.blp:542
 msgid "Sync Library"
 msgstr "Synchronizuj bibliotekę"
 
-#: app/src/main.rs:551 app/src/preferences.blp:13
+#: app/src/main.rs:552 app/src/preferences.blp:13
 msgid "General"
 msgstr "Ogólne"
 
-#: app/src/main.rs:553 app/src/main_view.blp:549
+#: app/src/main.rs:554 app/src/main_view.blp:549
 msgid "Preferences"
 msgstr "Preferencje"
 
-#: app/src/main.rs:554 app/src/main_view.blp:554
+#: app/src/main.rs:555 app/src/main_view.blp:554
 msgid "Keyboard Shortcuts"
 msgstr "Skróty klawiszowe"
 
-#: app/src/main.rs:555 app/src/main_view.blp:564
+#: app/src/main.rs:556 app/src/main_view.blp:564
 msgid "Quit"
 msgstr "Zakończ"
 
@@ -975,15 +975,15 @@ msgstr "Brak wyników"
 msgid "Try other words"
 msgstr "Można spróbować innych słów"
 
-#: app/src/start_page.rs:498
+#: app/src/start_page.rs:450
 msgid "Previous Albums"
 msgstr "Wyświetl poprzednie albumy"
 
-#: app/src/start_page.rs:498
+#: app/src/start_page.rs:450
 msgid "Next Albums"
 msgstr "Wyświetl następne albumy"
 
-#: app/src/start_page.rs:663
+#: app/src/start_page.rs:633
 #, rust-format
 msgid "Similar to “{title}”"
 msgstr "Podobne do „{title}”"
@@ -992,7 +992,7 @@ msgstr "Podobne do „{title}”"
 msgid "Now Playing"
 msgstr "Teraz odtwarzane"
 
-#: app/src/tuner.rs:109
+#: app/src/tuner.rs:237
 #, rust-format
 msgid "{n} album from this year in the library"
 msgid_plural "{n} albums from this year in the library"
@@ -1000,17 +1000,25 @@ msgstr[0] "{n} album z tego roku w bibliotece"
 msgstr[1] "{n} albumy z tego roku w bibliotece"
 msgstr[2] "{n} albumów z tego roku w bibliotece"
 
-#: app/src/tuner.blp:29
+#: app/src/tuner.rs:410
+msgid "Could not play this year"
+msgstr "Nie można odtworzyć rocznika"
+
+#: app/src/tuner.blp:31
 msgid "Tuner"
 msgstr "Strojenie"
 
-#: app/src/tuner.blp:63
+#: app/src/tuner.blp:65
 msgid "Previous Year"
 msgstr "Wyświetl poprzedni rok"
 
-#: app/src/tuner.blp:73
+#: app/src/tuner.blp:75
 msgid "Next Year"
 msgstr "Wyświetl następny rok"
+
+#: app/src/tuner.blp:88
+msgid "Play This Year"
+msgstr "Odtwórz rocznik"
 
 #: app/src/year_scale.rs:249
 msgid "Year"

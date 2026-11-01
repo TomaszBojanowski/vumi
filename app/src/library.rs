@@ -352,16 +352,34 @@ pub(crate) fn load_album_songs(
     album_id: &str,
 ) -> rusqlite::Result<Vec<subsonic::Song>> {
     let conn = open()?;
-    let mut stmt = conn.prepare(
-        "SELECT id, title, artist, track, disc_number, album, album_id, duration,
-                suffix, bit_rate, cover_art, bit_depth, sampling_rate, starred, artist_id,
-                composer
-         FROM songs WHERE server = ?1 AND album_id = ?2
-         ORDER BY COALESCE(disc_number, 1), COALESCE(track, 0), position",
-    )?;
+    let mut stmt = conn.prepare(ALBUM_SONGS)?;
     let rows = stmt.query_map(params![server, album_id], song_from_row)?;
     rows.collect::<rusqlite::Result<Vec<_>>>()
 }
+
+/// The songs of the albums `album_ids`, album after album, each in its order,
+/// read over one connection (the Tuner reads those of a whole year).
+pub(crate) fn load_songs_of_albums(
+    server: &str,
+    album_ids: &[String],
+) -> rusqlite::Result<Vec<subsonic::Song>> {
+    let conn = open()?;
+    let mut stmt = conn.prepare(ALBUM_SONGS)?;
+    let mut songs = Vec::new();
+    for album_id in album_ids {
+        for song in stmt.query_map(params![server, album_id], song_from_row)? {
+            songs.push(song?);
+        }
+    }
+    Ok(songs)
+}
+
+/// The songs of one album, in the album's order.
+const ALBUM_SONGS: &str = "SELECT id, title, artist, track, disc_number, album, album_id, duration,
+        suffix, bit_rate, cover_art, bit_depth, sampling_rate, starred, artist_id,
+        composer
+ FROM songs WHERE server = ?1 AND album_id = ?2
+ ORDER BY COALESCE(disc_number, 1), COALESCE(track, 0), position";
 
 /// What a search (or the favourites) found: album ids (the albums themselves
 /// are in memory) and

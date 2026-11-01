@@ -29,7 +29,7 @@ struct ArtistItem {
 /// What artists are sorted by: the name in lower case, with accented letters
 /// as their base letters ("Óscar" → "oscar", "Åsa" → "asa", "Łukasz" →
 /// "lukasz"), so they stand among those rather than after "z".
-fn artist_sort_key(name: &str) -> String {
+pub(crate) fn artist_sort_key(name: &str) -> String {
     // Default is the canonical decomposition (NFD).
     glib::normalize(name.to_lowercase(), glib::NormalizeMode::Default)
         .chars()

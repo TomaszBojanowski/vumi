@@ -38,6 +38,8 @@ mod imp {
         #[template_child]
         pub tuner: gtk::TemplateChild<crate::tuner::Tuner>,
         #[template_child]
+        pub tuner_narrow: gtk::TemplateChild<adw::Breakpoint>,
+        #[template_child]
         pub continue_shelf: gtk::TemplateChild<gtk::Box>,
         #[template_child]
         pub continue_row: gtk::TemplateChild<gtk::Box>,
@@ -156,6 +158,8 @@ impl StartPage {
         let albums = imp.albums.borrow();
         let counts = crate::year_scale::year_counts(&albums);
         imp.tuner.set_visible(!counts.is_empty());
+        imp.tuner
+            .set_library(albums.clone(), imp.client.borrow().clone());
         let first_fill = imp.tuner.year().is_none();
         imp.tuner.set_counts(counts.clone());
         if !first_fill {
@@ -454,6 +458,21 @@ impl StartPage {
                 connect_wheel(scroll);
                 connect_drag(scroll);
             }
+        }
+
+        // On a narrow page the Tuner's buttons go under the year.
+        {
+            let narrow = &self.imp().tuner_narrow;
+            narrow.connect_apply(glib::clone!(
+                #[weak(rename_to = page)]
+                self,
+                move |_| page.imp().tuner.set_compact(true)
+            ));
+            narrow.connect_unapply(glib::clone!(
+                #[weak(rename_to = page)]
+                self,
+                move |_| page.imp().tuner.set_compact(false)
+            ));
         }
 
         // The radio button next to "Similar to …" plays all the similar songs.

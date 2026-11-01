@@ -4,10 +4,11 @@ using Adw 1;
 translation-domain "vumi";
 
 // The Tuner card of the Start page: the year chosen on the scale of years
-// (year_scale.rs), how many albums the library has from it, and ‹ › for the
-// year with albums before and after it.
+// (year_scale.rs), how many albums the library has from it, ‹ › for the year
+// with albums before and after it, "Play This Year", and the row of the
+// year's albums (tuner.rs).
 template $VumiTuner: Adw.Bin {
-  child: Box {
+  child: Box card {
     orientation: vertical;
     spacing: 18;
 
@@ -16,7 +17,8 @@ template $VumiTuner: Adw.Bin {
       "tuner",
     ]
 
-    Box {
+    // On a narrow page the buttons go under the year (set_compact).
+    Box header {
       spacing: 12;
 
       Box {
@@ -54,7 +56,7 @@ template $VumiTuner: Adw.Bin {
         }
       }
 
-      Box {
+      Box buttons {
         valign: center;
         spacing: 10;
 
@@ -77,11 +79,32 @@ template $VumiTuner: Adw.Bin {
             "circular",
           ]
         }
+
+        Button play_button {
+          valign: center;
+
+          child: Adw.ButtonContent {
+            icon-name: "vumi-radio-symbolic";
+            label: _("Play This Year");
+          };
+
+          styles [
+            "pill",
+            "tuner-play",
+          ]
+        }
       }
     }
 
     $VumiYearScale scale {
       hexpand: true;
+    }
+
+    // The albums of the year: two rows the stack crossfades between, filled
+    // in tuner.rs (show_row).
+    Stack rows {
+      transition-type: crossfade;
+      transition-duration: 250;
     }
   };
 }
