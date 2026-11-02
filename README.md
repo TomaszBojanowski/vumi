@@ -32,6 +32,23 @@ with first-class AudioMuse-AI integration. Written in Rust.
 
 <img src="data/screenshots/4-narrow.png" alt="A narrow window with the compact player bar" width="300">
 
+## Install
+
+```sh
+flatpak install --user https://flatpak.bojanowski.me/io.github.tomaszbojanowski.Vumi.flatpakref
+```
+
+The GNOME runtime it needs comes from Flathub. Updates arrive with
+`flatpak update` or in GNOME Software.
+
+You need a Navidrome server, or another server that speaks the Subsonic or
+OpenSubsonic API (tested with Navidrome 0.64).
+
+Without the repository: download `vumi-X.Y.Z.flatpak` from
+[Releases](https://github.com/TomaszBojanowski/vumi/releases) and install it
+with `flatpak install --user vumi-X.Y.Z.flatpak`. Such a bundle does not
+update itself.
+
 ## Building
 
 Vumi is built and run as a Flatpak:
