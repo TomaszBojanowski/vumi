@@ -60,7 +60,8 @@ mod imp {
         pub cover_id: RefCell<Option<String>>,
         /// A seek waiting for the drag to pause; the timer leaves the slider alone meanwhile.
         pub seek_pending: std::cell::RefCell<Option<glib::SourceId>>,
-        /// The progress timer; it exists only while music plays.
+        /// The progress timer; it exists only while music plays and the card
+        /// is on screen.
         pub timer: RefCell<Option<glib::SourceId>>,
         /// The pill's own colour class, rewritten for every new cover.
         pub(crate) tint: OnceCell<tint::Dynamic>,
@@ -201,6 +202,15 @@ impl NowPlaying {
                 bar.show_position(seconds);
             }
         });
+        // The timer runs only while the card is on screen: a hidden window
+        // or a folded sidebar shows no position.
+        bar.connect_map(|bar| {
+            if player::get().is_playing() {
+                bar.start_timer();
+            }
+            bar.tick();
+        });
+        bar.connect_unmap(|bar| bar.stop_timer());
         bar
     }
 
@@ -316,7 +326,7 @@ impl NowPlaying {
 
     fn start_timer(&self) {
         let imp = self.imp();
-        if imp.timer.borrow().is_some() {
+        if imp.timer.borrow().is_some() || !self.is_mapped() {
             return;
         }
         let bar = self.downgrade();

@@ -142,9 +142,7 @@ impl StartPage {
         fill_shelf(&imp.recent_row, &imp.recent_ids, &recent, client.clone());
         imp.albums.replace(albums.to_vec());
         imp.client.replace(client);
-        if crate::player::get().current().is_none() {
-            self.similar_to_last_played();
-        }
+        self.follow_player();
         // The library may have changed (a sync, another account): the albums'
         // songs are read again.
         self.refresh_tiles(true);
@@ -493,9 +491,7 @@ impl StartPage {
             });
         }
 
-        // "Recently Played" follows the player and the history; "Similar to …"
-        // follows what plays now, or with nothing in the player, what played
-        // last.
+        // "Recently Played" and "Similar to …" follow the player.
         {
             let page = self.downgrade();
             let listener = crate::player::get().connect_changed(move || {
@@ -503,15 +499,12 @@ impl StartPage {
                     return;
                 };
                 page.schedule_tiles();
-                let client = page.imp().client.borrow().clone();
-                match (crate::player::get().current(), client) {
-                    (Some(song), Some(client)) => page.update_similar(&song, client),
-                    (None, Some(_)) => page.similar_to_last_played(),
-                    _ => {}
-                }
+                page.follow_player();
             });
             self.connect_destroy(move |_| crate::player::get().disconnect(listener));
         }
+        // Back on screen: "Similar to …" catches up with what played meanwhile.
+        self.connect_map(|page| page.follow_player());
 
         // While the album in the player plays, the line on its tile moves on.
         {
@@ -525,6 +518,21 @@ impl StartPage {
                 }
                 glib::ControlFlow::Continue
             });
+        }
+    }
+
+    /// "Similar to …" follows what plays now, or with nothing in the player,
+    /// what played last. Only while the page is on screen: each new song
+    /// costs the server a search for similar ones.
+    fn follow_player(&self) {
+        if !self.is_mapped() {
+            return;
+        }
+        let client = self.imp().client.borrow().clone();
+        match (crate::player::get().current(), client) {
+            (Some(song), Some(client)) => self.update_similar(&song, client),
+            (None, Some(_)) => self.similar_to_last_played(),
+            _ => {}
         }
     }
 

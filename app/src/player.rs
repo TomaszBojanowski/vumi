@@ -33,14 +33,13 @@ pub(crate) struct Player {
     state: RefCell<State>,
     client: RefCell<Option<subsonic::Client>>,
     /// Called after every change of track or state.
-    listeners: RefCell<Vec<(u64, Listener)>>,
-    next_listener: Cell<u64>,
+    listeners: Listeners<dyn Fn()>,
     /// Shows playback errors to the user (a toast in the window).
     error_handler: RefCell<Option<ErrorHandler>>,
     /// The listen in progress, for scrobbling.
     listen: RefCell<Option<Listen>>,
-    /// Whether the once-a-second listen timer runs already.
-    listen_timer: std::cell::Cell<bool>,
+    /// The once-a-second listen timer; it runs only while a track plays.
+    listen_timer: RefCell<Option<gst::glib::SourceId>>,
     /// Whether the server takes live playback reports (OpenSubsonic
     /// playbackReport): None until asked, Some(false) while asking.
     report_support: std::cell::Cell<Option<bool>>,
@@ -51,16 +50,16 @@ pub(crate) struct Player {
     /// Told about every change of the volume, and only of it (the sidebar
     /// card, MPRIS): the listeners of track and state changes have nothing
     /// to do with the many steps of a slider drag.
-    volume_listeners: RefCell<Vec<VolumeListener>>,
+    volume_listeners: Listeners<dyn Fn(f64)>,
     /// The volume waits to be written (VOLUME_SAVE_DELAY).
     volume_save: RefCell<Option<gst::glib::SourceId>>,
     /// Told about every jump of the position, with the new position in
     /// seconds (MPRIS sends Seeked, the sidebar card moves its slider).
-    seek_listeners: RefCell<Vec<SeekListener>>,
+    seek_listeners: Listeners<dyn Fn(f64)>,
     /// Called with the track in progress and the second it is at, just before
     /// the player leaves it by hand (another queue, Stop): the change that
     /// follows no longer knows where it was.
-    leave_listeners: RefCell<Vec<LeaveListener>>,
+    leave_listeners: Listeners<LeaveListener>,
     /// Counts the user's commands (play, stop, changes to the queue). Requests
     /// to the server remember it; an answer for an older command is dropped.
     command: Cell<u64>,
@@ -80,21 +79,53 @@ thread_local! {
     static PLAYER: OnceCell<Rc<Player>> = const { OnceCell::new() };
 }
 
-/// Called after every change of track or state.
-type Listener = Box<dyn Fn()>;
 /// Shows a playback error to the user.
 type ErrorHandler = Box<dyn Fn(&str)>;
-/// Told the new position, in seconds, after a jump.
-type SeekListener = Box<dyn Fn(f64)>;
-/// Told the new volume (0 to 1, as on the slider).
-type VolumeListener = Box<dyn Fn(f64)>;
+/// Told the track and the second it was at when the player leaves it by hand.
+type LeaveListener = dyn Fn(&subsonic::Song, f64);
+
+/// The callbacks of one kind, each with an id that removes it again.
+struct Listeners<F: ?Sized> {
+    list: RefCell<Vec<(u64, Rc<F>)>>,
+    next: Cell<u64>,
+}
+
+impl<F: ?Sized> Listeners<F> {
+    fn new() -> Self {
+        Listeners {
+            list: RefCell::new(Vec::new()),
+            next: Cell::new(0),
+        }
+    }
+
+    fn add(&self, f: Rc<F>) -> u64 {
+        let id = self.next.get();
+        self.next.set(id + 1);
+        self.list.borrow_mut().push((id, f));
+        id
+    }
+
+    fn remove(&self, id: u64) {
+        self.list
+            .borrow_mut()
+            .retain(|(listener, _)| *listener != id);
+    }
+
+    /// Calls `call` with each callback. It goes through a copy of the list:
+    /// a callback may add or remove callbacks (a page that a change of the
+    /// player closes removes its own).
+    fn each(&self, call: impl Fn(&F)) {
+        let list: Vec<Rc<F>> = self.list.borrow().iter().map(|(_, f)| f.clone()).collect();
+        for f in list {
+            call(&f);
+        }
+    }
+}
 
 /// How long the volume has to stay put before it is written to the settings:
 /// each write replaces the whole settings file (in Flatpak a key file), on
 /// the main thread, and a slider drag is many steps.
 const VOLUME_SAVE_DELAY: std::time::Duration = std::time::Duration::from_millis(500);
-/// Told the track and the second it was at when the player leaves it by hand.
-type LeaveListener = Box<dyn Fn(&subsonic::Song, f64)>;
 
 /// What a queue is started as. Only the songs of an album started as that
 /// album go into the history of played albums (resume.rs); radio, playlists,
@@ -159,18 +190,17 @@ impl Player {
                 position: Cell::new(0),
                 state: RefCell::new(State::Idle),
                 client: RefCell::new(None),
-                listeners: RefCell::new(Vec::new()),
-                next_listener: Cell::new(0),
+                listeners: Listeners::new(),
                 error_handler: RefCell::new(None),
                 listen: RefCell::new(None),
-                listen_timer: std::cell::Cell::new(false),
+                listen_timer: RefCell::new(None),
                 report_support: std::cell::Cell::new(None),
                 replay_gain_mode: std::cell::Cell::new(None),
                 volume: std::cell::Cell::new(saved_volume()),
-                volume_listeners: RefCell::new(Vec::new()),
+                volume_listeners: Listeners::new(),
                 volume_save: RefCell::new(None),
-                seek_listeners: RefCell::new(Vec::new()),
-                leave_listeners: RefCell::new(Vec::new()),
+                seek_listeners: Listeners::new(),
+                leave_listeners: Listeners::new(),
                 command: Cell::new(0),
                 pending_seek: Cell::new(None),
                 next_uri,
@@ -182,16 +212,11 @@ impl Player {
 
     /// Registers `f`, called after every change; the returned id removes it again.
     pub(crate) fn connect_changed(&self, f: impl Fn() + 'static) -> u64 {
-        let id = self.next_listener.get();
-        self.next_listener.set(id + 1);
-        self.listeners.borrow_mut().push((id, Box::new(f)));
-        id
+        self.listeners.add(Rc::new(f))
     }
 
     pub(crate) fn disconnect(&self, id: u64) {
-        self.listeners
-            .borrow_mut()
-            .retain(|(listener_id, _)| *listener_id != id);
+        self.listeners.remove(id);
     }
 
     /// Sets how playback errors reach the user; the app shows them as toasts.
@@ -202,13 +227,13 @@ impl Player {
     /// Calls `f` with the new position after every jump. Lighter than
     /// connect_changed: nothing else about the player has changed.
     pub(crate) fn connect_seeked(&self, f: impl Fn(f64) + 'static) {
-        self.seek_listeners.borrow_mut().push(Box::new(f));
+        self.seek_listeners.add(Rc::new(f));
     }
 
     /// Registers `f`, called with the track in progress and where in it, just
     /// before the player leaves that track by hand (see `leave`).
     pub(crate) fn connect_leaving(&self, f: impl Fn(&subsonic::Song, f64) + 'static) {
-        self.leave_listeners.borrow_mut().push(Box::new(f));
+        self.leave_listeners.add(Rc::new(f));
     }
 
     /// The track in progress is about to be left by hand: another queue
@@ -222,21 +247,16 @@ impl Player {
         let (Some(song), Some(seconds)) = (self.current(), self.resume_position()) else {
             return;
         };
-        for listener in self.leave_listeners.borrow().iter() {
-            listener(&song, seconds);
-        }
+        self.leave_listeners
+            .each(|listener| listener(&song, seconds));
     }
 
     fn notify_seeked(&self, seconds: f64) {
-        for listener in self.seek_listeners.borrow().iter() {
-            listener(seconds);
-        }
+        self.seek_listeners.each(|listener| listener(seconds));
     }
 
     fn notify(&self) {
-        for (_, listener) in self.listeners.borrow().iter() {
-            listener();
-        }
+        self.listeners.each(|listener| listener());
     }
 
     fn set_state(&self, state: State) {
@@ -252,6 +272,7 @@ impl Player {
         if let Some(report) = report {
             self.report(report, None);
         }
+        self.run_listen_timer(self.is_playing());
         self.notify();
     }
 
@@ -562,7 +583,7 @@ struct Listen {
 
 impl Player {
     /// A new track has begun: the server shows it as playing now, and the
-    /// timer starts counting towards a finished listen.
+    /// listen timer counts from zero towards a finished listen.
     fn begin_listen(&self) {
         let Some(song) = self.current() else {
             return;
@@ -591,12 +612,19 @@ impl Player {
         if self.report_support.get().is_none() {
             self.check_report_support();
         }
+    }
 
-        if !self.listen_timer.replace(true) {
-            gst::glib::timeout_add_seconds_local(1, || {
+    /// Starts or stops the listen timer: paused or stopped, there is no
+    /// time played to count.
+    fn run_listen_timer(&self, run: bool) {
+        let mut timer = self.listen_timer.borrow_mut();
+        if run && timer.is_none() {
+            *timer = Some(gst::glib::timeout_add_seconds_local(1, || {
                 get().tick_listen();
                 gst::glib::ControlFlow::Continue
-            });
+            }));
+        } else if !run && let Some(timer) = timer.take() {
+            timer.remove();
         }
     }
 
@@ -765,13 +793,11 @@ impl Player {
 
     /// Registers `f`, told every new volume.
     pub(crate) fn connect_volume_changed(&self, f: impl Fn(f64) + 'static) {
-        self.volume_listeners.borrow_mut().push(Box::new(f));
+        self.volume_listeners.add(Rc::new(f));
     }
 
     fn notify_volume(&self, volume: f64) {
-        for listener in self.volume_listeners.borrow().iter() {
-            listener(volume);
-        }
+        self.volume_listeners.each(|listener| listener(volume));
     }
 
     /// The slider is perceptual, GStreamer's volume linear: the cube makes half
@@ -1238,6 +1264,32 @@ impl Player {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_listener_may_add_and_remove_listeners() {
+        // A change of the player can close a page, which then removes its
+        // listener while the listeners are being called.
+        let listeners = Rc::new(Listeners::<dyn Fn()>::new());
+        let calls = Rc::new(Cell::new(0));
+        let first = {
+            let listeners = Rc::downgrade(&listeners);
+            let calls = calls.clone();
+            Rc::new(move || {
+                calls.set(calls.get() + 1);
+                let Some(listeners) = listeners.upgrade() else {
+                    return;
+                };
+                listeners.remove(0);
+                let calls = calls.clone();
+                listeners.add(Rc::new(move || calls.set(calls.get() + 10)));
+            })
+        };
+        assert_eq!(listeners.add(first), 0);
+        listeners.each(|listener| listener());
+        assert_eq!(calls.get(), 1);
+        listeners.each(|listener| listener());
+        assert_eq!(calls.get(), 11);
+    }
 
     fn songs(ids: &[&str]) -> Vec<subsonic::Song> {
         ids.iter()

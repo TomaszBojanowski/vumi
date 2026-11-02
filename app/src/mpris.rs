@@ -5,7 +5,7 @@
 use gtk::gio;
 use gtk::glib;
 use gtk::prelude::*;
-use std::cell::OnceCell;
+use std::cell::{OnceCell, RefCell};
 
 use crate::player;
 
@@ -65,6 +65,10 @@ const XML: &str = r#"<node>
 
 thread_local! {
     static CONNECTION: OnceCell<gio::DBusConnection> = const { OnceCell::new() };
+    /// The last cover fetched for the metadata (server and id): each cover
+    /// is tried once, so one the server cannot give is not asked for again
+    /// at every change of the player.
+    static COVER_TRIED: RefCell<String> = const { RefCell::new(String::new()) };
 }
 
 /// Puts the player on the session bus. Call once, at startup; `app` is
@@ -351,7 +355,8 @@ fn emit_seeked(connection: &gio::DBusConnection, seconds: f64) {
 }
 
 /// If the current track has a cover that is not on disk yet, loads it (from the
-/// server if need be) and sends the metadata again once it is there.
+/// server if need be, once per cover) and sends the metadata again once it is
+/// there.
 fn fetch_missing_cover() {
     let player = player::get();
     let Some(id) = player.current().and_then(|song| song.cover_art) else {
@@ -361,6 +366,14 @@ fn fetch_missing_cover() {
         return;
     }
     let client = player.client();
+    // Not connected, nothing is fetched (only the disk is looked at), so
+    // only a try with a client counts.
+    if let Some(client) = &client {
+        let key = format!("{}\n{id}", client.server_key());
+        if COVER_TRIED.with(|tried| tried.replace(key.clone())) == key {
+            return;
+        }
+    }
     glib::spawn_future_local(async move {
         let _ = crate::covers::load(client, id.clone()).await;
         // Only if it really arrived, and still for the same track: no loop.
