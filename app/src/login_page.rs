@@ -98,6 +98,21 @@ impl LoginPage {
             }
         });
 
+        // Enter in any field connects, as the button does; not while a
+        // connection is being tried (the button is insensitive then).
+        let rows: [&adw::EntryRow; 3] =
+            [&imp.url_row, &imp.user_row, imp.password_row.upcast_ref()];
+        for row in rows {
+            let button = imp.connect_button.downgrade();
+            row.connect_entry_activated(move |_| {
+                if let Some(button) = button.upgrade()
+                    && button.is_sensitive()
+                {
+                    button.emit_clicked();
+                }
+            });
+        }
+
         page
     }
 
