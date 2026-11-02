@@ -73,6 +73,12 @@ flatpak run io.github.tomaszbojanowski.Vumi
 The interface is translated with gettext; the files are in `po/`.
 Polish is complete.
 
+## How Vumi is made
+
+Vumi's code is written with Claude Code, an AI coding assistant, under my
+direction. I decide what Vumi does and how it looks, plan each change, and
+test every release on my own library before it ships.
+
 ## License
 
 Vumi is free software, released under the GNU General Public License,
