@@ -9,7 +9,6 @@ use std::cell::{OnceCell, RefCell};
 
 use crate::player;
 
-const BUS_NAME: &str = "org.mpris.MediaPlayer2.Vumi";
 const PATH: &str = "/org/mpris/MediaPlayer2";
 const ROOT: &str = "org.mpris.MediaPlayer2";
 const PLAYER: &str = "org.mpris.MediaPlayer2.Player";
@@ -71,13 +70,19 @@ thread_local! {
     static COVER_TRIED: RefCell<String> = const { RefCell::new(String::new()) };
 }
 
+/// The player's name on the session bus: the MPRIS prefix and the app ID.
+/// The Flatpak manifest lets Vumi own it (--own-name).
+fn bus_name() -> String {
+    format!("{ROOT}.{}", crate::APP_ID)
+}
+
 /// Puts the player on the session bus. Call once, at startup; `app` is
 /// raised ("Raise") or quit ("Quit") when asked to.
 pub(crate) fn start(app: &adw::Application) {
     let app = app.downgrade();
     let _ = gio::bus_own_name(
         gio::BusType::Session,
-        BUS_NAME,
+        &bus_name(),
         gio::BusNameOwnerFlags::NONE,
         move |connection, _| register(&connection, app.clone()),
         |_, _| {},
@@ -397,4 +402,30 @@ fn track_path(song_id: &str) -> Option<glib::variant::ObjectPath> {
         .collect();
     glib::variant::ObjectPath::try_from(format!("/io/github/tomaszbojanowski/Vumi/track/t{id}"))
         .ok()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// MPRIS asks for "org.mpris.MediaPlayer2." and a unique name; the app ID
+    /// is that name.
+    #[test]
+    fn the_bus_name_is_the_app_id() {
+        assert_eq!(
+            bus_name(),
+            "org.mpris.MediaPlayer2.io.github.tomaszbojanowski.Vumi"
+        );
+    }
+
+    /// The sandbox lets Vumi own exactly that name, and no other.
+    #[test]
+    fn the_manifest_lets_vumi_own_the_bus_name() {
+        let manifest = include_str!("../../io.github.tomaszbojanowski.Vumi.yml");
+        let owned: Vec<&str> = manifest
+            .lines()
+            .filter_map(|line| line.trim().strip_prefix("- --own-name="))
+            .collect();
+        assert_eq!(owned, [bus_name()]);
+    }
 }

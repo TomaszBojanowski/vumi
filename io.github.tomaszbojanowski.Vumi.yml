@@ -7,7 +7,7 @@ sdk-extensions:
   - org.freedesktop.Sdk.Extension.rust-stable
 command: vumi
 finish-args:
-  - --own-name=org.mpris.MediaPlayer2.Vumi
+  - --own-name=org.mpris.MediaPlayer2.io.github.tomaszbojanowski.Vumi
   - --share=network
   - --share=ipc
   - --socket=wayland
