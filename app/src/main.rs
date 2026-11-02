@@ -502,6 +502,11 @@ fn error_message(e: &subsonic::Error) -> String {
         BadResponse(_) => {
             gettext("The server answered, but it does not look like a Subsonic server.")
         }
+        // A server may send only its error code.
+        Server { code, message } if message.trim().is_empty() => {
+            // Translators: {code} is the number of the error sent by the server.
+            gettext("Server error (code {code})").replace("{code}", &code.to_string())
+        }
         // Translators: {message} is the error text sent by the server.
         Server { message, .. } => gettext("Server error: {message}").replace("{message}", message),
     }
@@ -631,4 +636,30 @@ fn show_shortcuts(parent: &impl gtk::prelude::IsA<gtk::Widget>) {
         dialog.add(section);
     }
     dialog.present(Some(parent));
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// A server that sends only a code still has its error named.
+    #[test]
+    fn a_server_error_without_a_message_gives_its_code() {
+        for message in ["", "  "] {
+            let e = subsonic::Error::Server {
+                code: 70,
+                message: message.into(),
+            };
+            assert!(error_message(&e).contains("70"), "{}", error_message(&e));
+        }
+    }
+
+    #[test]
+    fn a_server_error_with_a_message_shows_the_message() {
+        let e = subsonic::Error::Server {
+            code: 70,
+            message: "Album not found".into(),
+        };
+        assert!(error_message(&e).contains("Album not found"));
+    }
 }

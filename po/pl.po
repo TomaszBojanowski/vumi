@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vumi\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-02 23:38+0100\n"
+"POT-Creation-Date: 2026-11-02 23:45+0100\n"
 "PO-Revision-Date: 2026-09-27 20:40+0200\n"
 "Last-Translator: Tomasz Bojanowski <tomasz@bojanowski.me>\n"
 "Language-Team: Polish\n"
@@ -126,69 +126,75 @@ msgstr ""
 msgid "The server answered, but it does not look like a Subsonic server."
 msgstr "Serwer odpowiedział, ale nie wygląda na serwer zgodny z Subsonic."
 
+#. Translators: {code} is the number of the error sent by the server.
+#: app/src/main.rs:508
+#, rust-format
+msgid "Server error (code {code})"
+msgstr "Błąd serwera (kod {code})"
+
 #. Translators: {message} is the error text sent by the server.
-#: app/src/main.rs:506
+#: app/src/main.rs:511
 #, rust-format
 msgid "Server error: {message}"
 msgstr "Błąd serwera: {message}"
 
-#: app/src/main.rs:561
+#: app/src/main.rs:566
 msgid "A music player for Navidrome and other Subsonic servers"
 msgstr "Odtwarzacz muzyki dla serwera Navidrome i innych serwerów Subsonic"
 
-#: app/src/main.rs:563
+#: app/src/main.rs:568
 msgid "translator-credits"
 msgstr "Tomasz Bojanowski <tomasz@bojanowski.me>"
 
-#: app/src/main.rs:569
+#: app/src/main.rs:574
 msgid "Buy Me a Coffee"
 msgstr "Postaw kawę"
 
-#: app/src/main.rs:573
+#: app/src/main.rs:578
 msgid "Built With"
 msgstr "Wykorzystane projekty"
 
-#: app/src/main.rs:603 app/src/preferences.blp:195
+#: app/src/main.rs:608 app/src/preferences.blp:195
 msgid "Playback"
 msgstr "Odtwarzanie"
 
-#: app/src/main.rs:605
+#: app/src/main.rs:610
 msgid "Play or Pause"
 msgstr "Odtworzenie lub wstrzymanie"
 
-#: app/src/main.rs:606
+#: app/src/main.rs:611
 msgid "Previous Track"
 msgstr "Poprzedni utwór"
 
-#: app/src/main.rs:607
+#: app/src/main.rs:612
 msgid "Next Track"
 msgstr "Następny utwór"
 
-#: app/src/main.rs:611 app/src/main_view.blp:146 app/src/preferences.blp:143
+#: app/src/main.rs:616 app/src/main_view.blp:146 app/src/preferences.blp:143
 msgid "Library"
 msgstr "Biblioteka"
 
-#: app/src/main.rs:613
+#: app/src/main.rs:618
 msgid "Search Library"
 msgstr "Wyszukiwanie w bibliotece"
 
-#: app/src/main.rs:614 app/src/main_view.blp:53 app/src/main_view.blp:558
+#: app/src/main.rs:619 app/src/main_view.blp:53 app/src/main_view.blp:560
 msgid "Sync Library"
 msgstr "Synchronizuj bibliotekę"
 
-#: app/src/main.rs:618 app/src/preferences.blp:13
+#: app/src/main.rs:623 app/src/preferences.blp:13
 msgid "General"
 msgstr "Ogólne"
 
-#: app/src/main.rs:620 app/src/main_view.blp:565
+#: app/src/main.rs:625 app/src/main_view.blp:567
 msgid "Preferences"
 msgstr "Preferencje"
 
-#: app/src/main.rs:621 app/src/main_view.blp:570
+#: app/src/main.rs:626 app/src/main_view.blp:572
 msgid "Keyboard Shortcuts"
 msgstr "Skróty klawiszowe"
 
-#: app/src/main.rs:622 app/src/main_view.blp:580
+#: app/src/main.rs:627 app/src/main_view.blp:582
 msgid "Quit"
 msgstr "Zakończ"
 
@@ -226,7 +232,7 @@ msgstr "Ostatnio polubione"
 msgid "Title"
 msgstr "Tytuł"
 
-#: app/src/main_view.rs:1181 app/src/main_view.blp:500 app/src/song_menu.rs:358
+#: app/src/main_view.rs:1181 app/src/main_view.blp:502 app/src/song_menu.rs:358
 msgid "Artist"
 msgstr "Wykonawca"
 
@@ -255,13 +261,13 @@ msgid "Start"
 msgstr "Start"
 
 #: app/src/main_view.blp:127 app/src/main_view.blp:159
-#: app/src/main_view.blp:228 app/src/main_view.blp:323
-#: app/src/main_view.blp:363 app/src/main_view.blp:441
+#: app/src/main_view.blp:230 app/src/main_view.blp:325
+#: app/src/main_view.blp:365 app/src/main_view.blp:443
 msgid "Show Sidebar"
 msgstr "Wyświetl panel boczny"
 
 #: app/src/main_view.blp:143 app/src/main_view.blp:151
-#: app/src/main_view.blp:184 app/src/artist_page.blp:86
+#: app/src/main_view.blp:186 app/src/artist_page.blp:86
 #: app/src/results_view.blp:28
 msgid "Albums"
 msgstr "Albumy"
@@ -270,90 +276,90 @@ msgstr "Albumy"
 msgid "Sort"
 msgstr "Sortuj"
 
-#: app/src/main_view.blp:175
+#: app/src/main_view.blp:177
 msgid "Retry"
 msgstr "Spróbuj ponownie"
 
-#: app/src/main_view.blp:214 app/src/main_view.blp:220
-#: app/src/main_view.blp:240
+#: app/src/main_view.blp:216 app/src/main_view.blp:222
+#: app/src/main_view.blp:242
 msgid "Artists"
 msgstr "Wykonawcy"
 
-#: app/src/main_view.blp:267
+#: app/src/main_view.blp:269
 msgid "Jump to Letter"
 msgstr "Przejdź do litery"
 
-#: app/src/main_view.blp:305 app/src/main_view.blp:313
+#: app/src/main_view.blp:307 app/src/main_view.blp:315
 #: app/src/favorites_header.blp:64
 msgid "Favorites"
 msgstr "Ulubione"
 
-#: app/src/main_view.blp:308
+#: app/src/main_view.blp:310
 msgid "Collections"
 msgstr "Kolekcje"
 
-#: app/src/main_view.blp:349 app/src/main_view.blp:355 app/src/song_menu.rs:291
+#: app/src/main_view.blp:351 app/src/main_view.blp:357 app/src/song_menu.rs:291
 msgid "Playlists"
 msgstr "Listy odtwarzania"
 
-#: app/src/main_view.blp:375
+#: app/src/main_view.blp:377
 msgid "No Playlists"
 msgstr "Brak list odtwarzania"
 
-#: app/src/main_view.blp:376
+#: app/src/main_view.blp:378
 msgid "Playlists from the server appear here"
 msgstr "Listy odtwarzania z serwera pojawią się tutaj"
 
-#: app/src/main_view.blp:430 app/src/main_view.blp:449
+#: app/src/main_view.blp:432 app/src/main_view.blp:451
 msgid "Similar and Radio"
 msgstr "Podobne i radio"
 
-#: app/src/main_view.blp:433
+#: app/src/main_view.blp:435
 msgid "Discover"
 msgstr "Odkrywanie"
 
-#: app/src/main_view.blp:450
+#: app/src/main_view.blp:452
 msgid "Coming soon"
 msgstr "Wkrótce"
 
-#: app/src/main_view.blp:494 app/src/queue_page.rs:403
+#: app/src/main_view.blp:496 app/src/queue_page.rs:403
 msgid "Name"
 msgstr "Nazwa"
 
-#: app/src/main_view.blp:506
+#: app/src/main_view.blp:508
 msgid "Year (Newest)"
 msgstr "Rok (od najnowszych)"
 
-#: app/src/main_view.blp:512
+#: app/src/main_view.blp:514
 msgid "Year (Oldest)"
 msgstr "Rok (od najstarszych)"
 
-#: app/src/main_view.blp:518 app/src/start_page.blp:98
+#: app/src/main_view.blp:520 app/src/start_page.blp:98
 msgid "Recently Added"
 msgstr "Ostatnio dodane"
 
-#: app/src/main_view.blp:529 app/src/preferences.blp:198
+#: app/src/main_view.blp:531 app/src/preferences.blp:198
 msgid "Endless Radio"
 msgstr "Radio bez końca"
 
-#: app/src/main_view.blp:534
+#: app/src/main_view.blp:536
 msgid "Repeat"
 msgstr "Powtarzanie"
 
-#: app/src/main_view.blp:537 app/src/preferences.blp:257
+#: app/src/main_view.blp:539 app/src/preferences.blp:257
 msgid "Off"
 msgstr "Wyłączone"
 
-#: app/src/main_view.blp:543 app/src/now_playing.blp:174
+#: app/src/main_view.blp:545 app/src/now_playing.blp:174
 #: app/src/queue_page.blp:12
 msgid "Queue"
 msgstr "Kolejka"
 
-#: app/src/main_view.blp:549 app/src/song_menu.rs:361
+#: app/src/main_view.blp:551 app/src/song_menu.rs:361
 msgid "Track"
 msgstr "Utwór"
 
-#: app/src/main_view.blp:575
+#: app/src/main_view.blp:577
 msgid "About Vumi"
 msgstr "O aplikacji Vumi"
 
