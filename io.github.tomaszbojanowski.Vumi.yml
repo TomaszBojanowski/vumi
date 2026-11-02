@@ -31,3 +31,4 @@ modules:
           - target
           - flatpak-build
           - .flatpak-builder
+          - website

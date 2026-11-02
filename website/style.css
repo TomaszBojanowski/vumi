@@ -1,0 +1,374 @@
+/* Vumi's website: the look of GNOME's app pages, the colors of Vumi's
+   metainfo (#f5c25a light, #7a5317 dark), the system's own font. */
+
+:root {
+  color-scheme: light dark;
+  --bg: #fafafb;
+  --fg: #2e2e33;
+  --dim: #5c5c63;
+  --card: #ffffff;
+  --border: rgb(0 0 6 / 10%);
+  --link: #1a62bd;
+  --focus: #1a62bd;
+  /* The header: a warm light background, lit from behind the icon. */
+  --hero-bg: #fbf0da;
+  --hero-glow: radial-gradient(ellipse 560px 380px at 50% 120px,
+    rgb(245 194 90 / 55%), rgb(245 194 90 / 18%) 55%, rgb(245 194 90 / 0%) 80%);
+  --hero-fg: #3d2b00;
+  --hero-dim: #5a4100;
+  --install-bg: #3d2b00;
+  --install-fg: #fff8e8;
+  --command-bg: rgb(255 255 255 / 70%);
+  --command-border: rgb(61 43 0 / 18%);
+  --shot-shadow: rgb(61 43 0 / 22%);
+  /* Icons and small labels in the brand's amber. */
+  --chip-bg: #f5c25a;
+  --chip-fg: #3d2b00;
+  --badge-bg: rgb(245 194 90 / 22%);
+  --badge-fg: #4a3500;
+  --badge-border: rgb(122 83 23 / 22%);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #222226;
+    --fg: #f5f5f7;
+    --dim: #bdbdc4;
+    --card: #2e2e33;
+    --border: rgb(255 255 255 / 9%);
+    --link: #8ab8f0;
+    --focus: #f5c25a;
+    /* Dark, with the amber light of the meters behind the icon. */
+    --hero-bg: #1b1814;
+    --hero-glow: radial-gradient(ellipse 560px 400px at 50% 120px,
+      rgb(245 194 90 / 34%), rgb(122 83 23 / 30%) 45%, rgb(122 83 23 / 0%) 80%);
+    --hero-fg: #fff3dc;
+    --hero-dim: #e9d6b3;
+    --install-bg: #f5c25a;
+    --install-fg: #2b1d00;
+    --command-bg: rgb(0 0 0 / 30%);
+    --command-border: rgb(255 243 220 / 16%);
+    --shot-shadow: rgb(0 0 0 / 55%);
+    --chip-bg: rgb(245 194 90 / 15%);
+    --chip-fg: #f5c25a;
+    --badge-bg: rgb(245 194 90 / 12%);
+    --badge-fg: #f2dfbf;
+    --badge-border: rgb(245 194 90 / 20%);
+  }
+}
+
+* { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: "Adwaita Sans", Inter, Cantarell, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: 17px;
+  line-height: 1.55;
+}
+
+a { color: var(--link); }
+
+:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+code, pre {
+  font-family: "Adwaita Mono", "Source Code Pro", ui-monospace, monospace;
+}
+
+.wrap {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+/* How far the first screenshot reaches up into the header. */
+:root { --overlap: clamp(64px, 14vw, 160px); }
+
+.hero {
+  background: var(--hero-glow), var(--hero-bg);
+  color: var(--hero-fg);
+  text-align: center;
+  padding: 56px 0 calc(var(--overlap) + 40px);
+}
+
+.app-icon {
+  width: 128px;
+  height: 128px;
+  filter: drop-shadow(0 4px 12px rgb(0 0 0 / 28%));
+}
+
+.hero h1 {
+  margin: 12px 0 0;
+  font-size: 2.7rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  line-height: 1.15;
+}
+
+.summary {
+  margin: 6px 0 0;
+  font-size: 1.35rem;
+  font-weight: 700;
+}
+
+.lead {
+  max-width: 46rem;
+  text-wrap: balance;
+  margin: 10px auto 0;
+  color: var(--hero-dim);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+  margin: 28px 0 0;
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  min-height: 46px;
+  padding: 10px 28px;
+  border-radius: 9999px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.install {
+  background: var(--install-bg);
+  color: var(--install-fg);
+  font-size: 1.12rem;
+  padding: 10px 40px;
+}
+
+.source {
+  color: var(--hero-fg);
+  border: 2px solid var(--command-border);
+}
+
+.install:hover, .source:hover { filter: brightness(1.12); }
+
+.hint {
+  margin: 22px 0 8px;
+  font-size: 0.92rem;
+  color: var(--hero-dim);
+}
+
+/* The command on one line: it scrolls sideways where it does not fit,
+   and one click selects all of it, ready to copy. */
+.command {
+  width: fit-content;
+  max-width: 100%;
+  margin: 0 auto;
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: var(--command-bg);
+  border: 1px solid var(--command-border);
+  color: var(--hero-fg);
+  text-align: left;
+  font-size: 0.86rem;
+  white-space: pre;
+  overflow-x: auto;
+  user-select: all;
+}
+
+main > section {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 56px 20px 0;
+}
+
+h2 {
+  margin: 0 0 18px;
+  font-size: 1.55rem;
+  font-weight: 800;
+}
+
+/* Screenshots: the window with its shadow, light or dark as the page. */
+main > .shots { padding-top: 0; }
+
+.shot {
+  margin: 0;
+  text-align: center;
+}
+
+.shot img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* The first one reaches up over the edge of the header. */
+.main-shot {
+  position: relative;
+  margin-top: calc(-1 * var(--overlap));
+}
+
+.main-shot img { filter: drop-shadow(0 14px 30px var(--shot-shadow)); }
+
+figcaption {
+  margin-top: 4px;
+  font-size: 0.9rem;
+  color: var(--dim);
+}
+
+.shot-row {
+  display: grid;
+  grid-template-columns: 2fr 2fr 1fr;
+  gap: 18px;
+  align-items: end;
+  margin-top: 26px;
+}
+
+/* The Tuner: the whole card (its corners are in the picture) and the text
+   side by side. */
+.tuner {
+  display: grid;
+  grid-template-columns: 3fr 2fr;
+  grid-template-areas: "image text";
+  gap: 36px;
+  align-items: center;
+}
+
+.tuner-text { grid-area: text; }
+.tuner-text p { margin: 0; }
+
+.tuner-image { grid-area: image; }
+
+.tuner-image img {
+  display: block;
+  width: 100%;
+  height: auto;
+  filter: drop-shadow(0 10px 24px var(--shot-shadow));
+}
+
+/* Four features, two by two, all of the same height. */
+.cards {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  grid-auto-rows: 1fr;
+  gap: 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.card {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 18px 20px;
+}
+
+.card h3, .needs h3 {
+  margin: 0 0 4px;
+  font-size: 1.08rem;
+}
+
+.card p, .needs p { margin: 0; color: var(--dim); }
+
+.chip {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: var(--chip-bg);
+  color: var(--chip-fg);
+}
+
+.badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 18px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.badges li {
+  padding: 4px 14px;
+  border-radius: 9999px;
+  background: var(--badge-bg);
+  border: 1px solid var(--badge-border);
+  color: var(--badge-fg);
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+/* Requirements: two items in one card, the details under it. */
+.needs {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px 32px;
+  margin: 0;
+  padding: 20px;
+  list-style: none;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+}
+
+.needs li {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+
+.note {
+  max-width: 46rem;
+  margin: 14px 0 0;
+  font-size: 0.92rem;
+  color: var(--dim);
+}
+
+footer {
+  margin-top: 64px;
+  padding: 28px 0 40px;
+  border-top: 1px solid var(--border);
+  color: var(--dim);
+  font-size: 0.95rem;
+}
+
+footer p { margin: 0 0 12px; }
+
+.links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+  margin: 0 0 12px;
+  padding: 0;
+  list-style: none;
+}
+
+/* Phones: everything in one column. */
+@media (max-width: 640px) {
+  body { font-size: 16px; }
+  .hero { padding-top: 40px; }
+  .app-icon { width: 104px; height: 104px; }
+  .hero h1 { font-size: 2.2rem; }
+  .summary { font-size: 1.18rem; }
+  .shot-row { grid-template-columns: 1fr; }
+  .narrow-shot { max-width: 62%; margin: 0 auto; }
+  main > section { padding-top: 40px; }
+  .tuner {
+    grid-template-columns: 1fr;
+    grid-template-areas: "text" "image";
+    gap: 18px;
+  }
+  .cards { grid-template-columns: 1fr; grid-auto-rows: auto; }
+  .needs { grid-template-columns: 1fr; }
+}
