@@ -368,7 +368,10 @@ impl AlbumPage {
             parts.push(ngettext("{n} disc", "{n} discs", n).replace("{n}", &n.to_string()));
         }
         parts.push(format::tracks_text(count));
-        parts.push(format::long_duration(seconds));
+        // Songs without a length (from some servers) add up to none.
+        if seconds > 0 {
+            parts.push(format::long_duration(seconds));
+        }
         imp.details.set_label(&parts.join(" · "));
         self.show_quality(songs);
 

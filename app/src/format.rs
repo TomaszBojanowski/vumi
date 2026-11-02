@@ -9,9 +9,12 @@ pub fn clock(seconds: u64) -> String {
 }
 
 /// A total length, rounded to the nearest minute: "47 minutes" for most
-/// albums, "6 h 9 min" for long ones.
+/// albums, "6 h 9 min" for long ones. Any length is at least a minute.
 pub fn long_duration(seconds: u32) -> String {
-    let minutes = (seconds + 30) / 60;
+    let minutes = match (seconds + 30) / 60 {
+        0 if seconds > 0 => 1,
+        minutes => minutes,
+    };
     if minutes < 60 {
         // Translators: {n} is a number of minutes.
         ngettext("{n} minute", "{n} minutes", minutes).replace("{n}", &minutes.to_string())
@@ -117,8 +120,12 @@ mod tests {
 
     #[test]
     fn long_duration_rounds_to_the_nearest_minute() {
-        assert_eq!(long_duration(29), "0 minutes");
+        // Any length is at least a minute: "0 minutes" would read as none.
+        assert_eq!(long_duration(1), "1 minute");
+        assert_eq!(long_duration(29), "1 minute");
         assert_eq!(long_duration(30), "1 minute");
+        assert_eq!(long_duration(89), "1 minute");
+        assert_eq!(long_duration(90), "2 minutes");
         assert_eq!(long_duration(47 * 60 + 29), "47 minutes");
         assert_eq!(long_duration(47 * 60 + 30), "48 minutes");
         assert_eq!(long_duration(59 * 60 + 30), "1 h 0 min");
