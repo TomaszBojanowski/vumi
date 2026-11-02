@@ -277,13 +277,23 @@ fn build_ui(app: &adw::Application) {
             }
             let url = settings.string("server-url").to_string();
             let user = settings.string("username").to_string();
+            let near = login_page.clone();
             gtk::glib::spawn_future_local(async move {
                 let result = crate::runtime()
                     .spawn(async move { crate::secrets::delete_password(&url, &user).await })
                     .await;
-                if !matches!(result, Ok(Ok(()))) {
-                    eprintln!("Could not remove the saved password");
-                }
+                let error = match result {
+                    Ok(Ok(())) => return,
+                    Ok(Err(e)) => e.to_string(),
+                    Err(e) => e.to_string(),
+                };
+                // The address and the user stay, so the password left in the
+                // keyring would log in again at the next start: say so.
+                eprintln!("Could not remove the saved password: {error}");
+                crate::toast(
+                    &near,
+                    &gettext("Could not remove the password from the keyring"),
+                );
             });
             if let Some(page) = login_page.downcast_ref::<LoginPage>() {
                 page.clear_password();
@@ -432,20 +442,35 @@ fn auto_connect(
         if main.session() != session {
             return;
         }
-        match result {
+        let to_login = match result {
             Ok(Saved::Ping(client, ping)) => match *ping {
-                Ok(response) => main.show_connected(&response, client),
-                Err(subsonic::Error::WrongCredentials) => nav.replace(&[login_page]),
-                Err(e) => main.show_offline(&error_message(&e)),
+                Ok(response) => {
+                    main.show_connected(&response, client);
+                    false
+                }
+                Err(subsonic::Error::WrongCredentials) => true,
+                Err(e) => {
+                    main.show_offline(&error_message(&e));
+                    false
+                }
             },
-            Ok(Saved::Missing) => nav.replace(&[login_page]),
+            Ok(Saved::Missing) => true,
             Ok(Saved::Unreadable) => {
                 if let Some(page) = login_page.downcast_ref::<LoginPage>() {
                     page.show_error(&gettext("Could not read the password from the keyring"));
                 }
-                nav.replace(&[login_page]);
+                true
             }
-            Err(_) => main.show_offline(&gettext("Something went wrong. Please try again.")),
+            Err(_) => {
+                main.show_offline(&gettext("Something went wrong. Please try again."));
+                false
+            }
+        };
+        if to_login {
+            // Whoever logs in next may be someone else: this account's
+            // library leaves the screen, as at Log Out.
+            main.log_out();
+            nav.replace(&[login_page]);
         }
     });
 }
