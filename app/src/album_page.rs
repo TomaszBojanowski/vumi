@@ -956,22 +956,8 @@ fn same_album(local: &subsonic::AlbumWithSongs, server: &subsonic::AlbumWithSong
         && local.starred == server.starred
         && local.artist_id == server.artist_id
         && server.disc_titles.is_empty()
-        && local.song.len() == server.song.len()
-        && local.song.iter().zip(&server.song).all(|(a, b)| {
-            a.id == b.id
-                && a.title == b.title
-                && a.artist == b.artist
-                && a.starred == b.starred
-                && a.composer == b.composer
-                && a.duration == b.duration
-                && a.track == b.track
-                && a.disc_number == b.disc_number
-                && a.cover_art == b.cover_art
-                && a.suffix == b.suffix
-                && a.bit_rate == b.bit_rate
-                && a.bit_depth == b.bit_depth
-                && a.sampling_rate == b.sampling_rate
-        })
+        // Every field of every song: the ids too, which "Go to Artist" uses.
+        && local.song == server.song
 }
 
 /// Opens an album page on `nav`. The album's songs are read from the local
@@ -1024,5 +1010,60 @@ impl AlbumPage {
                 button.set_sensitive(true);
             }
         });
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn song(id: &str) -> subsonic::Song {
+        subsonic::Song {
+            id: id.into(),
+            title: format!("Song {id}"),
+            artist: Some("Artist".into()),
+            track: Some(1),
+            disc_number: Some(1),
+            album: Some("Album".into()),
+            album_id: Some("al-1".into()),
+            artist_id: Some("ar-1".into()),
+            duration: Some(200),
+            suffix: Some("flac".into()),
+            bit_rate: Some(900),
+            cover_art: Some("al-1".into()),
+            bit_depth: Some(16),
+            sampling_rate: Some(44_100),
+            starred: None,
+            composer: None,
+        }
+    }
+
+    fn album(songs: Vec<subsonic::Song>) -> subsonic::AlbumWithSongs {
+        subsonic::AlbumWithSongs {
+            artist_id: Some("ar-1".into()),
+            starred: None,
+            id: "al-1".into(),
+            name: "Album".into(),
+            artist: Some("Artist".into()),
+            song: songs,
+            disc_titles: Vec::new(),
+        }
+    }
+
+    #[test]
+    fn the_server_answer_is_new_when_any_field_of_a_song_differs() {
+        let local = album(vec![song("1"), song("2")]);
+        assert!(same_album(&local, &album(vec![song("1"), song("2")])));
+
+        // "Go to Artist" and "Go to Album" read these ids from the song.
+        let mut moved = song("2");
+        moved.album_id = Some("al-2".into());
+        assert!(!same_album(&local, &album(vec![song("1"), moved])));
+        let mut other_artist = song("2");
+        other_artist.artist_id = Some("ar-2".into());
+        assert!(!same_album(&local, &album(vec![song("1"), other_artist])));
+        let mut renamed = song("2");
+        renamed.album = Some("Album (Remastered)".into());
+        assert!(!same_album(&local, &album(vec![song("1"), renamed])));
     }
 }
