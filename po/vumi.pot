@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vumi\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-02 23:45+0100\n"
+"POT-Creation-Date: 2026-11-03 00:47+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -164,7 +164,7 @@ msgstr ""
 msgid "Search Library"
 msgstr ""
 
-#: app/src/main.rs:619 app/src/main_view.blp:53 app/src/main_view.blp:560
+#: app/src/main.rs:619 app/src/main_view.blp:53 app/src/main_view.blp:529
 msgid "Sync Library"
 msgstr ""
 
@@ -172,15 +172,15 @@ msgstr ""
 msgid "General"
 msgstr ""
 
-#: app/src/main.rs:625 app/src/main_view.blp:567
+#: app/src/main.rs:625 app/src/main_view.blp:536
 msgid "Preferences"
 msgstr ""
 
-#: app/src/main.rs:626 app/src/main_view.blp:572
+#: app/src/main.rs:626 app/src/main_view.blp:541
 msgid "Keyboard Shortcuts"
 msgstr ""
 
-#: app/src/main.rs:627 app/src/main_view.blp:582
+#: app/src/main.rs:627 app/src/main_view.blp:551
 msgid "Quit"
 msgstr ""
 
@@ -218,12 +218,12 @@ msgstr ""
 msgid "Title"
 msgstr ""
 
-#: app/src/main_view.rs:1181 app/src/main_view.blp:502 app/src/song_menu.rs:358
+#: app/src/main_view.rs:1181 app/src/main_view.blp:471 app/src/song_menu.rs:358
 msgid "Artist"
 msgstr ""
 
-#: app/src/main_view.rs:1389 app/src/album_page.rs:630
-#: app/src/album_page.rs:815 app/src/now_playing.rs:294
+#: app/src/main_view.rs:1389 app/src/album_page.rs:633
+#: app/src/album_page.rs:818 app/src/now_playing.rs:294
 #: app/src/mini_player.rs:103 app/src/playlist_page.blp:85
 msgid "Play"
 msgstr ""
@@ -248,7 +248,7 @@ msgstr ""
 
 #: app/src/main_view.blp:127 app/src/main_view.blp:159
 #: app/src/main_view.blp:230 app/src/main_view.blp:325
-#: app/src/main_view.blp:365 app/src/main_view.blp:443
+#: app/src/main_view.blp:365
 msgid "Show Sidebar"
 msgstr ""
 
@@ -296,56 +296,44 @@ msgstr ""
 msgid "Playlists from the server appear here"
 msgstr ""
 
-#: app/src/main_view.blp:432 app/src/main_view.blp:451
-msgid "Similar and Radio"
-msgstr ""
-
-#: app/src/main_view.blp:435
-msgid "Discover"
-msgstr ""
-
-#: app/src/main_view.blp:452
-msgid "Coming soon"
-msgstr ""
-
-#: app/src/main_view.blp:496 app/src/queue_page.rs:403
+#: app/src/main_view.blp:465 app/src/queue_page.rs:403
 msgid "Name"
 msgstr ""
 
-#: app/src/main_view.blp:508
+#: app/src/main_view.blp:477
 msgid "Year (Newest)"
 msgstr ""
 
-#: app/src/main_view.blp:514
+#: app/src/main_view.blp:483
 msgid "Year (Oldest)"
 msgstr ""
 
-#: app/src/main_view.blp:520 app/src/start_page.blp:98
+#: app/src/main_view.blp:489 app/src/start_page.blp:98
 msgid "Recently Added"
 msgstr ""
 
-#: app/src/main_view.blp:531 app/src/preferences.blp:198
+#: app/src/main_view.blp:500 app/src/preferences.blp:198
 msgid "Endless Radio"
 msgstr ""
 
-#: app/src/main_view.blp:536
+#: app/src/main_view.blp:505
 msgid "Repeat"
 msgstr ""
 
-#: app/src/main_view.blp:539 app/src/preferences.blp:257
+#: app/src/main_view.blp:508 app/src/preferences.blp:257
 msgid "Off"
 msgstr ""
 
-#: app/src/main_view.blp:545 app/src/now_playing.blp:174
+#: app/src/main_view.blp:514 app/src/now_playing.blp:174
 #: app/src/queue_page.blp:12
 msgid "Queue"
 msgstr ""
 
-#: app/src/main_view.blp:551 app/src/song_menu.rs:361
+#: app/src/main_view.blp:520 app/src/song_menu.rs:361
 msgid "Track"
 msgstr ""
 
-#: app/src/main_view.blp:577
+#: app/src/main_view.blp:546
 msgid "About Vumi"
 msgstr ""
 
@@ -441,31 +429,31 @@ msgstr[0] ""
 msgstr[1] ""
 
 #. Translators: tracks of one album differ in quality, e.g. "FLAC · up to 24 bit / 96 kHz".
-#: app/src/album_page.rs:549
+#: app/src/album_page.rs:552
 #, rust-format
 msgid "{format} · up to {quality}"
 msgstr ""
 
-#: app/src/album_page.rs:626 app/src/now_playing.rs:289
+#: app/src/album_page.rs:629 app/src/now_playing.rs:289
 #: app/src/mini_player.rs:99 app/src/continue_tile.rs:133
 msgid "Pause"
 msgstr ""
 
-#: app/src/album_page.rs:628 app/src/continue_tile.rs:135
+#: app/src/album_page.rs:631 app/src/continue_tile.rs:135
 msgid "Resume"
 msgstr ""
 
 #. Translators: header above the tracks of one disc, e.g. "Disc 2".
-#: app/src/album_page.rs:698
+#: app/src/album_page.rs:701
 #, rust-format
 msgid "Disc {n}"
 msgstr ""
 
-#: app/src/album_page.rs:800
+#: app/src/album_page.rs:803
 msgid "Radio"
 msgstr ""
 
-#: app/src/album_page.rs:822 app/src/favorites_header.blp:102
+#: app/src/album_page.rs:825 app/src/favorites_header.blp:102
 #: app/src/playlist_page.blp:96
 msgid "Shuffle"
 msgstr ""
@@ -499,7 +487,7 @@ msgid "Play Songs"
 msgstr ""
 
 #. Translators: {n} is a number of minutes.
-#: app/src/format.rs:17
+#: app/src/format.rs:20
 #, rust-format
 msgid "{n} minute"
 msgid_plural "{n} minutes"
@@ -507,19 +495,19 @@ msgstr[0] ""
 msgstr[1] ""
 
 #. Translators: a short duration in minutes, e.g. "12 min".
-#: app/src/format.rs:29
+#: app/src/format.rs:32
 #, rust-format
 msgid "{n} min"
 msgstr ""
 
 #. Translators: a long duration, e.g. "6 h 9 min".
-#: app/src/format.rs:37
+#: app/src/format.rs:40
 #, rust-format
 msgid "{hours} h {minutes} min"
 msgstr ""
 
 #. Translators: {n} is a number of tracks.
-#: app/src/format.rs:45
+#: app/src/format.rs:48
 #, rust-format
 msgid "{n} track"
 msgid_plural "{n} tracks"
@@ -527,7 +515,7 @@ msgstr[0] ""
 msgstr[1] ""
 
 #. Translators: {n} is a number of albums.
-#: app/src/format.rs:51
+#: app/src/format.rs:54
 #, rust-format
 msgid "{n} album"
 msgid_plural "{n} albums"
@@ -537,37 +525,37 @@ msgstr[1] ""
 #. Translators: the fewest digits a number has before its thousands are
 #. set apart: "4" groups 1,234 already (English), "5" leaves 1234 as it is
 #. and groups 12 345 (Polish). A number, nothing else.
-#: app/src/format.rs:61
+#: app/src/format.rs:64
 msgctxt "digit grouping"
 msgid "4"
 msgstr ""
 
 #. Translators: what separates thousands in a large number ("11,265").
-#: app/src/format.rs:66
+#: app/src/format.rs:69
 msgctxt "thousands separator"
 msgid ","
 msgstr ""
 
 #. Translators: audio bit depth, e.g. "24 bit".
-#: app/src/format.rs:80
+#: app/src/format.rs:83
 #, rust-format
 msgid "{n} bit"
 msgstr ""
 
 #. Translators: sample rate, e.g. "96 kHz".
-#: app/src/format.rs:89
+#: app/src/format.rs:92
 #, rust-format
 msgid "{khz} kHz"
 msgstr ""
 
 #. Translators: sample rate with one decimal, e.g. "44.1 kHz"; use your decimal separator.
-#: app/src/format.rs:92
+#: app/src/format.rs:95
 #, rust-format
 msgid "{whole}.{fraction} kHz"
 msgstr ""
 
 #. Translators: audio bit rate, e.g. "320 kbps".
-#: app/src/format.rs:101
+#: app/src/format.rs:104
 #, rust-format
 msgid "{kbps} kbps"
 msgstr ""
