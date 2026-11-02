@@ -1857,3 +1857,59 @@ impl MainView {
             });
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn album(
+        name: &str,
+        artist: &str,
+        year: Option<i32>,
+        created: Option<&str>,
+    ) -> Arc<subsonic::Album> {
+        Arc::new(subsonic::Album {
+            id: name.into(),
+            name: name.into(),
+            artist: Some(artist.into()),
+            year,
+            song_count: None,
+            created: created.map(Into::into),
+            artist_id: None,
+            starred: None,
+            cover_art: None,
+        })
+    }
+
+    fn sorted(mode: &str) -> Vec<String> {
+        let mut albums = vec![
+            album("beta", "Zed", Some(2001), Some("2026-02-01T00:00:00Z")),
+            album("Alpha", "abba", None, Some("2026-03-01T00:00:00Z")),
+            album("gamma", "Abba", Some(1999), None),
+            album("Delta", "Zed", Some(1999), Some("2026-01-01T00:00:00Z")),
+        ];
+        sort_albums(&mut albums, mode);
+        albums.iter().map(|a| a.name.clone()).collect()
+    }
+
+    #[test]
+    fn albums_sort_by_name_artist_year_or_date_added() {
+        assert_eq!(sorted("name"), ["Alpha", "beta", "Delta", "gamma"]);
+        // By artist (case ignored), then year, then name.
+        assert_eq!(sorted("artist"), ["Alpha", "gamma", "Delta", "beta"]);
+        // Newest first, the albums without a year last; oldest first, the same.
+        assert_eq!(sorted("year-desc"), ["beta", "Delta", "gamma", "Alpha"]);
+        assert_eq!(sorted("year-asc"), ["Delta", "gamma", "beta", "Alpha"]);
+        // Added last first; without a date, at the end.
+        assert_eq!(sorted("added"), ["Alpha", "beta", "Delta", "gamma"]);
+    }
+
+    #[test]
+    fn artists_sort_and_letter_without_accents() {
+        assert_eq!(artist_sort_key("Óscar"), "oscar");
+        assert_eq!(artist_sort_key("Łukasz"), "lukasz");
+        assert_eq!(artist_sort_key("Åsa"), "asa");
+        assert_eq!(artist_letter(&artist_sort_key("Ølfred")), "O");
+        assert_eq!(artist_letter(&artist_sort_key("2Pac")), "#");
+    }
+}

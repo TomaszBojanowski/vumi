@@ -8,16 +8,21 @@ use gtk::glib;
 /// further back the month (within a year) or the year. Empty when the date
 /// cannot be read.
 pub(crate) fn starred_ago(date: &str) -> String {
-    let (Ok(then), Ok(now)) = (
-        glib::DateTime::from_iso8601(date, None).and_then(|then| then.to_local()),
-        glib::DateTime::now_local(),
-    ) else {
+    match glib::DateTime::now_local() {
+        Ok(now) => starred_ago_at(date, &now),
+        Err(_) => String::new(),
+    }
+}
+
+/// starred_ago as seen at `now` (local time).
+fn starred_ago_at(date: &str, now: &glib::DateTime) -> String {
+    let Ok(then) = glib::DateTime::from_iso8601(date, None).and_then(|then| then.to_local()) else {
         return String::new();
     };
     // The number of the day in local time, so "yesterday" follows midnight.
     let day =
         |time: &glib::DateTime| (time.to_unix() + time.utc_offset().as_seconds()).div_euclid(86400);
-    let days = (day(&now) - day(&then)).max(0);
+    let days = (day(now) - day(&then)).max(0);
     match days {
         0 => gettext("today"),
         1 => gettext("yesterday"),
@@ -56,5 +61,55 @@ fn month(month: i32) -> String {
         10 => gettext("in October"),
         11 => gettext("in November"),
         _ => gettext("in December"),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// A local time, written as the server would send it.
+    fn local(year: i32, month: i32, day: i32, hour: i32, minute: i32) -> String {
+        glib::DateTime::from_local(year, month, day, hour, minute, 0.0)
+            .unwrap()
+            .format_iso8601()
+            .unwrap()
+            .to_string()
+    }
+
+    #[test]
+    fn days_go_by_the_calendar_then_weeks_months_and_years() {
+        let now = glib::DateTime::from_local(2026, 11, 2, 0, 10, 0.0).unwrap();
+        // No translations in tests: the English text.
+        assert_eq!(starred_ago_at(&local(2026, 11, 2, 0, 5), &now), "today");
+        // Twenty minutes ago, but before midnight.
+        assert_eq!(
+            starred_ago_at(&local(2026, 11, 1, 23, 50), &now),
+            "yesterday"
+        );
+        assert_eq!(
+            starred_ago_at(&local(2026, 10, 29, 12, 0), &now),
+            "4 days ago"
+        );
+        assert_eq!(
+            starred_ago_at(&local(2026, 10, 26, 12, 0), &now),
+            "a week ago"
+        );
+        assert_eq!(
+            starred_ago_at(&local(2026, 10, 12, 12, 0), &now),
+            "3 weeks ago"
+        );
+        assert_eq!(
+            starred_ago_at(&local(2026, 8, 15, 12, 0), &now),
+            "in August"
+        );
+        assert_eq!(starred_ago_at(&local(2025, 8, 15, 12, 0), &now), "in 2025");
+    }
+
+    #[test]
+    fn a_date_that_cannot_be_read_gives_nothing_and_the_future_is_today() {
+        let now = glib::DateTime::from_local(2026, 11, 2, 12, 0, 0.0).unwrap();
+        assert_eq!(starred_ago_at("not a date", &now), "");
+        assert_eq!(starred_ago_at(&local(2026, 11, 5, 12, 0), &now), "today");
     }
 }

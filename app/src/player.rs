@@ -766,6 +766,63 @@ fn write_volume(volume: f64) {
     let _ = gtk::gio::Settings::new(crate::APP_ID).set_double("volume", volume);
 }
 
+/// What plays on its own after the track at `index` of a queue of `len`
+/// tracks with Repeat at `repeat`: the next, the first again ("queue"), the
+/// same ("track"). `len` means the end.
+fn following(index: usize, len: usize, repeat: &str) -> usize {
+    match repeat {
+        "track" => index,
+        "queue" if len > 0 => (index + 1) % len,
+        _ => index + 1,
+    }
+}
+
+/// Whether a track follows the one at `position` (MPRIS: CanGoNext); with
+/// Repeat at "queue" the first one does.
+fn has_next(position: usize, len: usize, repeat: &str) -> bool {
+    position + 1 < len || (repeat == "queue" && len > 0)
+}
+
+/// Where the track playing at `position` ends up when the track at `from` is
+/// dragged to `to`: it keeps playing, wherever that is.
+fn moved_position(position: usize, from: usize, to: usize) -> usize {
+    if position == from {
+        to
+    } else if from < position && to >= position {
+        position - 1
+    } else if from > position && to <= position {
+        position + 1
+    } else {
+        position
+    }
+}
+
+/// Where Play Next puts a song: right after the playing track at `position`,
+/// or, once the next track (`pending`, its id) is with GStreamer and plays no
+/// matter what, right after that one, wherever the queue has it by now.
+fn play_next_index(songs: &[subsonic::Song], position: usize, pending: Option<&str>) -> usize {
+    match pending {
+        Some(id) => songs
+            .iter()
+            .skip(position + 1)
+            .position(|song| song.id == id)
+            .map(|offset| position + offset + 2)
+            .unwrap_or(position + 1),
+        None => position + 1,
+    }
+    .min(songs.len())
+}
+
+/// Where Shuffle Queue starts: after the playing track, and after the next
+/// one too if it is already with GStreamer (`pending`).
+fn shuffle_start(songs: &[subsonic::Song], position: usize, pending: Option<&str>) -> usize {
+    let from = (position + 1).min(songs.len());
+    match pending {
+        Some(id) if songs.get(from).is_some_and(|song| song.id == id) => from + 1,
+        _ => from,
+    }
+}
+
 /// The volume left last time.
 fn saved_volume() -> f64 {
     use gtk::gio::prelude::*;
@@ -789,12 +846,7 @@ impl Player {
     /// again when the queue repeats, the same when the track repeats. The
     /// length of the queue means the end.
     fn following(&self, index: usize) -> usize {
-        let len = self.queue.borrow().len();
-        match repeat_mode().as_str() {
-            "track" => index,
-            "queue" if len > 0 => (index + 1) % len,
-            _ => index + 1,
-        }
+        following(index, self.queue.borrow().len(), &repeat_mode())
     }
 
     /// Repeat changed: the track handed to GStreamer ahead follows it.
@@ -880,8 +932,11 @@ impl Player {
 impl Player {
     /// True if there is a track after the current one (MPRIS: CanGoNext).
     pub(crate) fn has_next(&self) -> bool {
-        let len = self.queue.borrow().len();
-        self.position.get() + 1 < len || (repeat_mode() == "queue" && len > 0)
+        has_next(
+            self.position.get(),
+            self.queue.borrow().len(),
+            &repeat_mode(),
+        )
     }
 
     /// Stop (MPRIS): like reaching the end of the queue; Play starts it again.
@@ -1026,18 +1081,9 @@ impl Player {
         let mut songs = queue.to_vec();
         let song = songs.remove(from);
         songs.insert(to, song);
-        let position = self.position.get();
-        let moved = if position == from {
-            to
-        } else if from < position && to >= position {
-            position - 1
-        } else if from > position && to <= position {
-            position + 1
-        } else {
-            position
-        };
         self.queue.replace(songs.into());
-        self.position.set(moved);
+        self.position
+            .set(moved_position(self.position.get(), from, to));
         self.prepare_next();
         self.notify();
     }
@@ -1054,20 +1100,11 @@ impl Player {
             return;
         }
         let mut songs = self.queue.borrow().to_vec();
-        let position = self.position.get();
-        // Once the next track is with GStreamer it plays no matter what, so a
-        // song put before it would be skipped: it goes right after that track,
-        // wherever the queue has it by now.
-        let index = match self.pending_switch() {
-            Some(id) => songs
-                .iter()
-                .skip(position + 1)
-                .position(|s| s.id == id)
-                .map(|offset| position + offset + 2)
-                .unwrap_or(position + 1),
-            None => position + 1,
-        }
-        .min(songs.len());
+        let index = play_next_index(
+            &songs,
+            self.position.get(),
+            self.pending_switch().as_deref(),
+        );
         songs.insert(index, song);
         self.queue.replace(songs.into());
         self.prepare_next();
@@ -1079,12 +1116,11 @@ impl Player {
     /// a gapless start stays next, as it will play whatever the queue says.
     pub(crate) fn shuffle_rest(&self) {
         let mut songs = self.queue.borrow().to_vec();
-        let mut from = (self.position.get() + 1).min(songs.len());
-        if let Some(id) = self.pending_switch()
-            && songs.get(from).is_some_and(|song| song.id == id)
-        {
-            from += 1;
-        }
+        let from = shuffle_start(
+            &songs,
+            self.position.get(),
+            self.pending_switch().as_deref(),
+        );
         if songs.len().saturating_sub(from) < 2 {
             return;
         }
@@ -1174,5 +1210,88 @@ impl Player {
             .build()
             .expect("GStreamer fakesink is missing");
         self.playbin.set_property("audio-sink", &sink);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn songs(ids: &[&str]) -> Vec<subsonic::Song> {
+        ids.iter()
+            .map(|id| subsonic::Song {
+                id: (*id).into(),
+                title: (*id).into(),
+                artist: None,
+                track: None,
+                disc_number: None,
+                album: None,
+                album_id: None,
+                artist_id: None,
+                duration: None,
+                suffix: None,
+                bit_rate: None,
+                cover_art: None,
+                bit_depth: None,
+                sampling_rate: None,
+                starred: None,
+                composer: None,
+            })
+            .collect()
+    }
+
+    #[test]
+    fn what_follows_depends_on_repeat() {
+        assert_eq!(following(1, 3, "off"), 2);
+        assert_eq!(following(2, 3, "off"), 3, "the end");
+        assert_eq!(following(2, 3, "queue"), 0);
+        assert_eq!(following(1, 3, "track"), 1);
+        assert_eq!(following(0, 0, "queue"), 1, "an empty queue ends");
+        assert!(has_next(1, 3, "off"));
+        assert!(!has_next(2, 3, "off"));
+        assert!(has_next(2, 3, "queue"));
+        assert!(!has_next(0, 0, "queue"));
+    }
+
+    #[test]
+    fn the_playing_track_keeps_playing_when_tracks_are_dragged() {
+        // Playing the third track (2) of five.
+        assert_eq!(moved_position(2, 2, 4), 4, "the playing one moves");
+        assert_eq!(moved_position(2, 0, 3), 1, "one before it goes after it");
+        assert_eq!(moved_position(2, 4, 0), 3, "one after it goes before it");
+        assert_eq!(moved_position(2, 3, 4), 2, "both after it");
+        assert_eq!(moved_position(2, 0, 1), 2, "both before it");
+        assert_eq!(
+            moved_position(2, 0, 2),
+            1,
+            "one put in its place pushes it back"
+        );
+    }
+
+    #[test]
+    fn play_next_goes_after_the_track_already_with_gstreamer() {
+        let queue = songs(&["a", "b", "c", "d"]);
+        assert_eq!(play_next_index(&queue, 1, None), 2);
+        // "c" is handed over: after it.
+        assert_eq!(play_next_index(&queue, 1, Some("c")), 3);
+        // Moved further meanwhile: still after it.
+        assert_eq!(play_next_index(&queue, 1, Some("d")), 4);
+        // Not in the queue any more: right after the playing one.
+        assert_eq!(play_next_index(&queue, 1, Some("x")), 2);
+        assert_eq!(play_next_index(&queue, 3, None), 4, "at the end");
+        assert_eq!(play_next_index(&[], 0, None), 0);
+    }
+
+    #[test]
+    fn shuffling_leaves_the_playing_and_the_handed_over_track() {
+        let queue = songs(&["a", "b", "c", "d"]);
+        assert_eq!(shuffle_start(&queue, 0, None), 1);
+        assert_eq!(shuffle_start(&queue, 0, Some("b")), 2);
+        assert_eq!(
+            shuffle_start(&queue, 0, Some("d")),
+            1,
+            "only the next one counts"
+        );
+        assert_eq!(shuffle_start(&queue, 3, None), 4);
     }
 }

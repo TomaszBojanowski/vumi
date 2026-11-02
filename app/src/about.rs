@@ -23,13 +23,51 @@ pub(crate) fn plain_text(html: &str) -> String {
             _ => {}
         }
     }
-    out.replace("&amp;", "&")
-        .replace("&quot;", "\"")
-        .replace("&#39;", "'")
-        .replace("&lt;", "<")
-        .replace("&gt;", ">")
-        .trim()
-        .to_string()
+    decode_entities(&out).trim().to_string()
+}
+
+/// "&amp;", "&lt;", "&#233;", "&#xF6;" and the like, each read once ("&amp;lt;"
+/// is the text "&lt;"); an unknown one stays as it is.
+fn decode_entities(text: &str) -> String {
+    let mut out = String::with_capacity(text.len());
+    let mut rest = text;
+    while let Some(start) = rest.find('&') {
+        out.push_str(&rest[..start]);
+        rest = &rest[start..];
+        // The shortest entity that ends within a few characters.
+        let decoded = rest[1..].find(';').filter(|&end| end <= 8).and_then(|end| {
+            let name = &rest[1..=end];
+            let c = match name {
+                "amp" => Some('&'),
+                "lt" => Some('<'),
+                "gt" => Some('>'),
+                "quot" => Some('"'),
+                "apos" => Some('\''),
+                "nbsp" => Some('\u{a0}'),
+                _ => {
+                    let number = name.strip_prefix('#')?;
+                    let code = match number.strip_prefix(['x', 'X']) {
+                        Some(hex) => u32::from_str_radix(hex, 16).ok()?,
+                        None => number.parse().ok()?,
+                    };
+                    char::from_u32(code)
+                }
+            }?;
+            Some((c, end + 2))
+        });
+        match decoded {
+            Some((c, length)) => {
+                out.push(c);
+                rest = &rest[length..];
+            }
+            None => {
+                out.push('&');
+                rest = &rest[1..];
+            }
+        }
+    }
+    out.push_str(rest);
+    out
 }
 
 /// Shows the section with `text`. "Show More" appears only while the text
@@ -89,4 +127,33 @@ fn schedule_check(label: &gtk::Label, button: &gtk::Button, pending: &Rc<Cell<bo
         pending.set(false);
         glib::ControlFlow::Break
     });
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn tags_and_the_last_fm_link_go() {
+        let html =
+            "A record <b>about</b> the sea.\n<a href=\"https://last.fm\">Read more on Last.fm</a>";
+        assert_eq!(plain_text(html), "A record about the sea.");
+    }
+
+    #[test]
+    fn each_entity_is_decoded_once() {
+        // "&amp;lt;" is the text "&lt;", not "<".
+        assert_eq!(plain_text("Tom &amp;lt; Jerry"), "Tom &lt; Jerry");
+        assert_eq!(plain_text("Simon &amp; Garfunkel"), "Simon & Garfunkel");
+        assert_eq!(
+            plain_text("&quot;Hi&quot; &#39;there&#39; &lt;3 &gt;"),
+            "\"Hi\" 'there' <3 >"
+        );
+    }
+
+    #[test]
+    fn numeric_entities_are_decoded_and_unknown_ones_kept() {
+        assert_eq!(plain_text("Caf&#233; &#x2014; Bj&#xF6;rk"), "Café — Björk");
+        assert_eq!(plain_text("a &unknown; b & c"), "a &unknown; b & c");
+    }
 }
