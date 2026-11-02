@@ -71,7 +71,7 @@ thread_local! {
 }
 
 /// The player's name on the session bus: the MPRIS prefix and the app ID.
-/// The Flatpak manifest lets Vumi own it (--own-name).
+/// Flatpak lets every app own this name, so the manifest does not list it.
 fn bus_name() -> String {
     format!("{ROOT}.{}", crate::APP_ID)
 }
@@ -418,14 +418,13 @@ mod tests {
         );
     }
 
-    /// The sandbox lets Vumi own exactly that name, and no other.
+    /// Flatpak lets an app own "org.mpris.MediaPlayer2." followed by its own
+    /// app ID without an --own-name, so the name is built from APP_ID alone.
     #[test]
-    fn the_manifest_lets_vumi_own_the_bus_name() {
-        let manifest = include_str!("../../io.github.tomaszbojanowski.Vumi.yml");
-        let owned: Vec<&str> = manifest
-            .lines()
-            .filter_map(|line| line.trim().strip_prefix("- --own-name="))
-            .collect();
-        assert_eq!(owned, [bus_name()]);
+    fn the_bus_name_is_the_one_flatpak_allows_by_default() {
+        assert_eq!(
+            bus_name(),
+            format!("org.mpris.MediaPlayer2.{}", crate::APP_ID)
+        );
     }
 }
