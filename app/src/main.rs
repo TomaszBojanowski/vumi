@@ -277,7 +277,7 @@ fn build_ui(app: &adw::Application) {
             }
             let url = settings.string("server-url").to_string();
             let user = settings.string("username").to_string();
-            let near = login_page.clone();
+            let login = login_page.clone();
             gtk::glib::spawn_future_local(async move {
                 let result = crate::runtime()
                     .spawn(async move { crate::secrets::delete_password(&url, &user).await })
@@ -288,12 +288,12 @@ fn build_ui(app: &adw::Application) {
                     Err(e) => e.to_string(),
                 };
                 // The address and the user stay, so the password left in the
-                // keyring would log in again at the next start: say so.
+                // keyring would log in again at the next start: the login
+                // page says so, as for a keyring it cannot read.
                 eprintln!("Could not remove the saved password: {error}");
-                crate::toast(
-                    &near,
-                    &gettext("Could not remove the password from the keyring"),
-                );
+                if let Some(page) = login.downcast_ref::<LoginPage>() {
+                    page.show_error(&gettext("Could not remove the password from the keyring"));
+                }
             });
             if let Some(page) = login_page.downcast_ref::<LoginPage>() {
                 page.clear_password();
