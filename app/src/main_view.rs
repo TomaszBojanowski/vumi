@@ -6,6 +6,7 @@ use adw::subclass::prelude::*;
 use gettextrs::gettext;
 use gtk::{gio, glib};
 use std::cell::{Cell, OnceCell, RefCell};
+use std::rc::Rc;
 use std::sync::Arc;
 use std::time::Instant;
 
@@ -106,6 +107,8 @@ mod imp {
         pub queue_split: gtk::TemplateChild<adw::OverlaySplitView>,
         #[template_child]
         pub views: gtk::TemplateChild<adw::ViewStack>,
+        #[template_child]
+        pub sections: gtk::TemplateChild<adw::ViewSwitcherSidebar>,
         #[template_child]
         pub library_nav: gtk::TemplateChild<adw::NavigationView>,
         #[template_child]
@@ -249,6 +252,7 @@ impl MainView {
         view.setup_grid();
         view.setup_artists_grid();
         view.setup_queue();
+        view.setup_sections();
         view.setup_playlists();
         view.setup_favorites();
         view.setup_sorting();
@@ -1824,6 +1828,52 @@ impl MainView {
     pub(crate) fn toggle_queue(&self) {
         let split = &self.imp().queue_split;
         split.set_show_sidebar(!split.shows_sidebar());
+    }
+
+    /// The sidebar: choosing the section already shown goes back to its main
+    /// page (an album opened from Start leaves, and the main page keeps its
+    /// scroll, as with Back). Another section shows as it was left. On a
+    /// narrow window any choice folds the sidebar away, uncovering the page.
+    fn setup_sections(&self) {
+        let imp = self.imp();
+        // Choosing another item switches the stack in the same click or key
+        // press that then activates it; the mark lasts until the loop is idle.
+        let switched = Rc::new(Cell::new(false));
+        {
+            let switched = switched.clone();
+            imp.views.connect_visible_child_notify(move |_| {
+                switched.set(true);
+                let switched = switched.clone();
+                glib::idle_add_local_once(move || switched.set(false));
+            });
+        }
+        let view = self.downgrade();
+        imp.sections.connect_activated(move |_| {
+            let Some(view) = view.upgrade() else {
+                return;
+            };
+            let imp = view.imp();
+            if imp.split.is_collapsed() {
+                imp.split.set_show_sidebar(false);
+            }
+            if switched.get() {
+                return;
+            }
+            let Some(nav) = imp
+                .views
+                .visible_child()
+                .and_downcast::<adw::NavigationView>()
+            else {
+                return;
+            };
+            if let Some(main_page) = nav
+                .navigation_stack()
+                .item(0)
+                .and_downcast::<adw::NavigationPage>()
+            {
+                nav.pop_to_page(&main_page);
+            }
+        });
     }
 
     /// The queue panel is pinned (main_view.blp), so it stays as it was left.
