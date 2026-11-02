@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vumi\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-02 17:12+0100\n"
+"POT-Creation-Date: 2026-11-02 18:50+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -80,7 +80,7 @@ msgstr ""
 msgid "Could not read the password from the keyring"
 msgstr ""
 
-#: app/src/main.rs:448 app/src/main_view.rs:1462 app/src/login_page.rs:189
+#: app/src/main.rs:448 app/src/main_view.rs:1463 app/src/login_page.rs:204
 #: app/src/album_page.rs:226 app/src/artist_page.rs:128
 #: app/src/song_menu.rs:430 app/src/playlist_page.rs:126
 msgid "Something went wrong. Please try again."
@@ -194,19 +194,19 @@ msgstr ""
 msgid "Offline"
 msgstr ""
 
-#: app/src/main_view.rs:1178
+#: app/src/main_view.rs:1179
 msgid "Recently Starred"
 msgstr ""
 
-#: app/src/main_view.rs:1179 app/src/song_menu.rs:357
+#: app/src/main_view.rs:1180 app/src/song_menu.rs:357
 msgid "Title"
 msgstr ""
 
-#: app/src/main_view.rs:1180 app/src/main_view.blp:500 app/src/song_menu.rs:358
+#: app/src/main_view.rs:1181 app/src/main_view.blp:500 app/src/song_menu.rs:358
 msgid "Artist"
 msgstr ""
 
-#: app/src/main_view.rs:1388 app/src/album_page.rs:630
+#: app/src/main_view.rs:1389 app/src/album_page.rs:630
 #: app/src/album_page.rs:815 app/src/now_playing.rs:294
 #: app/src/mini_player.rs:103 app/src/playlist_page.blp:85
 msgid "Play"
@@ -304,7 +304,7 @@ msgstr ""
 msgid "Year (Oldest)"
 msgstr ""
 
-#: app/src/main_view.blp:518 app/src/start_page.blp:91
+#: app/src/main_view.blp:518 app/src/start_page.blp:98
 msgid "Recently Added"
 msgstr ""
 
@@ -333,11 +333,11 @@ msgstr ""
 msgid "About Vumi"
 msgstr ""
 
-#: app/src/login_page.rs:147 app/src/login_page.blp:7 app/src/login_page.blp:57
+#: app/src/login_page.rs:162 app/src/login_page.blp:7 app/src/login_page.blp:57
 msgid "Connect"
 msgstr ""
 
-#: app/src/login_page.rs:174
+#: app/src/login_page.rs:189
 msgid "Could not save the password in the keyring"
 msgstr ""
 
@@ -669,12 +669,28 @@ msgstr ""
 msgid "Could not start playback"
 msgstr ""
 
-#: app/src/start_page.blp:42
+#: app/src/start_page.blp:49
 msgid "Recently Played"
 msgstr ""
 
-#: app/src/start_page.blp:141
+#: app/src/start_page.blp:148
 msgid "Play Similar Songs"
+msgstr ""
+
+#: app/src/start_page.blp:183
+msgid "Syncing the Library"
+msgstr ""
+
+#: app/src/start_page.blp:184
+msgid "Albums will appear here in a moment"
+msgstr ""
+
+#: app/src/start_page.blp:198
+msgid "No Connection"
+msgstr ""
+
+#: app/src/start_page.blp:199
+msgid "The library appears once the server can be reached"
 msgstr ""
 
 #: app/src/search_page.blp:8
@@ -1018,16 +1034,16 @@ msgstr ""
 msgid "Password for {user} on {server}"
 msgstr ""
 
-#: app/src/start_page.rs:450
+#: app/src/start_page.rs:463
 msgid "Previous Albums"
 msgstr ""
 
-#: app/src/start_page.rs:450
+#: app/src/start_page.rs:463
 msgid "Next Albums"
 msgstr ""
 
 #. Translators: {title} is the title of the song that played last.
-#: app/src/start_page.rs:649
+#: app/src/start_page.rs:662
 #, rust-format
 msgid "Similar to “{title}”"
 msgstr ""

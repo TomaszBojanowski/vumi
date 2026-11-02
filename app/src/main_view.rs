@@ -490,6 +490,7 @@ impl MainView {
             return;
         }
         self.imp().connection.replace(connection);
+        self.refresh_start_state();
         self.emit_by_name::<()>("connection-changed", &[]);
     }
 
@@ -1502,6 +1503,15 @@ impl MainView {
         let imp = self.imp();
         imp.start_page
             .update(&imp.current.borrow(), imp.client.borrow().clone());
+        self.refresh_start_state();
+    }
+
+    /// Start before the first album: syncing, or no connection.
+    fn refresh_start_state(&self) {
+        let imp = self.imp();
+        let offline = matches!(*imp.connection.borrow(), Connection::Offline(_));
+        imp.start_page
+            .show_state(imp.current.borrow().is_empty(), imp.syncing.get(), offline);
     }
 
     /// The search field in the sidebar: results update while typing; going
@@ -1795,6 +1805,7 @@ impl MainView {
         }
         // Stays sensitive: an insensitive button would dim the spinner; a second
         // click is ignored by sync_now anyway.
+        self.refresh_start_state();
         self.emit_by_name::<()>("library-changed", &[]);
     }
 

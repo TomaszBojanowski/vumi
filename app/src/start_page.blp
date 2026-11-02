@@ -10,161 +10,195 @@ template $VumiStartPage: Adw.Bin {
     width-request: 300;
     height-request: 200;
 
-    child: ScrolledWindow {
-      hscrollbar-policy: never;
+    // The shelves; before the first album arrives, what is going on.
+    child: Stack state {
+      transition-type: crossfade;
 
-      // The headings, the tiles and the Tuner stand 24 px from the edges;
-      // the rows of album cards 6 px further out, so their covers line up
-      // with the headings (the cards' own margin is 6 px).
-      child: Box page_box {
-        orientation: vertical;
-        // 24 on a narrow page (the breakpoint "narrow").
-        spacing: 40;
-        margin-top: 44;
-        // More room at the end, so the last shelf does not touch the edge.
-        margin-bottom: 48;
-        margin-start: 18;
-        margin-end: 18;
+      StackPage {
+        name: "content";
 
-        // "Recently Played": albums from the history of played albums, each
-        // where it stopped (refresh_tiles). Hidden while there are none.
-        Box continue_shelf {
-          orientation: vertical;
-          spacing: 12;
-          visible: false;
+        child: ScrolledWindow {
+          hscrollbar-policy: never;
 
-          Box {
-            spacing: 8;
-            margin-start: 6;
-            margin-end: 6;
+          // The headings, the tiles and the Tuner stand 24 px from the edges;
+          // the rows of album cards 6 px further out, so their covers line up
+          // with the headings (the cards' own margin is 6 px).
+          child: Box page_box {
+            orientation: vertical;
+            // 24 on a narrow page (the breakpoint "narrow").
+            spacing: 40;
+            margin-top: 44;
+            // More room at the end, so the last shelf does not touch the edge.
+            margin-bottom: 48;
+            margin-start: 18;
+            margin-end: 18;
 
-            Label {
-              label: _("Recently Played");
-              xalign: 0;
-
-              styles [
-                "title-3",
-              ]
-            }
-
-            // ‹ ›: move the row by what is visible (add_arrows, connect_arrows).
-            Box continue_arrows {
-              hexpand: true;
-              halign: end;
-            }
-          }
-
-          // One row of tiles; it scrolls sideways when they do not all fit.
-          ScrolledWindow continue_scroll {
-            margin-start: 6;
-            margin-end: 6;
-            vscrollbar-policy: never;
-            // The ‹ › buttons move the row; no scrollbar over the tiles.
-            hscrollbar-policy: external;
-
-            child: Box continue_row {
+            // "Recently Played": albums from the history of played albums, each
+            // where it stopped (refresh_tiles). Hidden while there are none.
+            Box continue_shelf {
+              orientation: vertical;
               spacing: 12;
-            };
-          }
-        }
+              visible: false;
 
-        // "Tuner": the scale of years of the library (tuner.blp). Hidden
-        // while no album has a year.
-        $VumiTuner tuner {
-          visible: false;
-          margin-start: 6;
-          margin-end: 6;
-        }
+              Box {
+                spacing: 8;
+                margin-start: 6;
+                margin-end: 6;
 
-        // Hidden until there is something to show.
-        Box recent_shelf {
-          orientation: vertical;
-          spacing: 12;
-          visible: false;
+                Label {
+                  label: _("Recently Played");
+                  xalign: 0;
 
-          Box {
-            spacing: 8;
-            margin-start: 6;
-            margin-end: 6;
+                  styles [
+                    "title-3",
+                  ]
+                }
 
-            Label {
-              label: _("Recently Added");
-              xalign: 0;
+                // ‹ ›: move the row by what is visible (add_arrows, connect_arrows).
+                Box continue_arrows {
+                  hexpand: true;
+                  halign: end;
+                }
+              }
 
-              styles [
-                "title-3",
-              ]
+              // One row of tiles; it scrolls sideways when they do not all fit.
+              ScrolledWindow continue_scroll {
+                margin-start: 6;
+                margin-end: 6;
+                vscrollbar-policy: never;
+                // The ‹ › buttons move the row; no scrollbar over the tiles.
+                hscrollbar-policy: external;
+
+                child: Box continue_row {
+                  spacing: 12;
+                };
+              }
             }
 
-            // ‹ ›: move the row by what is visible (add_arrows, connect_arrows).
-            Box recent_arrows {
-              hexpand: true;
-              halign: end;
+            // "Tuner": the scale of years of the library (tuner.blp). Hidden
+            // while no album has a year.
+            $VumiTuner tuner {
+              visible: false;
+              margin-start: 6;
+              margin-end: 6;
             }
-          }
 
-          // One row of albums; it scrolls sideways when the window is narrow.
-          ScrolledWindow recent_scroll {
-            vscrollbar-policy: never;
-            // The ‹ › buttons move the row; no scrollbar over the album names.
-            hscrollbar-policy: external;
-
-            child: Box recent_row {
+            // Hidden until there is something to show.
+            Box recent_shelf {
+              orientation: vertical;
               spacing: 12;
-            };
-          }
-        }
+              visible: false;
 
-        // "Similar to …": albums with songs that sound like the one that played
-        // last (AudioMuse-AI through Navidrome). Hidden until there is something.
-        Box similar_shelf {
-          orientation: vertical;
-          spacing: 12;
-          visible: false;
+              Box {
+                spacing: 8;
+                margin-start: 6;
+                margin-end: 6;
 
-          Box {
-            spacing: 8;
-            margin-start: 6;
-            margin-end: 6;
+                Label {
+                  label: _("Recently Added");
+                  xalign: 0;
 
-            Label similar_title {
-              xalign: 0;
-              ellipsize: end;
+                  styles [
+                    "title-3",
+                  ]
+                }
 
-              styles [
-                "title-3",
-              ]
+                // ‹ ›: move the row by what is visible (add_arrows, connect_arrows).
+                Box recent_arrows {
+                  hexpand: true;
+                  halign: end;
+                }
+              }
+
+              // One row of albums; it scrolls sideways when the window is narrow.
+              ScrolledWindow recent_scroll {
+                vscrollbar-policy: never;
+                // The ‹ › buttons move the row; no scrollbar over the album names.
+                hscrollbar-policy: external;
+
+                child: Box recent_row {
+                  spacing: 12;
+                };
+              }
             }
 
-            Button similar_radio {
-              icon-name: "vumi-radio-symbolic";
-              tooltip-text: _("Play Similar Songs");
-              valign: center;
-
-              styles [
-                "circular",
-                "flat",
-              ]
-            }
-
-            // ‹ ›: move the row by what is visible (add_arrows, connect_arrows).
-            Box similar_arrows {
-              hexpand: true;
-              halign: end;
-            }
-          }
-
-          ScrolledWindow similar_scroll {
-            vscrollbar-policy: never;
-            // The ‹ › buttons move the row; no scrollbar over the album names.
-            hscrollbar-policy: external;
-
-            child: Box similar_row {
+            // "Similar to …": albums with songs that sound like the one that played
+            // last (AudioMuse-AI through Navidrome). Hidden until there is something.
+            Box similar_shelf {
+              orientation: vertical;
               spacing: 12;
-            };
-          }
-        }
-      };
+              visible: false;
+
+              Box {
+                spacing: 8;
+                margin-start: 6;
+                margin-end: 6;
+
+                Label similar_title {
+                  xalign: 0;
+                  ellipsize: end;
+
+                  styles [
+                    "title-3",
+                  ]
+                }
+
+                Button similar_radio {
+                  icon-name: "vumi-radio-symbolic";
+                  tooltip-text: _("Play Similar Songs");
+                  valign: center;
+
+                  styles [
+                    "circular",
+                    "flat",
+                  ]
+                }
+
+                // ‹ ›: move the row by what is visible (add_arrows, connect_arrows).
+                Box similar_arrows {
+                  hexpand: true;
+                  halign: end;
+                }
+              }
+
+              ScrolledWindow similar_scroll {
+                vscrollbar-policy: never;
+                // The ‹ › buttons move the row; no scrollbar over the album names.
+                hscrollbar-policy: external;
+
+                child: Box similar_row {
+                  spacing: 12;
+                };
+              }
+            }
+          };
+        };
+      }
+
+      // The first sync, before the library has any album.
+      StackPage {
+        name: "syncing";
+
+        child: Adw.StatusPage syncing_status {
+          title: _("Syncing the Library");
+          description: _("Albums will appear here in a moment");
+
+          paintable: Adw.SpinnerPaintable {
+            widget: syncing_status;
+          };
+        };
+      }
+
+      // No album in the library and no answer from the server.
+      StackPage {
+        name: "offline";
+
+        child: Adw.StatusPage {
+          icon-name: "network-offline-symbolic";
+          title: _("No Connection");
+          description: _("The library appears once the server can be reached");
+        };
+      }
     };
 
     // A narrow page: less room between the sections, and the Tuner puts its

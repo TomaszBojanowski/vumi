@@ -38,6 +38,8 @@ mod imp {
         #[template_child]
         pub tuner: gtk::TemplateChild<crate::tuner::Tuner>,
         #[template_child]
+        pub state: gtk::TemplateChild<gtk::Stack>,
+        #[template_child]
         pub narrow: gtk::TemplateChild<adw::Breakpoint>,
         #[template_child]
         pub continue_shelf: gtk::TemplateChild<gtk::Box>,
@@ -124,6 +126,17 @@ glib::wrapper! {
 }
 
 impl StartPage {
+    /// With no album in the library yet: a spinner while the first sync
+    /// runs, a note when the server cannot be reached; the shelves otherwise.
+    pub(crate) fn show_state(&self, empty: bool, syncing: bool, offline: bool) {
+        let name = match (empty, syncing, offline) {
+            (true, true, _) => "syncing",
+            (true, false, true) => "offline",
+            _ => "content",
+        };
+        self.imp().state.set_visible_child_name(name);
+    }
+
     /// Rebuilds the shelves from the albums in the library.
     pub(crate) fn update(&self, albums: &[Arc<subsonic::Album>], client: Option<subsonic::Client>) {
         let imp = self.imp();
