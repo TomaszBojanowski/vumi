@@ -58,6 +58,11 @@
   </screenshots>
 
   <releases>
+    <release version="0.1.1" date="2026-11-02">
+      <description>
+        <p>Vumi's media controls (MPRIS) now use its app ID as the player name, and About Vumi links to the new website, vumi.bojanowski.me.</p>
+      </description>
+    </release>
     <release version="0.1.0" date="2026-11-02">
       <description>
         <p>The first release: a fast player for Navidrome and other Subsonic servers, with the library kept on the computer, gapless playback, and similar songs and radio from AudioMuse-AI.</p>

@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vumi\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-02 18:56+0100\n"
+"POT-Creation-Date: 2026-11-02 21:36+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -66,6 +66,12 @@ msgid "A narrow window with the compact player bar"
 msgstr ""
 
 #: data/io.github.tomaszbojanowski.Vumi.metainfo.xml.in:63
+msgid ""
+"Vumi's media controls (MPRIS) now use its app ID as the player name, and "
+"About Vumi links to the new website, vumi.bojanowski.me."
+msgstr ""
+
+#: data/io.github.tomaszbojanowski.Vumi.metainfo.xml.in:68
 msgid ""
 "The first release: a fast player for Navidrome and other Subsonic servers, "
 "with the library kept on the computer, gapless playback, and similar songs "
