@@ -11,34 +11,21 @@ with first-class AudioMuse-AI integration. Written in Rust.
 - **Instant start:** the library comes from a local SQLite cache, so it is on
   screen in a fraction of a second; the UI never waits for the network.
 - **Local full-text search** (FTS5) over the whole library.
-- **Albums, artists, playlists and favourites**, with composers on album pages.
-- **Start page:** continue listening, a random album, recently added, most
-  played, and songs similar to what played last.
+- **Albums, artists, playlists and favorites**, with composers on album pages.
+- **Start page:** the albums played lately, each resumed where it stopped;
+  the Tuner, a scale of the years in the library with Play This Year;
+  recently added albums; and albums with songs similar to what played last.
 - **Gapless playback**, repeat (queue or track), and optional volume
-  normalization from ReplayGain tags. It is off by default, so the signal
-  stays bit-perfect.
+  normalization from ReplayGain tags (off by default).
 - **AudioMuse-AI through Navidrome:** similar songs, endless radio, album radio.
 - **Keeps playing after the window is closed**, with MPRIS controls in GNOME Shell.
 - **Scrobbling** to the server, and a live "now playing" with pause and position
   on servers with the OpenSubsonic `playbackReport` extension (Navidrome 0.62
   and later). Both can be turned off.
-- **Light and dark style**, and colours taken from the album cover (optional).
+- **Light and dark style**, and colors taken from the album cover (optional).
+- **Narrow windows** (down to 366 px): the sidebar folds away and a compact
+  player bar stays at the bottom.
 - **Keyboard shortcuts:** Ctrl+? lists them all.
-
-## Planned
-
-1. **Signal path:** the whole audio chain from the file on the server to the
-   sound card, and whether playback is bit-perfect.
-2. **GNOME Shell search provider:** find and play albums straight from the
-   Activities overview.
-3. **AudioMuse-AI direct:** search by description ("calm jazz for a rainy
-   evening"), song paths that move smoothly from one track to another, and an
-   interactive map of the library grouped by sound.
-4. Synced lyrics in the queue panel.
-5. Self-signed certificates for home servers.
-
-Later: year in music, forgotten albums, time-of-day mixes, a command palette
-(Ctrl+K), and an adaptive layout for narrow windows and phones.
 
 ## Building
 
