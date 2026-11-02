@@ -11,6 +11,7 @@ app/src/album_page.blp
 app/src/favorites.rs
 app/src/favorites_header.rs
 app/src/favorites_header.blp
+app/src/format.rs
 app/src/dates.rs
 app/src/about.rs
 app/src/artist_card.rs

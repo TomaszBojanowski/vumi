@@ -2,7 +2,7 @@
 //! button at the end of the row.
 
 use adw::prelude::*;
-use gettextrs::{gettext, ngettext};
+use gettextrs::gettext;
 use gtk::{gio, glib};
 use std::cell::Cell;
 use std::rc::Rc;
@@ -296,11 +296,9 @@ fn choose_playlist(parent: &gtk::Widget, song: subsonic::Song, client: subsonic:
                 .use_markup(false)
                 .activatable(true)
                 .build();
-            let count = playlist.song_count.unwrap_or(0);
-            // Translators: {n} is a number of tracks.
-            row.set_subtitle(
-                &ngettext("{n} track", "{n} tracks", count).replace("{n}", &count.to_string()),
-            );
+            row.set_subtitle(&crate::format::tracks_text(
+                playlist.song_count.unwrap_or(0),
+            ));
             row.add_suffix(&gtk::Image::from_icon_name("list-add-symbolic"));
 
             let dialog = dialog.downgrade();
@@ -354,7 +352,7 @@ fn choose_playlist(parent: &gtk::Widget, song: subsonic::Song, client: subsonic:
 
 /// The rows of Song Information, title and value, only those the song has.
 fn song_details(song: &subsonic::Song) -> Vec<(String, String)> {
-    use crate::album_page::{bits_text, kbps_text, khz_text};
+    use crate::format::{bits_text, clock, kbps_text, khz_text};
     let rows = [
         (gettext("Title"), Some(song.title.clone())),
         (gettext("Artist"), song.artist.clone()),
@@ -362,10 +360,7 @@ fn song_details(song: &subsonic::Song) -> Vec<(String, String)> {
         (gettext("Album"), song.album.clone()),
         (gettext("Track"), song.track.map(|n| n.to_string())),
         (gettext("Disc"), song.disc_number.map(|n| n.to_string())),
-        (
-            gettext("Duration"),
-            song.duration.map(|d| format!("{}:{:02}", d / 60, d % 60)),
-        ),
+        (gettext("Duration"), song.duration.map(|d| clock(d.into()))),
         (
             gettext("Format"),
             song.suffix.as_ref().map(|s| s.to_uppercase()),

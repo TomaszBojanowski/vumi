@@ -3,11 +3,12 @@
 
 use adw::prelude::*;
 use adw::subclass::prelude::*;
-use gettextrs::{gettext, ngettext, pgettext};
+use gettextrs::{gettext, ngettext};
 use gtk::gio;
 use gtk::glib;
 use std::cell::{Cell, RefCell};
 
+use crate::format;
 use crate::main_view::{Connection, MainView};
 
 mod imp {
@@ -231,29 +232,6 @@ impl Preferences {
     }
 }
 
-/// A count with its thousands set apart as the language does it: from 1,234
-/// on in English, from 10 000 on in Polish.
-fn grouped(n: u32) -> String {
-    let digits = n.to_string();
-    // Translators: the fewest digits a number has before its thousands are
-    // set apart: "4" groups 1,234 already (English), "5" leaves 1234 as it is
-    // and groups 12 345 (Polish). A number, nothing else.
-    let fewest = pgettext("digit grouping", "4").trim().parse().unwrap_or(4);
-    if digits.len() < fewest {
-        return digits;
-    }
-    // Translators: what separates thousands in a large number ("11,265").
-    let separator = pgettext("thousands separator", ",");
-    let mut out = String::new();
-    for (index, digit) in digits.chars().enumerate() {
-        if index > 0 && (digits.len() - index).is_multiple_of(3) {
-            out.push_str(&separator);
-        }
-        out.push(digit);
-    }
-    out
-}
-
 /// How long ago `then` (Unix time) was, in words: minutes and hours within
 /// a day, then days by the calendar, and from a week on the date itself.
 fn time_ago(then: i64) -> String {
@@ -380,21 +358,14 @@ impl Preferences {
             let (Some(dialog), Ok(Ok(stats))) = (dialog.upgrade(), stats) else {
                 return;
             };
-            let mut parts = vec![
-                ngettext("{n} album", "{n} albums", stats.albums)
-                    .replace("{n}", &grouped(stats.albums)),
-            ];
+            let mut parts = vec![format::albums_text(stats.albums)];
             if artists > 0 {
                 parts.push(
                     ngettext("{n} artist", "{n} artists", artists)
-                        .replace("{n}", &grouped(artists)),
+                        .replace("{n}", &format::grouped(artists)),
                 );
             }
-            parts.push(
-                // Translators: {n} is a number of tracks.
-                ngettext("{n} track", "{n} tracks", stats.songs)
-                    .replace("{n}", &grouped(stats.songs)),
-            );
+            parts.push(format::tracks_text(stats.songs));
             dialog.imp().counts.replace(parts.join(" · "));
             dialog.imp().synced_at.set(stats.synced_at);
             dialog.show_library();
@@ -473,19 +444,5 @@ impl Preferences {
                     .set_subtitle(&glib::format_size(size));
             }
         });
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn thousands_are_grouped_as_the_language_groups_them() {
-        // No translations in tests: English groups from four digits on.
-        assert_eq!(grouped(999), "999");
-        assert_eq!(grouped(1234), "1,234");
-        assert_eq!(grouped(11_333), "11,333");
-        assert_eq!(grouped(1_234_567), "1,234,567");
     }
 }

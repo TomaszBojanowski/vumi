@@ -3,7 +3,6 @@
 //! set_artist() is called many times on the same card.
 
 use adw::subclass::prelude::*;
-use gettextrs::ngettext;
 use gtk::glib;
 use gtk::prelude::*;
 use std::cell::RefCell;
@@ -76,10 +75,7 @@ impl ArtistCard {
         imp.letter.set_visible(letter.is_some());
         imp.avatar.set_text(Some(name));
         imp.name.set_label(name);
-        // Translators: {n} is a number of albums.
-        let count = ngettext("{n} album", "{n} albums", albums);
-        imp.albums
-            .set_label(&count.replace("{n}", &albums.to_string()));
+        imp.albums.set_label(&crate::format::albums_text(albums));
 
         // The picture of whoever was here before must not show under a new name.
         imp.avatar.set_custom_image(None::<&gtk::gdk::Paintable>);

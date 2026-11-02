@@ -3,7 +3,7 @@
 
 use adw::prelude::*;
 use adw::subclass::prelude::*;
-use gettextrs::{gettext, ngettext};
+use gettextrs::gettext;
 use gtk::{gio, glib};
 use std::cell::{Cell, OnceCell, RefCell};
 use std::sync::Arc;
@@ -1298,12 +1298,9 @@ impl MainView {
         }
         for (index, playlist) in playlists.iter().enumerate() {
             let count = playlist.song_count.unwrap_or(0);
-            let mut parts = vec![
-                // Translators: {n} is a number of tracks.
-                ngettext("{n} track", "{n} tracks", count).replace("{n}", &count.to_string()),
-            ];
+            let mut parts = vec![crate::format::tracks_text(count)];
             if let Some(seconds) = playlist.duration.filter(|d| *d > 0) {
-                parts.push(crate::album_page::format_duration(seconds));
+                parts.push(crate::format::long_duration(seconds));
             }
 
             // The cover lies over a 96 px icon, which gives the frame its

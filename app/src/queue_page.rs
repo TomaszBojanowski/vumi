@@ -16,6 +16,7 @@ use std::cell::{Cell, OnceCell, RefCell};
 use std::rc::Rc;
 
 use crate::favorites::{self, Favorite};
+use crate::format;
 use crate::player;
 use crate::song_row::SongRow;
 
@@ -458,16 +459,13 @@ impl QueuePage {
         let queue = player.queue();
         let mut parts = Vec::new();
         if !queue.is_empty() {
-            let count = queue.len() as u32;
-            // Translators: {n} is a number of tracks in the queue.
-            let tracks = ngettext("{n} track", "{n} tracks", count);
-            parts.push(tracks.replace("{n}", &count.to_string()));
+            parts.push(format::tracks_text(queue.len() as u32));
             let seconds = |songs: &[subsonic::Song]| -> u32 {
                 songs.iter().filter_map(|song| song.duration).sum()
             };
             let total = seconds(&queue);
             if total > 0 {
-                parts.push(crate::album_page::format_duration(total));
+                parts.push(format::short_duration(total));
             }
             if player.is_active() {
                 let position = player.position().min(queue.len() - 1);
@@ -475,7 +473,9 @@ impl QueuePage {
                 let left = seconds(&queue[position..]).saturating_sub(played);
                 if left > 0 {
                     // Translators: {time} is a short duration, e.g. "12 min" or "1 h 5 min".
-                    parts.push(gettext("{time} left").replace("{time}", &short_duration(left)));
+                    parts.push(
+                        gettext("{time} left").replace("{time}", &format::short_duration(left)),
+                    );
                 }
             }
         }
@@ -660,21 +660,6 @@ fn menu(starred: bool) -> gio::Menu {
 
 /// Clear Queue asks first when it would remove more tracks than this.
 const CONFIRM_ABOVE: u32 = 20;
-
-/// A duration in few characters, a started minute counted as a whole one:
-/// "12 min", "1 h 5 min".
-fn short_duration(seconds: u32) -> String {
-    let minutes = seconds.div_ceil(60);
-    if minutes < 60 {
-        // Translators: a short duration in minutes, e.g. "12 min".
-        gettext("{n} min").replace("{n}", &minutes.to_string())
-    } else {
-        // Translators: total length of a long album, e.g. "6 h 9 min".
-        gettext("{hours} h {minutes} min")
-            .replace("{hours}", &(minutes / 60).to_string())
-            .replace("{minutes}", &(minutes % 60).to_string())
-    }
-}
 
 /// Where in the queue the track of this list item is now, if it shows one.
 fn position_of(item: &glib::WeakRef<gtk::ListItem>) -> Option<usize> {

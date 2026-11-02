@@ -3,7 +3,7 @@
 
 use adw::prelude::*;
 use adw::subclass::prelude::*;
-use gettextrs::{gettext, ngettext};
+use gettextrs::gettext;
 use gtk::glib;
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -144,13 +144,10 @@ impl PlaylistPage {
         let imp = self.imp();
 
         let count = playlist.entry.len() as u32;
-        let mut parts = vec![
-            // Translators: {n} is a number of tracks.
-            ngettext("{n} track", "{n} tracks", count).replace("{n}", &count.to_string()),
-        ];
+        let mut parts = vec![crate::format::tracks_text(count)];
         let seconds: u32 = playlist.entry.iter().filter_map(|s| s.duration).sum();
         if seconds > 0 {
-            parts.push(crate::album_page::format_duration(seconds));
+            parts.push(crate::format::long_duration(seconds));
         }
         imp.details.set_label(&parts.join(" · "));
 

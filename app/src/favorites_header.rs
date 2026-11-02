@@ -4,7 +4,6 @@
 //! gives the page its colour (main_view.rs puts it behind the header).
 
 use adw::subclass::prelude::*;
-use gettextrs::ngettext;
 use gtk::glib;
 use gtk::prelude::*;
 use std::cell::{Cell, RefCell};
@@ -116,16 +115,13 @@ impl FavoritesHeader {
 
         let mut parts = Vec::new();
         if !albums.is_empty() {
-            let n = albums.len() as u32;
-            parts.push(ngettext("{n} album", "{n} albums", n).replace("{n}", &n.to_string()));
+            parts.push(crate::format::albums_text(albums.len() as u32));
         }
         if !songs.is_empty() {
-            let n = songs.len() as u32;
-            // Translators: {n} is a number of tracks.
-            parts.push(ngettext("{n} track", "{n} tracks", n).replace("{n}", &n.to_string()));
+            parts.push(crate::format::tracks_text(songs.len() as u32));
             let seconds: u32 = songs.iter().filter_map(|song| song.duration).sum();
             if seconds > 0 {
-                parts.push(crate::album_page::format_duration(seconds));
+                parts.push(crate::format::long_duration(seconds));
             }
         }
         imp.summary.set_label(&parts.join(" · "));

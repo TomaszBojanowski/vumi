@@ -3,7 +3,7 @@
 
 use adw::prelude::*;
 use adw::subclass::prelude::*;
-use gettextrs::{gettext, ngettext};
+use gettextrs::gettext;
 use gtk::glib;
 use std::cell::RefCell;
 
@@ -144,10 +144,8 @@ impl ArtistPage {
     fn show_artist(&self, artist: subsonic::ArtistWithAlbums, client: subsonic::Client) {
         let imp = self.imp();
 
-        let n = artist.album.len() as u32;
-        // Translators: {n} is a number of albums.
-        let count = ngettext("{n} album", "{n} albums", n);
-        imp.details.set_label(&count.replace("{n}", &n.to_string()));
+        imp.details
+            .set_label(&crate::format::albums_text(artist.album.len() as u32));
 
         for album in &artist.album {
             let card = AlbumCard::new();

@@ -54,7 +54,7 @@ mod imp {
     impl ObjectImpl for SongRow {
         fn constructed(&self) {
             self.parent_constructed();
-            let bars = crate::album_page::eq_bars();
+            let bars = eq_bars();
             bars.set_opacity(0.0);
             self.prefixes.append(&bars);
             let _ = self.bars.set(bars);
@@ -94,7 +94,7 @@ impl SongRow {
         imp.subtitle.set_label(subtitle);
         imp.subtitle.set_visible(!subtitle.is_empty());
         match song.duration {
-            Some(d) => imp.duration.set_label(&format!("{}:{:02}", d / 60, d % 60)),
+            Some(d) => imp.duration.set_label(&crate::format::clock(d.into())),
             None => imp.duration.set_label(""),
         }
         imp.duration.set_visible(song.duration.is_some());
@@ -154,4 +154,20 @@ impl SongRow {
             self.remove_css_class("playing");
         }
     }
+}
+
+/// Three bars that bounce while a track plays (style.css: .eq); the class
+/// "paused" makes them rest. Used by these rows (search results, Favorites,
+/// playlists, the queue) and by the track rows of album pages.
+pub(crate) fn eq_bars() -> gtk::Box {
+    let bars = gtk::Box::builder()
+        .spacing(2)
+        .halign(gtk::Align::End)
+        .valign(gtk::Align::Center)
+        .css_classes(["eq"])
+        .build();
+    for _ in 0..3 {
+        bars.append(&gtk::Box::builder().css_classes(["eq-bar"]).build());
+    }
+    bars
 }

@@ -9,7 +9,7 @@ use std::collections::BTreeSet;
 use std::rc::Rc;
 
 use crate::favorites::{Favorite, star_button};
-use crate::{about, covers, error_message, player, runtime, tint};
+use crate::{about, covers, error_message, format, player, runtime, tint};
 
 /// Heavy work that waits for the end of the page's slide-in animation.
 type AfterShown = Box<dyn FnOnce(&AlbumPage)>;
@@ -366,9 +366,8 @@ impl AlbumPage {
             // Translators: {n} is a number of discs.
             parts.push(ngettext("{n} disc", "{n} discs", n).replace("{n}", &n.to_string()));
         }
-        // Translators: {n} is a number of tracks.
-        parts.push(ngettext("{n} track", "{n} tracks", count).replace("{n}", &count.to_string()));
-        parts.push(format_duration(seconds));
+        parts.push(format::tracks_text(count));
+        parts.push(format::long_duration(seconds));
         imp.details.set_label(&parts.join(" · "));
         self.show_quality(songs);
 
@@ -482,7 +481,7 @@ fn track_row(
         .css_classes(["dim-label", "numeric"])
         .build();
     // Three bars that bounce while the track plays and rest while it is paused.
-    let bars = eq_bars();
+    let bars = crate::song_row::eq_bars();
     let slot = gtk::Stack::new();
     slot.add_named(&number, Some("number"));
     slot.add_named(&bars, Some("icon"));
@@ -491,7 +490,7 @@ fn track_row(
 
     if let Some(d) = song.duration {
         let duration = gtk::Label::builder()
-            .label(format!("{}:{:02}", d / 60, d % 60))
+            .label(format::clock(d.into()))
             .css_classes(["dim-label", "numeric"])
             .build();
         row.add_suffix(&duration);
@@ -514,20 +513,6 @@ fn track_row(
     }
 }
 
-/// "47 minutes" for most albums, "6 h 9 min" for long ones.
-pub(crate) fn format_duration(seconds: u32) -> String {
-    let minutes = (seconds + 30) / 60;
-    if minutes < 60 {
-        // Translators: {n} is a number of minutes.
-        ngettext("{n} minute", "{n} minutes", minutes).replace("{n}", &minutes.to_string())
-    } else {
-        // Translators: total length of a long album, e.g. "6 h 9 min".
-        gettext("{hours} h {minutes} min")
-            .replace("{hours}", &(minutes / 60).to_string())
-            .replace("{minutes}", &(minutes % 60).to_string())
-    }
-}
-
 /// E.g. "FLAC · 24 bit / 96 kHz" or "MP3 · 320 kbps", plus whether it is hi-res.
 /// None if the server did not say anything useful.
 pub(crate) fn quality_text(songs: &[subsonic::Song]) -> Option<(String, bool)> {
@@ -547,8 +532,10 @@ pub(crate) fn quality_text(songs: &[subsonic::Song]) -> Option<(String, bool)> {
         .max();
 
     let quality = match (depth, rate) {
-        (Some(depth), Some(rate)) => format!("{} / {}", bits_text(depth), khz_text(rate)),
-        _ => kbps_text(songs.iter().filter_map(|s| s.bit_rate).max()?),
+        (Some(depth), Some(rate)) => {
+            format!("{} / {}", format::bits_text(depth), format::khz_text(rate))
+        }
+        _ => format::kbps_text(songs.iter().filter_map(|s| s.bit_rate).max()?),
     };
 
     let uniform = songs.iter().all(|s| {
@@ -567,30 +554,6 @@ pub(crate) fn quality_text(songs: &[subsonic::Song]) -> Option<(String, bool)> {
 
     let hi_res = depth.unwrap_or(0) > 16 || rate.unwrap_or(0) > 48_000;
     Some((text, hi_res))
-}
-
-pub(crate) fn bits_text(depth: u32) -> String {
-    // Translators: audio bit depth, e.g. "24 bit".
-    gettext("{n} bit").replace("{n}", &depth.to_string())
-}
-
-pub(crate) fn khz_text(rate: u32) -> String {
-    let whole = rate / 1000;
-    let fraction = (rate % 1000) / 100;
-    if fraction == 0 {
-        // Translators: sample rate, e.g. "96 kHz".
-        gettext("{khz} kHz").replace("{khz}", &whole.to_string())
-    } else {
-        // Translators: sample rate with one decimal, e.g. "44.1 kHz"; use your decimal separator.
-        gettext("{whole}.{fraction} kHz")
-            .replace("{whole}", &whole.to_string())
-            .replace("{fraction}", &fraction.to_string())
-    }
-}
-
-pub(crate) fn kbps_text(kbps: u32) -> String {
-    // Translators: audio bit rate, e.g. "320 kbps".
-    gettext("{kbps} kbps").replace("{kbps}", &kbps.to_string())
 }
 
 impl AlbumPage {
@@ -1062,19 +1025,4 @@ impl AlbumPage {
             }
         });
     }
-}
-
-/// Three bars that bounce while a track plays (style.css: .eq); the class
-/// "paused" makes them rest. Used by album pages and search results.
-pub(crate) fn eq_bars() -> gtk::Box {
-    let bars = gtk::Box::builder()
-        .spacing(2)
-        .halign(gtk::Align::End)
-        .valign(gtk::Align::Center)
-        .css_classes(["eq"])
-        .build();
-    for _ in 0..3 {
-        bars.append(&gtk::Box::builder().css_classes(["eq-bar"]).build());
-    }
-    bars
 }

@@ -10,6 +10,7 @@ mod covers;
 mod dates;
 mod favorites;
 mod favorites_header;
+mod format;
 mod library;
 mod login_page;
 mod main_view;

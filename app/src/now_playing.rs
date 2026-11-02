@@ -10,7 +10,7 @@ use std::cell::{OnceCell, RefCell};
 use std::time::Duration;
 
 use crate::main_view::MainView;
-use crate::{covers, player, tint};
+use crate::{covers, format, player, tint};
 
 mod imp {
     use super::*;
@@ -349,12 +349,7 @@ impl NowPlaying {
         }
         imp.progress.set_value(position);
         let duration = imp.progress.adjustment().upper() as u64;
-        imp.elapsed.set_label(&clock(position as u64));
-        imp.total.set_label(&clock(duration));
+        imp.elapsed.set_label(&format::clock(position as u64));
+        imp.total.set_label(&format::clock(duration));
     }
-}
-
-/// Seconds as "m:ss".
-fn clock(seconds: u64) -> String {
-    format!("{}:{:02}", seconds / 60, seconds % 60)
 }
