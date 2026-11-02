@@ -3,6 +3,8 @@
 A fast GTK4/libadwaita music player for Navidrome and other Subsonic servers,
 with first-class AudioMuse-AI integration. Written in Rust.
 
+Website: [vumi.bojanowski.me](https://vumi.bojanowski.me/)
+
 > Early development: used every day with the author's own library, but expect
 > rough edges.
 

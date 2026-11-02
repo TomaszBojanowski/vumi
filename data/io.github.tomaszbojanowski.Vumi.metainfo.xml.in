@@ -21,7 +21,7 @@
   </provides>
   <translation type="gettext">vumi</translation>
 
-  <url type="homepage">https://github.com/TomaszBojanowski/vumi</url>
+  <url type="homepage">https://vumi.bojanowski.me/</url>
   <url type="bugtracker">https://github.com/TomaszBojanowski/vumi/issues</url>
   <url type="vcs-browser">https://github.com/TomaszBojanowski/vumi</url>
   <url type="donation">https://buymeacoffee.com/sojer2005</url>
