@@ -438,9 +438,7 @@ fn track_row(
     row.connect_activated(move |_| {
         let player = player::get();
         // The playing track: pause or resume it instead of starting it again.
-        if player.is_active() && player.current().is_some_and(|s| s.id == song_id) {
-            player.toggle_pause();
-        } else {
+        if !player.toggle_if_current(player::Clicked::Song(&song_id)) {
             player.play(
                 client_for_play.clone(),
                 play_queue.clone(),

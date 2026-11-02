@@ -201,7 +201,8 @@ impl ResultsView {
             }
         });
 
-        // A click on a song plays it, then the songs listed after it.
+        // A click on a song plays it, then the songs listed after it; on the
+        // track in progress it pauses or resumes.
         let view = self.downgrade();
         imp.songs_list.connect_activate(move |_, position| {
             let Some(view) = view.upgrade() else {
@@ -213,7 +214,12 @@ impl ResultsView {
             // The header is the first item: the songs start after it.
             let index = (position as usize).checked_sub(1);
             if let (Some(songs), Some(client), Some(index)) = (songs, client, index) {
-                player::get().play(client, songs, index, player::QueueOf::Songs);
+                let player = player::get();
+                let clicked = songs.get(index).map(|song| song.id.as_str());
+                if clicked.is_some_and(|id| player.toggle_if_current(player::Clicked::Song(id))) {
+                    return;
+                }
+                player.play(client, songs, index, player::QueueOf::Songs);
             }
         });
 

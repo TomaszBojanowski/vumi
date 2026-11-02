@@ -201,9 +201,14 @@ impl QueuePage {
             }
         });
 
-        // A click jumps to the track.
-        imp.list
-            .connect_activate(|_, position| player::get().play_index(position as usize));
+        // A click jumps to the track; on the track in progress it pauses or
+        // resumes.
+        imp.list.connect_activate(|_, position| {
+            let player = player::get();
+            if !player.toggle_if_current(player::Clicked::Place(position as usize)) {
+                player.play_index(position as usize);
+            }
+        });
 
         imp.list
             .set_model(Some(&gtk::NoSelection::new(Some(tracks.clone()))));

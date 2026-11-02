@@ -431,6 +431,19 @@ impl Player {
         self.client.borrow().clone()
     }
 
+    /// A click on a track (the queue, search results, an album page): the
+    /// track in progress pauses or resumes and true comes back; any other
+    /// track is the caller's to start.
+    pub(crate) fn toggle_if_current(&self, clicked: Clicked) -> bool {
+        let current = self.current();
+        let id = current.as_ref().map(|song| song.id.as_str());
+        let is_current = is_current(self.is_active(), self.position.get(), id, &clicked);
+        if is_current {
+            self.toggle_pause();
+        }
+        is_current
+    }
+
     /// Play/Pause: pauses or resumes; after the end of the queue it starts again,
     /// after an error it tries the same track once more.
     pub(crate) fn toggle_pause(&self) {
@@ -808,6 +821,23 @@ impl Player {
 fn write_volume(volume: f64) {
     use gtk::gio::prelude::*;
     let _ = crate::settings().set_double("volume", volume);
+}
+
+/// The track a click lands on: a place in the queue (a song can be there
+/// twice), or a song elsewhere.
+pub(crate) enum Clicked<'a> {
+    Place(usize),
+    Song(&'a str),
+}
+
+/// Whether the clicked track is the one in progress (playing or paused) at
+/// `position`, with the id `current`. After the end or an error none is.
+fn is_current(active: bool, position: usize, current: Option<&str>, clicked: &Clicked) -> bool {
+    active
+        && match clicked {
+            Clicked::Place(index) => *index == position,
+            Clicked::Song(id) => current == Some(*id),
+        }
 }
 
 /// What plays on its own after the track at `index` of a queue of `len`
@@ -1244,6 +1274,20 @@ impl Player {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_click_on_the_track_in_progress_pauses_or_resumes_it() {
+        // In the queue the place counts: the second copy of a song starts.
+        assert!(is_current(true, 2, Some("a"), &Clicked::Place(2)));
+        assert!(!is_current(true, 2, Some("a"), &Clicked::Place(4)));
+        // Elsewhere the song counts.
+        assert!(is_current(true, 2, Some("a"), &Clicked::Song("a")));
+        assert!(!is_current(true, 2, Some("a"), &Clicked::Song("b")));
+        // After the end of the queue or an error a click starts it again.
+        assert!(!is_current(false, 2, Some("a"), &Clicked::Place(2)));
+        assert!(!is_current(false, 2, Some("a"), &Clicked::Song("a")));
+        assert!(!is_current(true, 0, None, &Clicked::Song("a")));
+    }
 
     #[test]
     fn a_listener_may_add_and_remove_listeners() {
