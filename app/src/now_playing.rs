@@ -31,6 +31,10 @@ mod imp {
         #[template_child]
         pub cover_frame: gtk::TemplateChild<gtk::AspectFrame>,
         #[template_child]
+        pub cover_placeholder: gtk::TemplateChild<gtk::Image>,
+        #[template_child]
+        pub top: gtk::TemplateChild<gtk::Box>,
+        #[template_child]
         pub title: gtk::TemplateChild<gtk::Label>,
         #[template_child]
         pub artist: gtk::TemplateChild<gtk::Label>,
@@ -93,6 +97,10 @@ glib::wrapper! {
         @extends adw::Bin, gtk::Widget,
         @implements gtk::Accessible, gtk::Buildable, gtk::ConstraintTarget;
 }
+
+/// The cover's height in the card, as in now_playing.blp, and on a low window.
+const COVER: i32 = 252;
+const COMPACT_COVER: i32 = 56;
 
 impl NowPlaying {
     pub(crate) fn new() -> Self {
@@ -212,6 +220,25 @@ impl NowPlaying {
         });
         bar.connect_unmap(|bar| bar.stop_timer());
         bar
+    }
+
+    /// The card on a low window: a small cover beside the title and the
+    /// artist instead of one as wide as the sidebar, so the sidebar's
+    /// sections keep their room (main_view.blp, low_window). The album stays
+    /// a click on the cover away.
+    pub(crate) fn set_compact(&self, compact: bool) {
+        let imp = self.imp();
+        if compact {
+            imp.top.set_orientation(gtk::Orientation::Horizontal);
+            imp.cover_frame
+                .set_size_request(COMPACT_COVER, COMPACT_COVER);
+            imp.cover_placeholder.set_pixel_size(24);
+        } else {
+            imp.top.set_orientation(gtk::Orientation::Vertical);
+            imp.cover_frame.set_size_request(-1, COVER);
+            imp.cover_placeholder.set_pixel_size(48);
+        }
+        imp.album.set_visible(!compact);
     }
 
     /// The slider and the icon of the volume button.

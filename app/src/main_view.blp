@@ -15,59 +15,73 @@ template $VumiMainView: Adw.NavigationPage {
       min-sidebar-width: 300;
       max-sidebar-width: 300;
       // Navigation on the left; its items and sections come from the pages of "views".
-      sidebar: Adw.ToolbarView {
-        [top]
-        Adw.HeaderBar {
-          // Closes the sidebar when it slides in over the content (narrow windows).
-          [start]
-          ToggleButton {
-            icon-name: "sidebar-show-symbolic";
-            tooltip-text: _("Hide Sidebar");
-            visible: bind split.collapsed;
-            active: bind split.show-sidebar bidirectional;
+      // A bin of its own, for the height: on the window's bin a height
+      // breakpoint would take turns with the width ones at the end of this
+      // file (only one breakpoint applies at a time).
+      sidebar: Adw.BreakpointBin sidebar_bin {
+        width-request: 300;
+        height-request: 294;
+
+        child: Adw.ToolbarView {
+          [top]
+          Adw.HeaderBar {
+            // Closes the sidebar when it slides in over the content (narrow windows).
+            [start]
+            ToggleButton {
+              icon-name: "sidebar-show-symbolic";
+              tooltip-text: _("Hide Sidebar");
+              visible: bind split.collapsed;
+              active: bind split.show-sidebar bidirectional;
+            }
+
+            title-widget: Adw.WindowTitle {
+              title: "Vumi";
+            };
+
+            [end]
+            MenuButton {
+              icon-name: "open-menu-symbolic";
+              primary: true;
+              tooltip-text: _("Main Menu");
+              menu-model: main_menu;
+            }
+
+            // Runs app.sync; a spinner while a sync runs (set_syncing, main_view.rs).
+            [end]
+            Button sync_button {
+              icon-name: "view-refresh-symbolic";
+              tooltip-text: _("Sync Library");
+              action-name: "app.sync";
+            }
           }
 
-          title-widget: Adw.WindowTitle {
-            title: "Vumi";
+          content: Box {
+            orientation: vertical;
+
+            SearchEntry search_entry {
+              // Also the name of the shortcut (main.rs), which reads differently.
+              placeholder-text: C_("placeholder", "Search Library");
+              margin-top: 6;
+              margin-bottom: 6;
+              margin-start: 12;
+              margin-end: 12;
+            }
+
+            Adw.ViewSwitcherSidebar sections {
+              stack: views;
+              vexpand: true;
+            }
+
+            // The now-playing card, placed here from code.
+            Adw.Bin player_slot {}
           };
-
-          [end]
-          MenuButton {
-            icon-name: "open-menu-symbolic";
-            primary: true;
-            tooltip-text: _("Main Menu");
-            menu-model: main_menu;
-          }
-
-          // Runs app.sync; a spinner while a sync runs (set_syncing, main_view.rs).
-          [end]
-          Button sync_button {
-            icon-name: "view-refresh-symbolic";
-            tooltip-text: _("Sync Library");
-            action-name: "app.sync";
-          }
-        }
-
-        content: Box {
-          orientation: vertical;
-
-          SearchEntry search_entry {
-            // Also the name of the shortcut (main.rs), which reads differently.
-            placeholder-text: C_("placeholder", "Search Library");
-            margin-top: 6;
-            margin-bottom: 6;
-            margin-start: 12;
-            margin-end: 12;
-          }
-
-          Adw.ViewSwitcherSidebar sections {
-            stack: views;
-            vexpand: true;
-          }
-
-          // The now-playing card, placed here from code.
-          Adw.Bin player_slot {}
         };
+
+        // A low window: the now-playing card gets a small cover beside the
+        // title (set_now_playing), so all the sections stay on screen.
+        Adw.Breakpoint low_window {
+          condition ("max-height: 870sp")
+        }
       };
 
       // The queue on the right: side by side on wide windows, over the content

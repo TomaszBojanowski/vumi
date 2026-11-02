@@ -110,6 +110,10 @@ mod imp {
         #[template_child]
         pub sections: gtk::TemplateChild<adw::ViewSwitcherSidebar>,
         #[template_child]
+        pub sidebar_bin: gtk::TemplateChild<adw::BreakpointBin>,
+        #[template_child]
+        pub low_window: gtk::TemplateChild<adw::Breakpoint>,
+        #[template_child]
         pub library_nav: gtk::TemplateChild<adw::NavigationView>,
         #[template_child]
         pub albums_page: gtk::TemplateChild<adw::ViewStackPage>,
@@ -650,9 +654,26 @@ impl MainView {
         }
     }
 
-    /// Puts the now-playing card at the bottom of the sidebar.
-    pub(crate) fn set_now_playing(&self, widget: &impl IsA<gtk::Widget>) {
-        self.imp().player_slot.set_child(Some(widget));
+    /// Puts the now-playing card at the bottom of the sidebar; on a low window
+    /// it takes a small cover (low_window).
+    pub(crate) fn set_now_playing(&self, card: &crate::now_playing::NowPlaying) {
+        let imp = self.imp();
+        imp.player_slot.set_child(Some(card));
+        let low = imp.low_window.get();
+        let applied = imp.sidebar_bin.current_breakpoint().as_ref() == Some(&low);
+        card.set_compact(applied);
+        let weak = card.downgrade();
+        low.connect_apply(move |_| {
+            if let Some(card) = weak.upgrade() {
+                card.set_compact(true);
+            }
+        });
+        let weak = card.downgrade();
+        low.connect_unapply(move |_| {
+            if let Some(card) = weak.upgrade() {
+                card.set_compact(false);
+            }
+        });
     }
 
     /// Puts the compact now-playing bar under the content (narrow windows).

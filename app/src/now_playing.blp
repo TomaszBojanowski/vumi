@@ -21,7 +21,8 @@ template $VumiNowPlaying: Adw.Bin {
         "now-playing-pill",
       ]
 
-      Box {
+      // Cover above the title; on a low window (set_compact) beside it.
+      Box top {
         orientation: vertical;
         spacing: 10;
         margin-top: 12;
@@ -51,7 +52,7 @@ template $VumiNowPlaying: Adw.Bin {
                 "pill-cover",
               ]
 
-              child: Image {
+              child: Image cover_placeholder {
                 icon-name: "audio-x-generic-symbolic";
                 pixel-size: 48;
                 opacity: 0.6;
@@ -68,6 +69,7 @@ template $VumiNowPlaying: Adw.Bin {
         // Title, artist and album, with the song's star (put in from the code).
         Box {
           spacing: 6;
+          valign: center;
 
           Box {
             orientation: vertical;
