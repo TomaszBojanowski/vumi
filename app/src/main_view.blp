@@ -409,7 +409,9 @@ template $VumiMainView: Adw.NavigationPage {
 
           // Section "Discover" (AudioMuse-AI) -----------------------------
 
+          // Hidden, and so left out of the sidebar, until the view exists.
           Adw.ViewStackPage {
+            visible: false;
             name: "discover";
             title: _("Similar and Radio");
             icon-name: "applications-multimedia-symbolic";
