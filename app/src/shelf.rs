@@ -180,7 +180,7 @@ pub(crate) fn connect_drag(scroll: &gtk::ScrolledWindow) {
     let drag = gtk::GestureDrag::new();
     drag.set_button(1);
     drag.set_propagation_phase(gtk::PropagationPhase::Capture);
-    let start = std::rc::Rc::new(std::cell::Cell::new(0.0));
+    let start = Rc::new(Cell::new(0.0));
     {
         let start = start.clone();
         let adj = adj.clone();

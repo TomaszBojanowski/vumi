@@ -59,7 +59,7 @@ mod imp {
         /// The cover on screen, so it is only reloaded when the album changes.
         pub cover_id: RefCell<Option<String>>,
         /// A seek waiting for the drag to pause; the timer leaves the slider alone meanwhile.
-        pub seek_pending: std::cell::RefCell<Option<glib::SourceId>>,
+        pub seek_pending: RefCell<Option<glib::SourceId>>,
         /// The progress timer; it exists only while music plays and the card
         /// is on screen.
         pub timer: RefCell<Option<glib::SourceId>>,

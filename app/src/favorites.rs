@@ -5,7 +5,7 @@
 use gettextrs::gettext;
 use gtk::glib;
 use gtk::prelude::*;
-use std::cell::Cell;
+use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 
 use crate::runtime;
@@ -34,11 +34,11 @@ impl Favorite {
 
 thread_local! {
     /// Star buttons on screen, by item: a change confirmed through one shows on all.
-    static BUTTONS: std::cell::RefCell<std::collections::HashMap<String, Vec<glib::WeakRef<gtk::ToggleButton>>>> =
+    static BUTTONS: RefCell<std::collections::HashMap<String, Vec<glib::WeakRef<gtk::ToggleButton>>>> =
         Default::default();
     /// Stars changed in this session, by item: older copies of the data (the
     /// queue, a page built earlier) may still carry the old state.
-    static KNOWN: std::cell::RefCell<Known> = Default::default();
+    static KNOWN: RefCell<Known> = Default::default();
     /// Set while buttons are flipped to match: those flips are not sent.
     static SYNCING: Cell<bool> = const { Cell::new(false) };
 }

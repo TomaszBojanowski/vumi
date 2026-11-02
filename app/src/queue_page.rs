@@ -362,7 +362,7 @@ impl QueuePage {
     /// a while to put together, so that one is not thrown away on one click.
     fn clear(&self) {
         let removed = player::get().queue().len().saturating_sub(1) as u32;
-        if removed < CONFIRM_ABOVE {
+        if removed < CONFIRM_FROM {
             player::get().clear_rest();
             return;
         }
@@ -658,8 +658,8 @@ fn menu(starred: bool) -> gio::Menu {
     menu
 }
 
-/// Clear Queue asks first when it would remove more tracks than this.
-const CONFIRM_ABOVE: u32 = 20;
+/// Clear Queue asks first when it would remove this many tracks or more.
+const CONFIRM_FROM: u32 = 20;
 
 /// Where in the queue the track of this list item is now, if it shows one.
 fn position_of(item: &glib::WeakRef<gtk::ListItem>) -> Option<usize> {

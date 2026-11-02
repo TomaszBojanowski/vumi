@@ -234,7 +234,7 @@ pub(crate) fn card_rule(class: &str, (r, g, b): (u8, u8, u8), dark: bool) -> Str
 /// "Cover Colors" in Preferences.
 fn enabled() -> bool {
     use gtk::gio::prelude::*;
-    gtk::gio::Settings::new(crate::APP_ID).boolean("cover-colors")
+    crate::settings().boolean("cover-colors")
 }
 
 /// Loads the rules for the style the app shows, or none when cover colours

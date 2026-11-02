@@ -14,7 +14,7 @@ use crate::album_card::AlbumCard;
 use crate::album_page::AlbumPage;
 use crate::artist_card::ArtistCard;
 use crate::artist_page::ArtistPage;
-use crate::{APP_ID, APP_NAME, covers, error_message, library, runtime, since_start};
+use crate::{APP_NAME, covers, error_message, library, runtime, since_start};
 
 /// One artist in the Artists grid.
 struct ArtistItem {
@@ -146,14 +146,14 @@ mod imp {
         #[template_child]
         pub sync_button: gtk::TemplateChild<gtk::Button>,
         /// True while albums and then songs are being synced.
-        pub syncing: std::cell::Cell<bool>,
+        pub syncing: Cell<bool>,
         /// Bumped by every sync; a sync that is no longer the newest (another
         /// account was connected meanwhile) drops its results.
-        pub sync_generation: std::cell::Cell<u64>,
+        pub sync_generation: Cell<u64>,
         /// The search results, made on first use and reused.
-        pub search_page: std::cell::OnceCell<crate::search_page::SearchPage>,
+        pub search_page: OnceCell<crate::search_page::SearchPage>,
         /// Bumped by every search; results of an older one are dropped.
-        pub search_generation: std::cell::Cell<u32>,
+        pub search_generation: Cell<u32>,
         #[template_child]
         pub start_page: gtk::TemplateChild<crate::start_page::StartPage>,
         #[template_child]
@@ -649,16 +649,12 @@ impl MainView {
             eprintln!("Library on screen {:.0?} after start", since_start());
         }
     }
-}
 
-impl MainView {
     /// Puts the now-playing card at the bottom of the sidebar.
     pub(crate) fn set_now_playing(&self, widget: &impl IsA<gtk::Widget>) {
         self.imp().player_slot.set_child(Some(widget));
     }
-}
 
-impl MainView {
     /// Puts the compact now-playing bar under the content (narrow windows).
     pub(crate) fn set_mini_player(&self, widget: &impl IsA<gtk::Widget>) {
         self.imp().mini_slot.set_child(Some(widget));
@@ -668,9 +664,7 @@ impl MainView {
     pub(crate) fn show_sidebar(&self) {
         self.imp().split.set_show_sidebar(true);
     }
-}
 
-impl MainView {
     /// Opens an album page in the Albums section, e.g. the album that plays
     /// (from the sidebar card, which belongs to no section).
     pub(crate) fn open_album(&self, id: &str, fallback: subsonic::Album) {
@@ -752,9 +746,7 @@ impl MainView {
             crate::album_page::open(nav, &album, client);
         }
     }
-}
 
-impl MainView {
     /// Fills the grid from `current`, in the order chosen in the sort menu.
     fn refresh_grid(&self) {
         let imp = self.imp();
@@ -770,7 +762,7 @@ impl MainView {
 
     /// The "library.sort" action behind the sort menu; the choice is remembered.
     fn setup_sorting(&self) {
-        let settings = gio::Settings::new(APP_ID);
+        let settings = crate::settings();
         let mode = settings.string("album-sort").to_string();
         self.imp().sort.replace(mode.clone());
 
@@ -922,15 +914,21 @@ fn back_to<T: IsA<adw::NavigationPage> + IsA<glib::Object>>(
     false
 }
 
-/// Pops every navigation view under `widget` back to its first page.
-fn pop_all_to_root(widget: &gtk::Widget) {
-    if let Some(nav) = widget.downcast_ref::<adw::NavigationView>()
-        && let Some(root) = nav
-            .navigation_stack()
-            .item(0)
-            .and_downcast::<adw::NavigationPage>()
+/// Pops `nav` back to its first page, the main page of its section.
+fn pop_to_root(nav: &adw::NavigationView) {
+    if let Some(root) = nav
+        .navigation_stack()
+        .item(0)
+        .and_downcast::<adw::NavigationPage>()
     {
         nav.pop_to_page(&root);
+    }
+}
+
+/// Pops every navigation view under `widget` back to its first page.
+fn pop_all_to_root(widget: &gtk::Widget) {
+    if let Some(nav) = widget.downcast_ref::<adw::NavigationView>() {
+        pop_to_root(nav);
     }
     let mut child = widget.first_child();
     while let Some(widget) = child {
@@ -1108,9 +1106,7 @@ impl MainView {
         imp.artists_stack
             .set_visible_child_name(if count == 0 { "empty" } else { "list" });
     }
-}
 
-impl MainView {
     /// The playlists as last fetched (for "Add to Playlist").
     pub(crate) fn playlists(&self) -> Vec<subsonic::Playlist> {
         self.imp().playlists.borrow().clone()
@@ -1479,18 +1475,14 @@ impl MainView {
             nav.push(&crate::playlist_page::PlaylistPage::new(id, name, client));
         }
     }
-}
 
-impl MainView {
     /// Refreshes the Start page from the albums in memory.
     fn refresh_start(&self) {
         let imp = self.imp();
         imp.start_page
             .update(&imp.current.borrow(), imp.client.borrow().clone());
     }
-}
 
-impl MainView {
     /// The search field in the sidebar: results update while typing; going
     /// back from the results page (or emptying the field) closes them.
     fn setup_search(&self) {
@@ -1604,9 +1596,7 @@ impl MainView {
             page.show(&albums, results.songs, client);
         });
     }
-}
 
-impl MainView {
     /// Ctrl+F: to the search field, sliding the sidebar in on narrow windows.
     pub(crate) fn focus_search(&self) {
         let imp = self.imp();
@@ -1615,18 +1605,16 @@ impl MainView {
         }
         imp.search_entry.grab_focus();
     }
-}
 
-impl MainView {
-    /// Logging out: the pages opened for this account go, together with the
-    /// client they would play and star with, and running syncs drop their
-    /// results instead of showing or saving them.
     /// Which session this is: bumped by a sync and by logging out, so a
     /// connection attempt started earlier can tell that its answer is stale.
     pub(crate) fn session(&self) -> u64 {
         self.imp().sync_generation.get()
     }
 
+    /// Logging out: the pages opened for this account go, together with the
+    /// client they would play and star with, and running syncs drop their
+    /// results instead of showing or saving them.
     pub(crate) fn log_out(&self) {
         let imp = self.imp();
         imp.sync_generation.set(imp.sync_generation.get() + 1);
@@ -1722,9 +1710,7 @@ impl MainView {
             self.sync(client, true);
         }
     }
-}
 
-impl MainView {
     /// The Favorites page: starred albums and songs from the local database,
     /// read in the background; refreshed with the library. Like a search, it
     /// needs no connection (run_search).
@@ -1774,9 +1760,7 @@ impl MainView {
             view.show_favorites();
         });
     }
-}
 
-impl MainView {
     /// The sync button shows a spinner while a sync runs, and cannot be clicked
     /// again until it is over.
     fn set_syncing(&self, syncing: bool) {
@@ -1821,9 +1805,7 @@ impl MainView {
             None
         })
     }
-}
 
-impl MainView {
     /// Shows or hides the queue panel on the right.
     pub(crate) fn toggle_queue(&self) {
         let split = &self.imp().queue_split;
@@ -1859,19 +1841,12 @@ impl MainView {
             if switched.get() {
                 return;
             }
-            let Some(nav) = imp
+            if let Some(nav) = imp
                 .views
                 .visible_child()
                 .and_downcast::<adw::NavigationView>()
-            else {
-                return;
-            };
-            if let Some(main_page) = nav
-                .navigation_stack()
-                .item(0)
-                .and_downcast::<adw::NavigationPage>()
             {
-                nav.pop_to_page(&main_page);
+                pop_to_root(&nav);
             }
         });
     }

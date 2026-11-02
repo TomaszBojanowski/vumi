@@ -5,6 +5,7 @@ use adw::prelude::*;
 use adw::subclass::prelude::*;
 use gettextrs::{gettext, ngettext};
 use gtk::glib;
+use std::cell::{Cell, RefCell};
 use std::collections::BTreeSet;
 use std::rc::Rc;
 
@@ -51,31 +52,31 @@ mod imp {
         #[template_child]
         pub error_status: gtk::TemplateChild<adw::StatusPage>,
         /// Which album this page shows, so it is not opened twice.
-        pub album_id: std::cell::RefCell<String>,
+        pub album_id: RefCell<String>,
         /// Track rows, to mark the one that is playing.
-        pub(crate) rows: std::cell::RefCell<Vec<super::TrackRow>>,
+        pub(crate) rows: RefCell<Vec<super::TrackRow>>,
         /// True once the page has fully slid into view.
-        pub shown: std::cell::Cell<bool>,
+        pub shown: Cell<bool>,
         /// Heavy work waiting for the end of the slide-in animation.
-        pub after_shown: std::cell::RefCell<Vec<super::AfterShown>>,
+        pub after_shown: RefCell<Vec<super::AfterShown>>,
         /// Running fade-in animations, kept alive until the page goes away.
-        pub animations: std::cell::RefCell<Vec<adw::TimedAnimation>>,
+        pub animations: RefCell<Vec<adw::TimedAnimation>>,
         /// Layer under the whole page that carries the cover-coloured gradient.
-        pub backdrop: std::cell::RefCell<Option<gtk::Box>>,
+        pub backdrop: RefCell<Option<gtk::Box>>,
         /// The album this page was opened with (star and artist id included).
-        pub album: std::cell::RefCell<Option<subsonic::Album>>,
+        pub album: RefCell<Option<subsonic::Album>>,
         /// The play queue: the album's songs, read by the buttons when clicked.
-        pub queue: std::cell::RefCell<Option<Rc<[subsonic::Song]>>>,
+        pub queue: RefCell<Option<Rc<[subsonic::Song]>>>,
         /// The album's star button, replaced when the server knows better.
-        pub album_star: std::cell::RefCell<Option<gtk::Widget>>,
+        pub album_star: RefCell<Option<gtk::Widget>>,
         /// True once the parts made once per page exist (Play row, listener).
-        pub tracks_shown: std::cell::Cell<bool>,
+        pub tracks_shown: Cell<bool>,
         /// True once the artist name opens the artist page.
-        pub artist_linked: std::cell::Cell<bool>,
+        pub artist_linked: Cell<bool>,
         /// Bumped by every show_tracks; older row batches stop.
-        pub row_generation: std::cell::Cell<u32>,
+        pub row_generation: Cell<u32>,
         /// The round Play button, which becomes Pause / Resume for this album.
-        pub play_button: std::cell::RefCell<Option<gtk::Button>>,
+        pub play_button: RefCell<Option<gtk::Button>>,
     }
 
     #[glib::object_subclass]
@@ -333,8 +334,8 @@ impl AlbumPage {
             multi_disc,
             hidden_composer,
             generation,
-            next: std::cell::Cell::new(0),
-            group: std::cell::RefCell::new(None),
+            next: Cell::new(0),
+            group: RefCell::new(None),
         });
         if self.build_rows(&builder, ROW_BATCH) {
             let page = self.downgrade();
@@ -668,9 +669,9 @@ struct RowBuilder {
     /// Which call of show_tracks this belongs to; batches of an older one stop.
     generation: u32,
     /// The next track to build a row for.
-    next: std::cell::Cell<usize>,
+    next: Cell<usize>,
     /// The disc group rows are being added to.
-    group: std::cell::RefCell<Option<(u32, adw::PreferencesGroup)>>,
+    group: RefCell<Option<(u32, adw::PreferencesGroup)>>,
 }
 
 impl AlbumPage {

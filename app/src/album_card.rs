@@ -82,9 +82,6 @@ impl AlbumCard {
         // Drop the previous album's cover right away, so it never shows under a new title.
         covers::show(&imp.cover, None);
         imp.cover_id.replace(album.cover_art.clone());
-        if album.cover_art.is_none() {
-            eprintln!("Album {:?} has no cover id", album.name);
-        }
         if let Some(id) = album.cover_art.clone() {
             self.load_cover(client, id);
         }

@@ -4,7 +4,6 @@
 use adw::prelude::*;
 use adw::subclass::prelude::*;
 use gettextrs::{gettext, ngettext};
-use gtk::gio;
 use gtk::glib;
 use std::cell::{Cell, RefCell};
 
@@ -82,8 +81,7 @@ mod imp {
     impl ObjectImpl for Preferences {
         fn constructed(&self) {
             self.parent_constructed();
-            // The bindings keep the settings object alive for as long as needed.
-            let settings = gio::Settings::new(crate::APP_ID);
+            let settings = crate::settings();
             let user = settings.string("username");
             self.avatar.set_text(Some(&user));
             self.user_name.set_label(&user);

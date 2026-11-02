@@ -367,9 +367,7 @@ impl Client {
             }
         }
     }
-}
 
-impl Client {
     /// Cover image bytes, scaled by the server so the longer side is `size` pixels.
     pub async fn cover_art(&self, id: &str, size: u32) -> Result<Vec<u8>> {
         let url = self.build_url(

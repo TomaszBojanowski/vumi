@@ -42,11 +42,11 @@ pub(crate) struct Player {
     listen_timer: RefCell<Option<gst::glib::SourceId>>,
     /// Whether the server takes live playback reports (OpenSubsonic
     /// playbackReport): None until asked, Some(false) while asking.
-    report_support: std::cell::Cell<Option<bool>>,
+    report_support: Cell<Option<bool>>,
     /// The ReplayGain mode the audio filter was built for.
-    replay_gain_mode: std::cell::Cell<Option<u32>>,
+    replay_gain_mode: Cell<Option<u32>>,
     /// Volume as on the slider (0 to 1); GStreamer gets its cube.
-    volume: std::cell::Cell<f64>,
+    volume: Cell<f64>,
     /// Told about every change of the volume, and only of it (the sidebar
     /// card, MPRIS): the listeners of track and state changes have nothing
     /// to do with the many steps of a slider drag.
@@ -194,9 +194,9 @@ impl Player {
                 error_handler: RefCell::new(None),
                 listen: RefCell::new(None),
                 listen_timer: RefCell::new(None),
-                report_support: std::cell::Cell::new(None),
-                replay_gain_mode: std::cell::Cell::new(None),
-                volume: std::cell::Cell::new(saved_volume()),
+                report_support: Cell::new(None),
+                replay_gain_mode: Cell::new(None),
+                volume: Cell::new(saved_volume()),
                 volume_listeners: Listeners::new(),
                 volume_save: RefCell::new(None),
                 seek_listeners: Listeners::new(),
@@ -725,9 +725,7 @@ impl Player {
             }
         });
     }
-}
 
-impl Player {
     /// ReplayGain from Preferences. playbin takes a new audio filter only while
     /// stopped, so this runs as a track starts. Off means no element at all:
     /// the signal stays bit-perfect.
@@ -754,9 +752,7 @@ impl Player {
         self.playbin.set_property("audio-filter", filter.as_ref());
         self.replay_gain_mode.set(Some(mode));
     }
-}
 
-impl Player {
     pub(crate) fn volume(&self) -> f64 {
         self.volume.get()
     }
@@ -811,7 +807,7 @@ impl Player {
 
 fn write_volume(volume: f64) {
     use gtk::gio::prelude::*;
-    let _ = gtk::gio::Settings::new(crate::APP_ID).set_double("volume", volume);
+    let _ = crate::settings().set_double("volume", volume);
 }
 
 /// What plays on its own after the track at `index` of a queue of `len`
@@ -874,19 +870,19 @@ fn shuffle_start(songs: &[subsonic::Song], position: usize, pending: Option<&str
 /// The volume left last time.
 fn saved_volume() -> f64 {
     use gtk::gio::prelude::*;
-    gtk::gio::Settings::new(crate::APP_ID).double("volume")
+    crate::settings().double("volume")
 }
 
 /// "Volume Normalization" in Preferences: 0 off, 1 per track, 2 per album.
 fn replay_gain() -> u32 {
     use gtk::gio::prelude::*;
-    gtk::gio::Settings::new(crate::APP_ID).uint("replay-gain")
+    crate::settings().uint("replay-gain")
 }
 
 /// "Share Listening Activity" in Preferences.
 fn report_listens() -> bool {
     use gtk::gio::prelude::*;
-    gtk::gio::Settings::new(crate::APP_ID).boolean("report-listens")
+    crate::settings().boolean("report-listens")
 }
 
 impl Player {
@@ -907,15 +903,13 @@ impl Player {
 /// "Repeat" from the main menu: none, queue or track.
 fn repeat_mode() -> String {
     use gtk::gio::prelude::*;
-    gtk::gio::Settings::new(crate::APP_ID)
-        .string("repeat")
-        .to_string()
+    crate::settings().string("repeat").to_string()
 }
 
 /// "Endless Radio" from the main menu.
 fn endless_radio() -> bool {
     use gtk::gio::prelude::*;
-    gtk::gio::Settings::new(crate::APP_ID).boolean("endless-radio")
+    crate::settings().boolean("endless-radio")
 }
 
 impl Player {
@@ -975,9 +969,7 @@ impl Player {
             player.play_at(start);
         });
     }
-}
 
-impl Player {
     /// True if there is a track after the current one (MPRIS: CanGoNext).
     pub(crate) fn has_next(&self) -> bool {
         has_next(
@@ -996,9 +988,7 @@ impl Player {
             self.set_state(State::Ended);
         }
     }
-}
 
-impl Player {
     /// Gapless: the address of the track after the current one, ready for
     /// about-to-finish. None at the end of the queue (then the queue simply ends,
     /// or Endless Radio adds more).
@@ -1070,9 +1060,7 @@ impl Player {
             *switched = None;
         }
     }
-}
 
-impl Player {
     /// The play queue (shared, not copied) and where in it playback is.
     pub(crate) fn queue(&self) -> Rc<[subsonic::Song]> {
         self.queue.borrow().clone()
@@ -1089,9 +1077,7 @@ impl Player {
             self.play_at(index);
         }
     }
-}
 
-impl Player {
     /// Removes the track at `index` from the queue (the queue panel). Removing
     /// the current track moves on to the next one, or ends the queue; the next
     /// one plays only if the removed one did, after a pause or Stop it waits.
@@ -1135,9 +1121,7 @@ impl Player {
         self.prepare_next();
         self.notify();
     }
-}
 
-impl Player {
     /// Puts `song` right after the playing track (Play Next). With nothing in
     /// progress, it simply plays; after an error the queue is still there, so
     /// the song joins it and nothing starts.
@@ -1210,9 +1194,7 @@ impl Player {
         self.prepare_next();
         self.notify();
     }
-}
 
-impl Player {
     /// Forgets everything (logging out): the queue, the client with its
     /// credentials, the prepared next track. Play from MPRIS can then not
     /// start the old account's music again.
@@ -1231,9 +1213,7 @@ impl Player {
         self.report_support.set(None);
         self.set_state(State::Idle);
     }
-}
 
-impl Player {
     /// The current command number; see `command`. A request to the server keeps
     /// it and checks it against `is_current` when the answer arrives.
     pub(crate) fn command_id(&self) -> u64 {

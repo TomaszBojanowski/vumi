@@ -47,7 +47,7 @@ use mini_player::MiniPlayer;
 use now_playing::NowPlaying;
 use welcome_page::WelcomePage;
 
-// Working ID and name, will change together with the final app name.
+// The ID of the settings, the D-Bus names and the Flatpak, and the name shown.
 pub const APP_ID: &str = "io.github.tomaszbojanowski.Vumi";
 const APP_NAME: &str = "Vumi";
 
@@ -95,6 +95,16 @@ fn main() -> glib::ExitCode {
     app.run()
 }
 
+/// The app's settings: one object for the whole run (on each thread), so
+/// busy paths (the player asks for Repeat at every track) make no new
+/// object, and change signals stay connected.
+fn settings() -> gio::Settings {
+    thread_local! {
+        static SETTINGS: gio::Settings = gio::Settings::new(APP_ID);
+    }
+    SETTINGS.with(Clone::clone)
+}
+
 /// One shared tokio runtime for all network work, off the GTK main thread.
 fn runtime() -> &'static Runtime {
     static RUNTIME: OnceLock<Runtime> = OnceLock::new();
@@ -109,7 +119,7 @@ fn build_ui(app: &adw::Application) {
         return;
     }
 
-    let settings = gio::Settings::new(APP_ID);
+    let settings = crate::settings();
 
     let nav = adw::NavigationView::new();
     let main = MainView::new();
@@ -171,12 +181,12 @@ fn build_ui(app: &adw::Application) {
     mpris::start(app);
 
     // "Endless Radio" in the main menu, kept in GSettings.
-    app.add_action(&gtk::gio::Settings::new(APP_ID).create_action("endless-radio"));
-    app.add_action(&gtk::gio::Settings::new(APP_ID).create_action("repeat"));
+    app.add_action(&crate::settings().create_action("endless-radio"));
+    app.add_action(&crate::settings().create_action("repeat"));
 
     // Style (Preferences): follow the system, or always light or dark.
     {
-        let settings = gtk::gio::Settings::new(APP_ID);
+        let settings = crate::settings();
         let apply = |settings: &gtk::gio::Settings| {
             let scheme = match settings.uint("color-scheme") {
                 1 => adw::ColorScheme::ForceLight,
@@ -191,8 +201,6 @@ fn build_ui(app: &adw::Application) {
         settings.connect_changed(Some("cover-colors"), |_, _| crate::tint::reload());
         // Repeat (main menu): the track handed to GStreamer ahead follows at once.
         settings.connect_changed(Some("repeat"), |_, _| crate::player::get().repeat_changed());
-        // Kept for the whole run: the change signal goes with the object.
-        std::mem::forget(settings);
     }
 
     // Playback errors appear in the window, not only in the terminal.
@@ -259,7 +267,7 @@ fn build_ui(app: &adw::Application) {
     let logout = gtk::gio::SimpleAction::new("logout", None);
     {
         let nav = nav.clone();
-        let settings = gtk::gio::Settings::new(APP_ID);
+        let settings = crate::settings();
         let login_page = login_page.clone();
         let main = main.downgrade();
         logout.connect_activate(move |_, _| {
@@ -352,7 +360,7 @@ fn build_ui(app: &adw::Application) {
     // Window Is Closed") only hides it: the music goes on, controlled from
     // GNOME Shell (MPRIS). Opening the app again, or Raise from Shell, shows it.
     {
-        let settings = gtk::gio::Settings::new(APP_ID);
+        let settings = crate::settings();
         window.connect_close_request(move |window| {
             if settings.boolean("background-playback") && crate::player::get().is_active() {
                 window.set_visible(false);

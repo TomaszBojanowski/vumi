@@ -10,7 +10,7 @@ use gtk::gio;
 use gtk::glib::variant::ToVariant;
 use gtk::prelude::*;
 
-use crate::{APP_ID, player};
+use crate::player;
 
 /// The settings key; one (album, song, seconds) entry per album.
 const KEY: &str = "played-albums";
@@ -29,7 +29,7 @@ pub(crate) struct Played {
 
 /// The albums that played lately, newest first.
 pub(crate) fn history() -> Vec<Played> {
-    read(&gio::Settings::new(APP_ID))
+    read(&crate::settings())
         .into_iter()
         .map(|(album_id, song_id, seconds)| Played {
             album_id,
@@ -41,7 +41,7 @@ pub(crate) fn history() -> Vec<Played> {
 
 /// Starts saving whenever the player changes. Call once, at startup.
 pub(crate) fn watch() {
-    let settings = gio::Settings::new(APP_ID);
+    let settings = crate::settings();
     let player = player::get();
     {
         let settings = settings.clone();
@@ -86,7 +86,7 @@ pub(crate) fn save_on_terminate(quit: impl Fn() + 'static) {
 
 /// Saves right away and makes sure it reaches the disk (the app is closing).
 pub(crate) fn save_now() {
-    save(&gio::Settings::new(APP_ID));
+    save(&crate::settings());
     gio::Settings::sync();
 }
 
@@ -138,8 +138,10 @@ mod tests {
     //! changes.
     use super::*;
     use gtk::glib;
+    use std::cell::Cell;
     use std::io::{Read, Write};
     use std::net::{TcpListener, TcpStream};
+    use std::rc::Rc;
     use std::time::{Duration, Instant};
 
     /// `seconds` of silence: 8 kHz, mono, 16 bit.
@@ -271,7 +273,7 @@ mod tests {
         settings_in_memory();
         let context = glib::MainContext::default();
         let _owner = context.acquire().expect("the main context is taken");
-        gio::Settings::new(APP_ID)
+        crate::settings()
             .set_boolean("report-listens", false)
             .expect("report-listens cannot be set");
         let client = subsonic::Client::new(&serve(silent_wav(30)), "user", "password");
@@ -320,7 +322,7 @@ mod tests {
         // SIGTERM (the session ends) after two seconds and more.
         player.play(client.clone(), vec![song("d1", "D")].into(), 0, album("D"));
         assert!(played_for(2.3), "D did not play");
-        let quit = std::rc::Rc::new(std::cell::Cell::new(false));
+        let quit = Rc::new(Cell::new(false));
         save_on_terminate({
             let quit = quit.clone();
             move || quit.set(true)
@@ -385,8 +387,8 @@ mod tests {
         // Twenty volume steps (a slider drag): the listeners of track and
         // state changes hear nothing of them, and the setting, which rewrites
         // the whole settings file, is written after the steps, not at each.
-        let settings = gio::Settings::new(APP_ID);
-        let changes = std::rc::Rc::new(std::cell::Cell::new(0));
+        let settings = crate::settings();
+        let changes = Rc::new(Cell::new(0));
         let counted = changes.clone();
         let listener = player.connect_changed(move || counted.set(counted.get() + 1));
         let saved = settings.double("volume");
