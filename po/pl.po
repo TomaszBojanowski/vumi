@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vumi\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-02 21:36+0100\n"
+"POT-Creation-Date: 2026-11-02 23:36+0100\n"
 "PO-Revision-Date: 2026-09-27 20:40+0200\n"
 "Last-Translator: Tomasz Bojanowski <tomasz@bojanowski.me>\n"
 "Language-Team: Polish\n"
@@ -929,6 +929,7 @@ msgstr "Utwory pojawią się tu po odtworzeniu albumu, utworu lub radia"
 msgid "More"
 msgstr "Więcej"
 
+#. Translators: {n} is a number of tracks.
 #: app/src/queue_page.rs:376
 #, rust-format
 msgid "{n} track will be removed from the queue."
@@ -959,6 +960,7 @@ msgstr "Zapisano listę odtwarzania „{name}”"
 msgid "Could not save the playlist"
 msgstr "Nie można zapisać listy odtwarzania"
 
+#. Translators: {time} is a short duration, e.g. "12 min" or "1 h 5 min".
 #: app/src/queue_page.rs:482
 #, rust-format
 msgid "{time} left"
@@ -1011,6 +1013,7 @@ msgstr "Dodaj na koniec kolejki"
 msgid "Add to Playlist"
 msgstr "Dodawanie do listy odtwarzania"
 
+#. Translators: {name} is the name of a playlist.
 #: app/src/song_menu.rs:277 app/src/song_menu.rs:329
 #, rust-format
 msgid "Added to “{name}”"

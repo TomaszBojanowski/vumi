@@ -371,8 +371,8 @@ impl QueuePage {
             player::get().clear_rest();
             return;
         }
-        // Translators: {n} is a number of tracks.
         let body = ngettext(
+            // Translators: {n} is a number of tracks.
             "{n} track will be removed from the queue.",
             "{n} tracks will be removed from the queue.",
             removed,
@@ -477,8 +477,8 @@ impl QueuePage {
                 let played = player.position_secs().unwrap_or(0.0) as u32;
                 let left = seconds(&queue[position..]).saturating_sub(played);
                 if left > 0 {
-                    // Translators: {time} is a short duration, e.g. "12 min" or "1 h 5 min".
                     parts.push(
+                        // Translators: {time} is a short duration, e.g. "12 min" or "1 h 5 min".
                         gettext("{time} left").replace("{time}", &format::short_duration(left)),
                     );
                 }

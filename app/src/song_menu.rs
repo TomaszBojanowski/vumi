@@ -271,9 +271,9 @@ fn choose_playlist(parent: &gtk::Widget, song: subsonic::Song, client: subsonic:
                     .await;
                 match result {
                     Ok(Ok(playlist)) => {
-                        // Translators: {name} is the name of a playlist.
                         crate::toast(
                             &main,
+                            // Translators: {name} is the name of a playlist.
                             &gettext("Added to “{name}”").replace("{name}", &playlist.name),
                         );
                         main.sync_playlists();
