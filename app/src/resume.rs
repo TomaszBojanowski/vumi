@@ -191,9 +191,20 @@ mod tests {
         let _ = stream.write_all(wav);
     }
 
+    /// The directory of the compiled schema, removed when the test ends.
+    struct Schemas(std::path::PathBuf);
+
+    impl Drop for Schemas {
+        fn drop(&mut self) {
+            // GSettings keeps the file it read open; on Linux it stays
+            // readable after the removal.
+            let _ = std::fs::remove_dir_all(&self.0);
+        }
+    }
+
     /// The app's schema, compiled into a directory of the test, and settings
     /// that live in memory. Must run before anything reads a setting.
-    fn settings_in_memory() {
+    fn settings_in_memory() -> Schemas {
         let dir = std::env::temp_dir().join(format!("vumi-test-{}", std::process::id()));
         std::fs::create_dir_all(&dir).expect("no temporary directory");
         let status = std::process::Command::new("glib-compile-schemas")
@@ -210,6 +221,7 @@ mod tests {
             std::env::set_var("GSETTINGS_SCHEMA_DIR", &dir);
             std::env::set_var("GSETTINGS_BACKEND", "memory");
         }
+        Schemas(dir)
     }
 
     /// Runs the main loop until `done` holds, at most `limit`.
@@ -230,20 +242,10 @@ mod tests {
         subsonic::Song {
             id: id.into(),
             title: id.into(),
-            artist: None,
-            track: None,
-            disc_number: None,
             album: Some(album.into()),
             album_id: Some(album.into()),
-            artist_id: None,
             duration: Some(30),
-            suffix: None,
-            bit_rate: None,
-            cover_art: None,
-            bit_depth: None,
-            sampling_rate: None,
-            starred: None,
-            composer: None,
+            ..Default::default()
         }
     }
 
@@ -270,7 +272,7 @@ mod tests {
 
     #[test]
     fn only_albums_played_as_albums_go_into_the_history_and_keep_their_place() {
-        settings_in_memory();
+        let _schemas = settings_in_memory();
         let context = glib::MainContext::default();
         let _owner = context.acquire().expect("the main context is taken");
         crate::settings()

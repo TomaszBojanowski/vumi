@@ -1035,8 +1035,7 @@ mod tests {
             cover_art: Some("al-1".into()),
             bit_depth: Some(16),
             sampling_rate: Some(44_100),
-            starred: None,
-            composer: None,
+            ..Default::default()
         }
     }
 

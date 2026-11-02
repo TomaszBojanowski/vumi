@@ -445,18 +445,13 @@ mod tests {
             title: "Title".into(),
             artist: Some("Artist".into()),
             track: Some(3),
-            disc_number: None,
             album: Some("Album".into()),
-            album_id: None,
-            artist_id: None,
             duration: Some(125),
             suffix: Some("flac".into()),
             bit_rate: kbps,
-            cover_art: None,
             bit_depth: depth,
             sampling_rate: rate,
-            starred: None,
-            composer: None,
+            ..Default::default()
         }
     }
 

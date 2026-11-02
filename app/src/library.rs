@@ -713,15 +713,8 @@ mod tests {
             disc_number: Some(disc),
             album: Some(album_id.to_uppercase()),
             album_id: Some(album_id.into()),
-            artist_id: None,
             duration: Some(100),
-            suffix: None,
-            bit_rate: None,
-            cover_art: None,
-            bit_depth: None,
-            sampling_rate: None,
-            starred: None,
-            composer: None,
+            ..Default::default()
         }
     }
 
@@ -953,6 +946,15 @@ mod tests {
         )
         .unwrap();
 
+        // Another account in the same database, with the same ids starred.
+        const OTHER: &str = "other@http://server";
+        let mut other_album = (*album("a", "A", "X", 2000)).clone();
+        other_album.starred = Some("2021-01-01T00:00:00Z".into());
+        save_albums(OTHER, &[Arc::new(other_album)]).unwrap();
+        let mut other_song = song("s1", "Old", "a", 1, 1);
+        other_song.starred = Some("2021-01-01T00:00:00Z".into());
+        save_songs(OTHER, &[other_song]).unwrap();
+
         let mut b = (*album("b", "B", "X", 2000)).clone();
         b.starred = Some("2026-02-01T00:00:00Z".into());
         let mut s2 = song("s2", "New", "a", 1, 2);
@@ -971,12 +973,9 @@ mod tests {
             Some("2026-03-01T00:00:00Z")
         );
         // Another account's stars stay.
-        assert!(
-            load_starred("other@http://server")
-                .unwrap()
-                .songs
-                .is_empty()
-        );
+        let other = load_starred(OTHER).unwrap();
+        assert_eq!(other.album_ids, ["a"]);
+        assert_eq!(ids(&other.songs), ["s1"]);
     }
 
     #[test]

@@ -677,20 +677,8 @@ mod tests {
         subsonic::Song {
             id: id.into(),
             title: id.into(),
-            artist: None,
-            track: None,
-            disc_number: None,
-            album: None,
-            album_id: None,
-            artist_id: None,
             duration: seconds,
-            suffix: None,
-            bit_rate: None,
-            cover_art: None,
-            bit_depth: None,
-            sampling_rate: None,
-            starred: None,
-            composer: None,
+            ..Default::default()
         }
     }
 
