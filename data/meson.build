@@ -12,6 +12,24 @@ i18n.merge_file(
   install_dir: get_option('datadir') / 'applications',
 )
 
+# What app stores show (GNOME Software, Flathub), translated like the rest.
+metainfo = i18n.merge_file(
+  input: application_id + '.metainfo.xml.in',
+  output: application_id + '.metainfo.xml',
+  po_dir: meson.project_source_root() / 'po',
+  install: true,
+  install_dir: get_option('datadir') / 'metainfo',
+)
+
+appstreamcli = find_program('appstreamcli', required: false)
+if appstreamcli.found()
+  test(
+    'validate-metainfo',
+    appstreamcli,
+    args: ['validate', '--no-net', '--explain', metainfo],
+  )
+endif
+
 # The application icon in every size, and its symbolic variant.
 subdir('icons')
 

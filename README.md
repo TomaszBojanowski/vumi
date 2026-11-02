@@ -6,6 +6,8 @@ with first-class AudioMuse-AI integration. Written in Rust.
 > Early development: used every day with the author's own library, but expect
 > rough edges.
 
+![The Start page with recently played albums and the Tuner](data/screenshots/1-start.png)
+
 ## Features
 
 - **Instant start:** the library comes from a local SQLite cache, so it is on
@@ -23,9 +25,12 @@ with first-class AudioMuse-AI integration. Written in Rust.
   on servers with the OpenSubsonic `playbackReport` extension (Navidrome 0.62
   and later). Both can be turned off.
 - **Light and dark style**, and colors taken from the album cover (optional).
-- **Narrow windows** (down to 366 px): the sidebar folds away and a compact
-  player bar stays at the bottom.
+- **Narrow and low windows:** down to 366 px wide the sidebar folds away and
+  a compact player bar stays at the bottom; in low windows the player card
+  in the sidebar gets a small cover.
 - **Keyboard shortcuts:** Ctrl+? lists them all.
+
+<img src="data/screenshots/4-narrow.png" alt="A narrow window with the compact player bar" width="300">
 
 ## Building
 

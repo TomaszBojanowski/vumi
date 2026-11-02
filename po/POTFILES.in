@@ -1,4 +1,5 @@
 data/io.github.tomaszbojanowski.Vumi.desktop.in
+data/io.github.tomaszbojanowski.Vumi.metainfo.xml.in
 app/src/main.rs
 app/src/main_view.rs
 app/src/main_view.blp

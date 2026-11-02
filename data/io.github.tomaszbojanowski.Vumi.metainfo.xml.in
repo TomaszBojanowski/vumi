@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright 2026 Tomasz Bojanowski -->
+<component type="desktop-application">
+  <id>io.github.tomaszbojanowski.Vumi</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+
+  <name translate="no">Vumi</name>
+  <summary>Play music from your own server</summary>
+  <description>
+    <p>Vumi plays the music on your own Navidrome or Subsonic server. The library is kept on your computer, so it opens at once and stays quick even with thousands of albums.</p>
+    <p>Pick up albums where you left them, go through the library year by year with the Tuner, and with AudioMuse-AI on the server, play similar songs and endless radio. Playback is gapless, and the music keeps playing when the window is closed.</p>
+  </description>
+
+  <developer id="io.github.tomaszbojanowski">
+    <name translate="no">Tomasz Bojanowski</name>
+  </developer>
+  <launchable type="desktop-id">io.github.tomaszbojanowski.Vumi.desktop</launchable>
+  <provides>
+    <binary>vumi</binary>
+  </provides>
+  <translation type="gettext">vumi</translation>
+
+  <url type="homepage">https://github.com/TomaszBojanowski/vumi</url>
+  <url type="bugtracker">https://github.com/TomaszBojanowski/vumi/issues</url>
+  <url type="vcs-browser">https://github.com/TomaszBojanowski/vumi</url>
+  <url type="donation">https://buymeacoffee.com/sojer2005</url>
+
+  <content_rating type="oars-1.1"/>
+
+  <supports>
+    <control>keyboard</control>
+    <control>pointing</control>
+  </supports>
+
+  <branding>
+    <color type="primary" scheme_preference="light">#f5c25a</color>
+    <color type="primary" scheme_preference="dark">#7a5317</color>
+  </branding>
+
+  <screenshots>
+    <screenshot type="default">
+      <caption>The Start page with recently played albums and the Tuner</caption>
+      <image>https://raw.githubusercontent.com/TomaszBojanowski/vumi/v0.1.0/data/screenshots/1-start.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>An album page with its tracks and audio quality</caption>
+      <image>https://raw.githubusercontent.com/TomaszBojanowski/vumi/v0.1.0/data/screenshots/2-album.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>Search results with albums and songs</caption>
+      <image>https://raw.githubusercontent.com/TomaszBojanowski/vumi/v0.1.0/data/screenshots/3-search.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>A narrow window with the compact player bar</caption>
+      <image>https://raw.githubusercontent.com/TomaszBojanowski/vumi/v0.1.0/data/screenshots/4-narrow.png</image>
+    </screenshot>
+  </screenshots>
+
+  <releases>
+    <release version="0.1.0" date="2026-11-02">
+      <description>
+        <p>The first release: a fast player for Navidrome and other Subsonic servers, with the library kept on the computer, gapless playback, and similar songs and radio from AudioMuse-AI.</p>
+      </description>
+    </release>
+  </releases>
+</component>
