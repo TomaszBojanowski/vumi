@@ -1,9 +1,6 @@
 //! Tests for the API client against a local mock HTTP server (wiremock): what
 //! each call sends, and how the client reads what comes back. The responses in
 //! `fixtures/` are written in the shape Navidrome sends, extra fields included.
-//!
-//! Tests marked `#[ignore]` show known bugs; they fail until the bug is fixed.
-//! Run them with `cargo test -p subsonic -- --ignored`.
 
 use std::collections::HashMap;
 
@@ -292,9 +289,8 @@ mod auth {
     }
 
     /// "localhost:4533" is what many people type for Navidrome. It parses as
-    /// a URL with the scheme "localhost", so it is not rejected as invalid:
-    /// `ping` fails as Unreachable ("builder error") and `stream_url` returns
-    /// a URL no player can open.
+    /// a URL with the scheme "localhost"; only http and https are taken, so
+    /// it is an invalid address, not an unreachable server.
     #[tokio::test]
     async fn an_address_with_a_port_but_no_scheme_is_invalid() {
         let client = Client::new("localhost:4533", USER, PASSWORD);
@@ -1254,7 +1250,7 @@ mod errors {
 
     /// Subsonic servers answer getCoverArt errors (no such cover, wrong
     /// password) like any other: HTTP 200 with the error in a JSON body.
-    /// `cover_art` returns that body as if it were the image.
+    /// `cover_art` reads it as the error it is, not as the image.
     #[tokio::test]
     async fn cover_art_reports_subsonic_errors() {
         let (server, client) = start().await;

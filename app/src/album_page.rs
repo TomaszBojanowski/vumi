@@ -887,11 +887,7 @@ impl AlbumPage {
         imp.artist_linked.set(true);
         let name = album.artist.clone().unwrap_or_default();
         let client = client.clone();
-        let page = self.downgrade();
         imp.artist_button.connect_clicked(move |button| {
-            if page.upgrade().is_none() {
-                return;
-            }
             // Back to the artist's page if it is open already (album, artist,
             // album, artist... does not stack up pages).
             if let Some(main) = button

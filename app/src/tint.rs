@@ -1,6 +1,9 @@
 //! Tints from the dominant colour of an album cover.
-//! Every tinted widget gets its own style class and rule, removed again
-//! when the widget is destroyed, so pages never share or steal colours.
+//! Every widget tinted with apply() gets its own style class and rule,
+//! removed again when the widget is destroyed, so pages never share or steal
+//! colours. A Dynamic keeps one class whose rule is rewritten, never removed:
+//! its owners (the now-playing card, the Tuner, Favorites) last as long as
+//! the app.
 //! The rules are written for the style the app shows (Preferences can force
 //! light or dark), and again when it changes.
 

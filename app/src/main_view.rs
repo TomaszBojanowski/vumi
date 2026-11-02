@@ -1676,9 +1676,6 @@ impl MainView {
         pop_all_to_root(self.upcast_ref());
     }
 
-    /// Syncs albums and then songs now (Preferences), as after connecting.
-    /// While a sync runs, another click does nothing: the same account would
-    /// only be fetched twice, and the first result thrown away.
     /// The library is as at the last full sync: only what changes without a
     /// scan comes - the stars (into the database, then all that shows them),
     /// the playlists and the artists (kept in memory only).
@@ -1730,6 +1727,9 @@ impl MainView {
         });
     }
 
+    /// Syncs albums and then songs now (Preferences), as after connecting.
+    /// While a sync runs, another click does nothing: the same account would
+    /// only be fetched twice, and the first result thrown away.
     pub(crate) fn sync_now(&self) {
         if self.imp().syncing.get() {
             return;

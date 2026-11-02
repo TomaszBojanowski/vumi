@@ -551,8 +551,6 @@ impl Player {
     }
 }
 
-/// Stops playback cleanly when the app quits: GStreamer wants its elements in
-/// the NULL state before they are destroyed. Does nothing if nothing was played.
 /// Plays `songs` from the first, or in a random order (`shuffle`), as `of`
 /// (the Play and Shuffle buttons of albums, playlists and Favorites).
 pub(crate) fn play_list(
@@ -575,6 +573,8 @@ pub(crate) fn play_list(
     get().play(client, songs, 0, of);
 }
 
+/// Stops playback cleanly when the app quits: GStreamer wants its elements in
+/// the NULL state before they are destroyed. Does nothing if nothing was played.
 pub(crate) fn shutdown() {
     PLAYER.with(|cell| {
         if let Some(player) = cell.get() {
@@ -740,8 +740,8 @@ impl Player {
     }
 
     /// ReplayGain from Preferences. playbin takes a new audio filter only while
-    /// stopped, so this runs as a track starts. Off means no element at all:
-    /// the signal stays bit-perfect.
+    /// stopped, so this runs as a track starts. Off means no element at all,
+    /// so no gain is added.
     fn apply_replay_gain(&self) {
         let mode = replay_gain();
         if self.replay_gain_mode.get() == Some(mode) {
