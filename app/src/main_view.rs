@@ -724,18 +724,9 @@ impl MainView {
             imp.split.set_show_sidebar(false);
         }
 
-        // Already open in this section: go back to it instead of stacking
-        // another copy on top.
-        let stack = nav.navigation_stack();
-        for i in (0..stack.n_items()).rev() {
-            if let Some(page) = stack.item(i).and_downcast::<ArtistPage>()
-                && page.artist_id() == id
-            {
-                nav.pop_to_page(&page);
-                return;
-            }
+        if !back_to::<ArtistPage>(&nav, |page| page.artist_id() == id) {
+            nav.push(&ArtistPage::new(id, name, client));
         }
-        nav.push(&ArtistPage::new(id, name, client));
     }
 
     /// Uses the full album from the library if it is there, else `fallback`.
@@ -753,18 +744,9 @@ impl MainView {
             imp.split.set_show_sidebar(false);
         }
 
-        // Already open in this section: go back to it instead of stacking
-        // another copy on top.
-        let stack = nav.navigation_stack();
-        for i in (0..stack.n_items()).rev() {
-            if let Some(page) = stack.item(i).and_downcast::<AlbumPage>()
-                && page.album_id() == id
-            {
-                nav.pop_to_page(&page);
-                return;
-            }
+        if !back_to::<AlbumPage>(nav, |page| page.album_id() == id) {
+            crate::album_page::open(nav, &album, client);
         }
-        crate::album_page::open(nav, &album, client);
     }
 }
 
@@ -916,6 +898,24 @@ impl MainView {
             }
         });
     }
+}
+
+/// Goes back to the page of `nav` that `same` recognises, if one is open
+/// (true then): opening it again does not stack another copy on top.
+fn back_to<T: IsA<adw::NavigationPage> + IsA<glib::Object>>(
+    nav: &adw::NavigationView,
+    same: impl Fn(&T) -> bool,
+) -> bool {
+    let stack = nav.navigation_stack();
+    for i in (0..stack.n_items()).rev() {
+        if let Some(page) = stack.item(i).and_downcast::<T>()
+            && same(&page)
+        {
+            nav.pop_to_page(&page);
+            return true;
+        }
+    }
+    false
 }
 
 /// Pops every navigation view under `widget` back to its first page.
@@ -1444,7 +1444,7 @@ impl MainView {
                         _ => gettext("Something went wrong. Please try again."),
                     };
                     if let Some(view) = view.upgrade() {
-                        crate::song_menu::toast(&view, &message);
+                        crate::toast(&view, &message);
                     }
                     return;
                 }
@@ -1474,20 +1474,9 @@ impl MainView {
             .and_downcast::<adw::NavigationView>()
             .unwrap_or_else(|| imp.library_nav.get());
 
-        // Already open in this section: go back to it instead of stacking
-        // another copy on top.
-        let stack = nav.navigation_stack();
-        for i in (0..stack.n_items()).rev() {
-            if let Some(page) = stack
-                .item(i)
-                .and_downcast::<crate::playlist_page::PlaylistPage>()
-                && page.playlist_id() == id
-            {
-                nav.pop_to_page(&page);
-                return;
-            }
+        if !back_to::<crate::playlist_page::PlaylistPage>(&nav, |page| page.playlist_id() == id) {
+            nav.push(&crate::playlist_page::PlaylistPage::new(id, name, client));
         }
-        nav.push(&crate::playlist_page::PlaylistPage::new(id, name, client));
     }
 }
 

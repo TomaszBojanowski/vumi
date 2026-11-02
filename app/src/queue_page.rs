@@ -429,7 +429,7 @@ impl QueuePage {
                     .await;
                 match result {
                     Ok(Ok(playlist)) => {
-                        crate::song_menu::toast(
+                        crate::toast(
                             &page,
                             // Translators: {name} is the name of a playlist.
                             &gettext("Saved as “{name}”").replace("{name}", &playlist.name),
@@ -442,7 +442,7 @@ impl QueuePage {
                             main.sync_playlists();
                         }
                     }
-                    _ => crate::song_menu::toast(&page, &gettext("Could not save the playlist")),
+                    _ => crate::toast(&page, &gettext("Could not save the playlist")),
                 }
             });
         });

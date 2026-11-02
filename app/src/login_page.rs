@@ -169,7 +169,7 @@ impl LoginPage {
                         };
                         eprintln!("Could not save the password: {failure}");
                         if let Some(main) = shown.upgrade() {
-                            crate::song_menu::toast(
+                            crate::toast(
                                 &main,
                                 &gettext("Could not save the password in the keyring"),
                             );

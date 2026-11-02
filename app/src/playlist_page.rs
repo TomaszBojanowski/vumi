@@ -184,16 +184,6 @@ impl PlaylistPage {
         else {
             return;
         };
-        if songs.is_empty() {
-            return;
-        }
-        if shuffle {
-            // A new order needs its own copy, made only when Shuffle is pressed.
-            let mut shuffled = songs.to_vec();
-            fastrand::shuffle(&mut shuffled);
-            player::get().play(client, shuffled.into(), 0, player::QueueOf::Songs);
-        } else {
-            player::get().play(client, songs, 0, player::QueueOf::Songs);
-        }
+        player::play_list(client, songs, shuffle, player::QueueOf::Songs);
     }
 }

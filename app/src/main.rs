@@ -476,6 +476,16 @@ fn error_message(e: &subsonic::Error) -> String {
 /// A toast that shows `text` as it is. A toast reads its title as Pango markup
 /// unless told otherwise, and then a "&" or "<" in a name from the server (a
 /// playlist, an error) keeps the whole message from showing.
+/// A short note at the bottom of the window `near` is in.
+pub(crate) fn toast(near: &impl IsA<gtk::Widget>, text: &str) {
+    if let Some(toasts) = near
+        .ancestor(adw::ToastOverlay::static_type())
+        .and_downcast::<adw::ToastOverlay>()
+    {
+        toasts.add_toast(plain_toast(text));
+    }
+}
+
 fn plain_toast(text: &str) -> adw::Toast {
     adw::Toast::builder().use_markup(false).title(text).build()
 }

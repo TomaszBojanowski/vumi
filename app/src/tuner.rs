@@ -425,7 +425,7 @@ impl Tuner {
                 return;
             }
             if songs.is_empty() {
-                crate::song_menu::toast(&tuner, &gettext("Could not play this year"));
+                crate::toast(&tuner, &gettext("Could not play this year"));
                 return;
             }
             player.play(client, songs.into(), 0, crate::player::QueueOf::Songs);

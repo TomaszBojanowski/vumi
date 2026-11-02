@@ -95,12 +95,12 @@ impl ArtistPage {
             let Some(album) = album else {
                 return;
             };
-            let client = imp.client.borrow().clone();
-            if let Some(nav) = page
-                .ancestor(adw::NavigationView::static_type())
-                .and_downcast::<adw::NavigationView>()
+            // Back to the album's page if it is open already.
+            if let Some(main) = page
+                .ancestor(crate::main_view::MainView::static_type())
+                .and_downcast::<crate::main_view::MainView>()
             {
-                crate::album_page::open(&nav, &album, client);
+                main.open_album_from(&page, &album.id.clone(), album);
             }
         });
 

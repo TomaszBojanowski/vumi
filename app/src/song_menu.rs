@@ -93,14 +93,14 @@ pub(crate) fn install_actions(row: &gtk::Widget, current: &Current) {
         "play-next",
         Box::new(|row, song, client| {
             player::get().play_next(client, song);
-            toast(row, &gettext("Will play next"));
+            crate::toast(row, &gettext("Will play next"));
         }),
     );
     add(
         "add-to-queue",
         Box::new(|row, song, client| {
             player::get().enqueue(client, song);
-            toast(row, &gettext("Added to the queue"));
+            crate::toast(row, &gettext("Added to the queue"));
         }),
     );
     add("add-to-playlist", Box::new(choose_playlist));
@@ -177,25 +177,40 @@ fn menu(go_to_album: bool) -> gio::Menu {
     menu
 }
 
-/// Play Similar: this song, then songs that sound like it (AudioMuse-AI).
+/// Play Similar: this song, then songs that sound like it.
 fn play_similar(row: &gtk::Widget, song: subsonic::Song, client: subsonic::Client) {
-    let row = row.downgrade();
+    play_radio(row, client, song, || {});
+}
+
+/// Radio from `seed`: the song, then about 50 songs that sound like it
+/// (AudioMuse-AI through Navidrome), as a list of songs. `done` runs once the
+/// answer is there; a note near `widget` says why nothing plays (none found,
+/// or the request failed). An answer that comes after something else was
+/// started is dropped.
+pub(crate) fn play_radio(
+    widget: &impl IsA<gtk::Widget>,
+    client: subsonic::Client,
+    seed: subsonic::Song,
+    done: impl FnOnce() + 'static,
+) {
+    let widget = widget.upcast_ref::<gtk::Widget>().downgrade();
     let command = player::get().command_id();
     glib::spawn_future_local(async move {
         let request = client.clone();
-        let id = song.id.clone();
+        let id = seed.id.clone();
         let result = crate::runtime()
             .spawn(async move { request.similar_songs(&id, 50).await })
             .await;
+        done();
         // Something else was started meanwhile: this answer is stale.
         if !player::get().is_current(command) {
             return;
         }
-        let Some(similar) = similar_found(row.upgrade().as_ref(), result) else {
+        let Some(similar) = similar_found(widget.upgrade().as_ref(), result) else {
             return;
         };
-        let seed_id = song.id.clone();
-        let mut songs = vec![song];
+        let seed_id = seed.id.clone();
+        let mut songs = vec![seed];
         songs.extend(similar.into_iter().filter(|s| s.id != seed_id));
         player::get().play(client, songs.into(), 0, player::QueueOf::Songs);
     });
@@ -257,13 +272,13 @@ fn choose_playlist(parent: &gtk::Widget, song: subsonic::Song, client: subsonic:
                 match result {
                     Ok(Ok(playlist)) => {
                         // Translators: {name} is the name of a playlist.
-                        toast(
+                        crate::toast(
                             &main,
                             &gettext("Added to “{name}”").replace("{name}", &playlist.name),
                         );
                         main.sync_playlists();
                     }
-                    _ => toast(&main, &gettext("Could not add to the playlist")),
+                    _ => crate::toast(&main, &gettext("Could not add to the playlist")),
                 }
             });
         });
@@ -311,13 +326,13 @@ fn choose_playlist(parent: &gtk::Widget, song: subsonic::Song, client: subsonic:
                         .await;
                     match result {
                         Ok(Ok(())) => {
-                            toast(
+                            crate::toast(
                                 &main,
                                 &gettext("Added to “{name}”").replace("{name}", &name),
                             );
                             main.sync_playlists();
                         }
-                        _ => toast(&main, &gettext("Could not add to the playlist")),
+                        _ => crate::toast(&main, &gettext("Could not add to the playlist")),
                     }
                 });
             });
@@ -420,19 +435,9 @@ pub(crate) fn similar_found(
         Err(_) => gettext("Something went wrong. Please try again."),
     };
     if let Some(widget) = widget {
-        toast(widget, &note);
+        crate::toast(widget, &note);
     }
     None
-}
-
-/// A short note at the bottom of the window.
-pub(crate) fn toast(widget: &impl IsA<gtk::Widget>, text: &str) {
-    if let Some(toasts) = widget
-        .ancestor(adw::ToastOverlay::static_type())
-        .and_downcast::<adw::ToastOverlay>()
-    {
-        toasts.add_toast(crate::plain_toast(text));
-    }
 }
 
 #[cfg(test)]

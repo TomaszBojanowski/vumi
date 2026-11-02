@@ -8,7 +8,6 @@ use gtk::glib;
 use std::collections::BTreeSet;
 use std::rc::Rc;
 
-use crate::artist_page::ArtistPage;
 use crate::favorites::{Favorite, star_button};
 use crate::{about, covers, error_message, player, runtime, tint};
 
@@ -897,14 +896,11 @@ impl AlbumPage {
                 let Some(queue) = page.imp().queue.borrow().clone() else {
                     return;
                 };
-                // A new order needs its own copy, made only when Shuffle is pressed.
-                let mut shuffled = queue.to_vec();
-                fastrand::shuffle(&mut shuffled);
                 // Still the album, in another order: it goes into the history.
-                player::get().play(
+                player::play_list(
                     client.clone(),
-                    shuffled.into(),
-                    0,
+                    queue,
+                    true,
                     player::QueueOf::Album(album_id.clone()),
                 );
             });
@@ -927,16 +923,17 @@ impl AlbumPage {
         let name = album.artist.clone().unwrap_or_default();
         let client = client.clone();
         let page = self.downgrade();
-        imp.artist_button.connect_clicked(move |_| {
-            let Some(page) = page.upgrade() else {
+        imp.artist_button.connect_clicked(move |button| {
+            if page.upgrade().is_none() {
                 return;
-            };
-            let artist_page = ArtistPage::new(&artist_id, &name, client.clone());
-            if let Some(nav) = page
-                .ancestor(adw::NavigationView::static_type())
-                .and_downcast::<adw::NavigationView>()
+            }
+            // Back to the artist's page if it is open already (album, artist,
+            // album, artist... does not stack up pages).
+            if let Some(main) = button
+                .ancestor(crate::main_view::MainView::static_type())
+                .and_downcast::<crate::main_view::MainView>()
             {
-                nav.push(&artist_page);
+                main.open_artist_from(button, &artist_id, &name, client.clone());
             }
         });
     }
@@ -1056,35 +1053,13 @@ impl AlbumPage {
             return;
         }
         let seed = queue[fastrand::usize(..queue.len())].clone();
-        let command = player::get().command_id();
-
         // One request at a time: the button waits for the answer.
         button.set_sensitive(false);
         let button = button.downgrade();
-        let page = self.downgrade();
-        glib::spawn_future_local(async move {
-            let request_client = client.clone();
-            let seed_id = seed.id.clone();
-            let result = runtime()
-                .spawn(async move { request_client.similar_songs(&seed_id, 50).await })
-                .await;
+        crate::song_menu::play_radio(self, client, seed, move || {
             if let Some(button) = button.upgrade() {
                 button.set_sensitive(true);
             }
-
-            // Something else was started meanwhile: this answer is stale.
-            if !player::get().is_current(command) {
-                return;
-            }
-            let Some(similar) = crate::song_menu::similar_found(page.upgrade().as_ref(), result)
-            else {
-                return;
-            };
-
-            let seed_id = seed.id.clone();
-            let mut songs = vec![seed];
-            songs.extend(similar.into_iter().filter(|s| s.id != seed_id));
-            player::get().play(client, songs.into(), 0, player::QueueOf::Songs);
         });
     }
 }

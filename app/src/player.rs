@@ -519,6 +519,28 @@ impl Player {
 
 /// Stops playback cleanly when the app quits: GStreamer wants its elements in
 /// the NULL state before they are destroyed. Does nothing if nothing was played.
+/// Plays `songs` from the first, or in a random order (`shuffle`), as `of`
+/// (the Play and Shuffle buttons of albums, playlists and Favorites).
+pub(crate) fn play_list(
+    client: subsonic::Client,
+    songs: Rc<[subsonic::Song]>,
+    shuffle: bool,
+    of: QueueOf,
+) {
+    if songs.is_empty() {
+        return;
+    }
+    let songs = if shuffle {
+        // A new order needs its own copy, made only when Shuffle is pressed.
+        let mut shuffled = songs.to_vec();
+        fastrand::shuffle(&mut shuffled);
+        shuffled.into()
+    } else {
+        songs
+    };
+    get().play(client, songs, 0, of);
+}
+
 pub(crate) fn shutdown() {
     PLAYER.with(|cell| {
         if let Some(player) = cell.get() {

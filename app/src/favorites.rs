@@ -193,7 +193,7 @@ pub(crate) fn star_button(
                 reverting.set(true);
                 button.set_active(!starred);
                 reverting.set(false);
-                show_toast(
+                crate::toast(
                     &button,
                     &gettext("Could not change favorites. Please try again."),
                 );
@@ -236,7 +236,7 @@ pub(crate) fn set(
             .await;
         if !matches!(result, Ok(Ok(()))) {
             if let Some(widget) = widget.upgrade() {
-                show_toast(
+                crate::toast(
                     &widget,
                     &gettext("Could not change favorites. Please try again."),
                 );
@@ -263,16 +263,6 @@ fn update_icon(button: &gtk::ToggleButton) {
     } else {
         button.set_icon_name("non-starred-symbolic");
         button.set_tooltip_text(Some(&gettext("Add to Favorites")));
-    }
-}
-
-/// Shows `message` in the nearest toast overlay above `widget` (the whole window).
-fn show_toast(widget: &impl IsA<gtk::Widget>, message: &str) {
-    if let Some(overlay) = widget
-        .ancestor(adw::ToastOverlay::static_type())
-        .and_downcast::<adw::ToastOverlay>()
-    {
-        overlay.add_toast(crate::plain_toast(message));
     }
 }
 
