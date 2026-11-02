@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Format, Clippy and tests
+    runs-on: ubuntu-latest
+    # Vumi needs GTK 4.24 and libadwaita 1.10 (the GNOME 51 runtime); Ubuntu
+    # has older ones, Fedora 45 has these.
+    container: registry.fedoraproject.org/fedora:45
+    steps:
+      - name: Install the build dependencies
+        run: >
+          dnf install -y --setopt=install_weak_deps=False
+          git gcc pkgconf-pkg-config
+          cargo rust clippy rustfmt
+          gtk4-devel libadwaita-devel blueprint-compiler glib2-devel
+          gstreamer1-devel gstreamer1-plugins-base-devel
+          gstreamer1-plugins-good libsoup3
+          sqlite-devel gettext-devel
+
+      - uses: actions/checkout@v5
+
+      - name: Formatting
+        run: cargo fmt --all --check
+
+      - name: Clippy
+        run: cargo clippy --workspace --all-targets --locked -- -D warnings
+
+      # The player tests play a silent WAV from a local HTTP server into a
+      # fakesink (souphttpsrc and wavparse come with plugins-good).
+      - name: Tests
+        run: cargo test --workspace --locked
