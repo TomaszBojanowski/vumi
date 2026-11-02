@@ -830,6 +830,22 @@ pub(crate) enum Clicked<'a> {
     Song(&'a str),
 }
 
+/// What a click on the song at `index` of `songs` names: its place when the
+/// list is the queue itself (`queue`), so a second copy of a song is told
+/// apart from the first; in any other list the song.
+pub(crate) fn clicked<'a>(
+    queue: &Rc<[subsonic::Song]>,
+    songs: &'a Rc<[subsonic::Song]>,
+    index: usize,
+) -> Option<Clicked<'a>> {
+    let song = songs.get(index)?;
+    Some(if Rc::ptr_eq(queue, songs) {
+        Clicked::Place(index)
+    } else {
+        Clicked::Song(&song.id)
+    })
+}
+
 /// Whether the clicked track is the one in progress (playing or paused) at
 /// `position`, with the id `current`. After the end or an error none is.
 fn is_current(active: bool, position: usize, current: Option<&str>, clicked: &Clicked) -> bool {
@@ -1287,6 +1303,23 @@ mod tests {
         assert!(!is_current(false, 2, Some("a"), &Clicked::Place(2)));
         assert!(!is_current(false, 2, Some("a"), &Clicked::Song("a")));
         assert!(!is_current(true, 0, None, &Clicked::Song("a")));
+    }
+
+    #[test]
+    fn a_click_in_the_queue_itself_names_the_place() {
+        // A list that is the queue: a song in it twice is told apart, so a
+        // click on the second copy starts it instead of pausing the first.
+        let queue: Rc<[subsonic::Song]> = songs(&["a", "b", "a"]).into();
+        let second_copy = clicked(&queue, &queue, 2).unwrap();
+        assert!(matches!(second_copy, Clicked::Place(2)));
+        assert!(!is_current(true, 0, Some("a"), &second_copy));
+        // Any other list, even with the same songs: the song counts.
+        let list: Rc<[subsonic::Song]> = songs(&["a", "b", "a"]).into();
+        assert!(matches!(
+            clicked(&queue, &list, 2),
+            Some(Clicked::Song("a"))
+        ));
+        assert!(clicked(&queue, &list, 3).is_none());
     }
 
     #[test]

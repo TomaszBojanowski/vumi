@@ -215,8 +215,10 @@ impl ResultsView {
             let index = (position as usize).checked_sub(1);
             if let (Some(songs), Some(client), Some(index)) = (songs, client, index) {
                 let player = player::get();
-                let clicked = songs.get(index).map(|song| song.id.as_str());
-                if clicked.is_some_and(|id| player.toggle_if_current(player::Clicked::Song(id))) {
+                // Started from this list, the queue is this list: a song in
+                // it twice is then told apart by its place.
+                let clicked = player::clicked(&player.queue(), &songs, index);
+                if clicked.is_some_and(|clicked| player.toggle_if_current(clicked)) {
                     return;
                 }
                 player.play(client, songs, index, player::QueueOf::Songs);
