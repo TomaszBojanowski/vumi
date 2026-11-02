@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vumi\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-02 18:50+0100\n"
+"POT-Creation-Date: 2026-11-02 18:56+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -395,7 +395,7 @@ msgid "Discover Music"
 msgstr ""
 
 #: app/src/welcome_page.blp:37
-msgid "Similar songs and endless radio, powered by AudioMuse-AI."
+msgid "Similar songs and endless radio with AudioMuse-AI on your server."
 msgstr ""
 
 #: app/src/welcome_page.blp:44
