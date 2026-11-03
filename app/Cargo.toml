@@ -1,6 +1,6 @@
 [package]
 name = "app"
-version = "0.1.1"
+version = "0.1.2"
 license = "GPL-3.0-or-later"
 repository = "https://github.com/TomaszBojanowski/vumi"
 edition = "2024"
@@ -14,7 +14,7 @@ gtk = { version = "0.11.5", package = "gtk4", features = ["blueprint", "v4_24"] 
 md5 = "0.8.1"
 oo7 = "0.6.0"
 rusqlite = "0.40.2"
-subsonic = { version = "0.1.1", path = "../subsonic" }
+subsonic = { version = "0.1.2", path = "../subsonic" }
 tokio = { version = "1.53.1", features = ["fs", "rt-multi-thread", "signal", "sync"] }
 
 [[bin]]

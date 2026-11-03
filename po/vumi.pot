@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vumi\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-03 00:47+0100\n"
+"POT-Creation-Date: 2026-11-03 21:44+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -49,138 +49,181 @@ msgid ""
 "window is closed."
 msgstr ""
 
-#: data/io.github.tomaszbojanowski.Vumi.metainfo.xml.in:43
+#: data/io.github.tomaszbojanowski.Vumi.metainfo.xml.in:13
+msgid ""
+"Vumi stays quick on a big library. With 651 albums and 11,333 songs from a "
+"Navidrome server in the local network, the library is on screen 0.46 s after "
+"start, a first login shows the albums in 0.56 s, and while music plays in "
+"the background Vumi uses 0.45 % of one CPU core. It is a native GTK 4 app, "
+"with no web browser inside."
+msgstr ""
+
+#: data/io.github.tomaszbojanowski.Vumi.metainfo.xml.in:44
 msgid "The Start page with recently played albums and the Tuner"
 msgstr ""
 
-#: data/io.github.tomaszbojanowski.Vumi.metainfo.xml.in:47
+#: data/io.github.tomaszbojanowski.Vumi.metainfo.xml.in:48
 msgid "An album page with its tracks and audio quality"
 msgstr ""
 
-#: data/io.github.tomaszbojanowski.Vumi.metainfo.xml.in:51
+#: data/io.github.tomaszbojanowski.Vumi.metainfo.xml.in:52
 msgid "Search results with albums and songs"
 msgstr ""
 
-#: data/io.github.tomaszbojanowski.Vumi.metainfo.xml.in:55
+#: data/io.github.tomaszbojanowski.Vumi.metainfo.xml.in:56
 msgid "A narrow window with the compact player bar"
 msgstr ""
 
-#: data/io.github.tomaszbojanowski.Vumi.metainfo.xml.in:63
+#: data/io.github.tomaszbojanowski.Vumi.metainfo.xml.in:64
+msgid ""
+"Vumi 0.1.2 is about speed. On a library of 651 albums from a Navidrome "
+"server in the local network:"
+msgstr ""
+
+#: data/io.github.tomaszbojanowski.Vumi.metainfo.xml.in:66
+msgid ""
+"While music plays in the background, Vumi uses 0.45 % of one CPU core "
+"instead of 6.8 %."
+msgstr ""
+
+#: data/io.github.tomaszbojanowski.Vumi.metainfo.xml.in:67
+msgid "Search results are on screen in 186 ms instead of 387 ms."
+msgstr ""
+
+#: data/io.github.tomaszbojanowski.Vumi.metainfo.xml.in:68
+msgid ""
+"Album pages open and close more smoothly, and so does a change of year on "
+"the Tuner."
+msgstr ""
+
+#: data/io.github.tomaszbojanowski.Vumi.metainfo.xml.in:69
+msgid ""
+"Fixes from a code audit: the screen after a failed login, server errors "
+"without a message, the same song twice in a list, album lengths, and Log Out."
+msgstr ""
+
+#: data/io.github.tomaszbojanowski.Vumi.metainfo.xml.in:70
+msgid ""
+"One permission fewer: the media controls' bus name, which Flatpak grants "
+"anyway."
+msgstr ""
+
+#: data/io.github.tomaszbojanowski.Vumi.metainfo.xml.in:76
 msgid ""
 "Vumi's media controls (MPRIS) now use its app ID as the player name, and "
 "About Vumi links to the new website, vumi.bojanowski.me."
 msgstr ""
 
-#: data/io.github.tomaszbojanowski.Vumi.metainfo.xml.in:68
+#: data/io.github.tomaszbojanowski.Vumi.metainfo.xml.in:81
 msgid ""
 "The first release: a fast player for Navidrome and other Subsonic servers, "
 "with the library kept on the computer, gapless playback, and similar songs "
 "and radio from AudioMuse-AI."
 msgstr ""
 
-#: app/src/main.rs:295
+#: app/src/main.rs:297
 msgid "Could not remove the password from the keyring"
 msgstr ""
 
-#: app/src/main.rs:396
+#: app/src/main.rs:398
 msgid "Playback Stopped"
 msgstr ""
 
-#: app/src/main.rs:460
+#: app/src/main.rs:462
 msgid "Could not read the password from the keyring"
 msgstr ""
 
-#: app/src/main.rs:465 app/src/main_view.rs:1463 app/src/login_page.rs:204
-#: app/src/album_page.rs:226 app/src/artist_page.rs:128
+#: app/src/main.rs:467 app/src/main_view.rs:1462 app/src/login_page.rs:204
+#: app/src/album_page.rs:227 app/src/artist_page.rs:128
 #: app/src/song_menu.rs:430 app/src/playlist_page.rs:126
 msgid "Something went wrong. Please try again."
 msgstr ""
 
-#: app/src/main.rs:495
+#: app/src/main.rs:497
 msgid "Wrong username or password."
 msgstr ""
 
-#: app/src/main.rs:497
+#: app/src/main.rs:499
 msgid "Cannot reach the server. Check the address and your connection."
 msgstr ""
 
-#: app/src/main.rs:500
+#: app/src/main.rs:502
 msgid "Invalid server address. It should start with http:// or https://"
 msgstr ""
 
-#: app/src/main.rs:503
+#: app/src/main.rs:505
 msgid "The server answered, but it does not look like a Subsonic server."
 msgstr ""
 
 #. Translators: {code} is the number of the error sent by the server.
-#: app/src/main.rs:508
+#: app/src/main.rs:510
 #, rust-format
 msgid "Server error (code {code})"
 msgstr ""
 
 #. Translators: {message} is the error text sent by the server.
-#: app/src/main.rs:511
+#: app/src/main.rs:513
 #, rust-format
 msgid "Server error: {message}"
 msgstr ""
 
-#: app/src/main.rs:566
+#: app/src/main.rs:568
 msgid "A music player for Navidrome and other Subsonic servers"
 msgstr ""
 
-#: app/src/main.rs:568
+#: app/src/main.rs:570
 msgid "translator-credits"
 msgstr ""
 
-#: app/src/main.rs:574
+#: app/src/main.rs:576
 msgid "Buy Me a Coffee"
 msgstr ""
 
-#: app/src/main.rs:578
+#: app/src/main.rs:580
 msgid "Built With"
 msgstr ""
 
-#: app/src/main.rs:608 app/src/preferences.blp:195
+#: app/src/main.rs:610 app/src/preferences.blp:195
 msgid "Playback"
 msgstr ""
 
-#: app/src/main.rs:610
+#: app/src/main.rs:612
 msgid "Play or Pause"
 msgstr ""
 
-#: app/src/main.rs:611
+#: app/src/main.rs:613
 msgid "Previous Track"
 msgstr ""
 
-#: app/src/main.rs:612
+#: app/src/main.rs:614
 msgid "Next Track"
 msgstr ""
 
-#: app/src/main.rs:616 app/src/main_view.blp:146 app/src/preferences.blp:143
+#: app/src/main.rs:618 app/src/main_view.blp:146 app/src/preferences.blp:143
 msgid "Library"
 msgstr ""
 
-#: app/src/main.rs:618
+#: app/src/main.rs:620
 msgid "Search Library"
 msgstr ""
 
-#: app/src/main.rs:619 app/src/main_view.blp:53 app/src/main_view.blp:529
+#: app/src/main.rs:621 app/src/main_view.blp:53 app/src/main_view.blp:529
 msgid "Sync Library"
 msgstr ""
 
-#: app/src/main.rs:623 app/src/preferences.blp:13
+#: app/src/main.rs:625 app/src/preferences.blp:13
 msgid "General"
 msgstr ""
 
-#: app/src/main.rs:625 app/src/main_view.blp:536
+#: app/src/main.rs:627 app/src/main_view.blp:536
 msgid "Preferences"
 msgstr ""
 
-#: app/src/main.rs:626 app/src/main_view.blp:541
+#: app/src/main.rs:628 app/src/main_view.blp:541
 msgid "Keyboard Shortcuts"
 msgstr ""
 
-#: app/src/main.rs:627 app/src/main_view.blp:551
+#: app/src/main.rs:629 app/src/main_view.blp:551
 msgid "Quit"
 msgstr ""
 
@@ -222,8 +265,8 @@ msgstr ""
 msgid "Artist"
 msgstr ""
 
-#: app/src/main_view.rs:1389 app/src/album_page.rs:633
-#: app/src/album_page.rs:818 app/src/now_playing.rs:294
+#: app/src/main_view.rs:1388 app/src/album_page.rs:640
+#: app/src/album_page.rs:804 app/src/now_playing.rs:294
 #: app/src/mini_player.rs:103 app/src/playlist_page.blp:85
 msgid "Play"
 msgstr ""
@@ -410,18 +453,18 @@ msgstr ""
 msgid "Original quality streaming and gapless playback."
 msgstr ""
 
-#: app/src/album_page.rs:167
+#: app/src/album_page.rs:168
 msgid "Connect to the server to see the tracks."
 msgstr ""
 
 #. Translators: {name} is the composer of (most of) the album's tracks.
-#: app/src/album_page.rs:307
+#: app/src/album_page.rs:308
 #, rust-format
 msgid "Composer: {name}"
 msgstr ""
 
 #. Translators: {n} is a number of discs.
-#: app/src/album_page.rs:368
+#: app/src/album_page.rs:373
 #, rust-format
 msgid "{n} disc"
 msgid_plural "{n} discs"
@@ -429,31 +472,31 @@ msgstr[0] ""
 msgstr[1] ""
 
 #. Translators: tracks of one album differ in quality, e.g. "FLAC · up to 24 bit / 96 kHz".
-#: app/src/album_page.rs:552
+#: app/src/album_page.rs:557
 #, rust-format
 msgid "{format} · up to {quality}"
 msgstr ""
 
-#: app/src/album_page.rs:629 app/src/now_playing.rs:289
+#: app/src/album_page.rs:636 app/src/now_playing.rs:289
 #: app/src/mini_player.rs:99 app/src/continue_tile.rs:133
 msgid "Pause"
 msgstr ""
 
-#: app/src/album_page.rs:631 app/src/continue_tile.rs:135
+#: app/src/album_page.rs:638 app/src/continue_tile.rs:135
 msgid "Resume"
 msgstr ""
 
 #. Translators: header above the tracks of one disc, e.g. "Disc 2".
-#: app/src/album_page.rs:701
+#: app/src/album_page.rs:712
 #, rust-format
 msgid "Disc {n}"
 msgstr ""
 
-#: app/src/album_page.rs:803
+#: app/src/album_page.rs:789
 msgid "Radio"
 msgstr ""
 
-#: app/src/album_page.rs:825 app/src/favorites_header.blp:102
+#: app/src/album_page.rs:811 app/src/favorites_header.blp:102
 #: app/src/playlist_page.blp:96
 msgid "Shuffle"
 msgstr ""
@@ -1059,14 +1102,14 @@ msgstr ""
 msgid "Now Playing"
 msgstr ""
 
-#: app/src/tuner.rs:249
+#: app/src/tuner.rs:240
 #, rust-format
 msgid "{n} album from this year in the library"
 msgid_plural "{n} albums from this year in the library"
 msgstr[0] ""
 msgstr[1] ""
 
-#: app/src/tuner.rs:428
+#: app/src/tuner.rs:412
 msgid "Could not play this year"
 msgstr ""
 

@@ -1,11 +1,11 @@
 [package]
 name = "cli"
-version = "0.1.1"
+version = "0.1.2"
 license = "GPL-3.0-or-later"
 repository = "https://github.com/TomaszBojanowski/vumi"
 edition = "2024"
 
 [dependencies]
 gstreamer = "0.25.4"
-subsonic = { version = "0.1.1", path = "../subsonic" }
+subsonic = { version = "0.1.2", path = "../subsonic" }
 tokio = { version = "1.53.1", features = ["macros", "rt-multi-thread"] }

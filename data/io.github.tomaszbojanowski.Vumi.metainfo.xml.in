@@ -10,6 +10,7 @@
   <description>
     <p>Vumi plays the music on your own Navidrome or Subsonic server. The library is kept on your computer, so it opens at once and stays quick even with thousands of albums.</p>
     <p>Pick up albums where you left them, go through the library year by year with the Tuner, and with AudioMuse-AI on the server, play similar songs and endless radio. Playback is gapless, and the music keeps playing when the window is closed.</p>
+    <p>Vumi stays quick on a big library. With 651 albums and 11,333 songs from a Navidrome server in the local network, the library is on screen 0.46 s after start, a first login shows the albums in 0.56 s, and while music plays in the background Vumi uses 0.45 % of one CPU core. It is a native GTK 4 app, with no web browser inside.</p>
   </description>
 
   <developer id="io.github.tomaszbojanowski">
@@ -58,6 +59,18 @@
   </screenshots>
 
   <releases>
+    <release version="0.1.2" date="2026-11-03">
+      <description>
+        <p>Vumi 0.1.2 is about speed. On a library of 651 albums from a Navidrome server in the local network:</p>
+        <ul>
+          <li>While music plays in the background, Vumi uses 0.45 % of one CPU core instead of 6.8 %.</li>
+          <li>Search results are on screen in 186 ms instead of 387 ms.</li>
+          <li>Album pages open and close more smoothly, and so does a change of year on the Tuner.</li>
+          <li>Fixes from a code audit: the screen after a failed login, server errors without a message, the same song twice in a list, album lengths, and Log Out.</li>
+          <li>One permission fewer: the media controls' bus name, which Flatpak grants anyway.</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.1.1" date="2026-11-02">
       <description>
         <p>Vumi's media controls (MPRIS) now use its app ID as the player name, and About Vumi links to the new website, vumi.bojanowski.me.</p>
