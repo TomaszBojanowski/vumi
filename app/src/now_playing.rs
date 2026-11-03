@@ -21,7 +21,7 @@ mod imp {
         #[template_child]
         pub revealer: gtk::TemplateChild<gtk::Revealer>,
         #[template_child]
-        pub pill: gtk::TemplateChild<gtk::Box>,
+        pub card: gtk::TemplateChild<gtk::Box>,
         #[template_child]
         pub progress: gtk::TemplateChild<gtk::Scale>,
         #[template_child]
@@ -67,7 +67,7 @@ mod imp {
         /// The progress timer; it exists only while music plays and the card
         /// is on screen.
         pub timer: RefCell<Option<glib::SourceId>>,
-        /// The pill's own colour class, rewritten for every new cover.
+        /// The card's own colour class, rewritten for every new cover.
         pub(crate) tint: OnceCell<tint::Dynamic>,
     }
 
@@ -108,7 +108,7 @@ impl NowPlaying {
         let imp = bar.imp();
 
         let tint = tint::Dynamic::new();
-        imp.pill.add_css_class(tint.class());
+        imp.card.add_css_class(tint.class());
         let _ = imp.tint.set(tint);
 
         imp.play_pause

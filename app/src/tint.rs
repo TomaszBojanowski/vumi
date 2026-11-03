@@ -139,16 +139,16 @@ pub(crate) fn page_stops((r, g, b): (u8, u8, u8), dark: bool) -> [Stop; 3] {
     ]
 }
 
-/// The now-playing pill: the cover colour mixed into the window background,
+/// The now-playing card: the cover colour mixed into the window background,
 /// so the text keeps its normal colour and stays readable on any cover. Only
 /// the progress line and the play button carry the colour at full strength.
-fn pill_rule(class: &str, (r, g, b): (u8, u8, u8)) -> String {
+fn card_rule(class: &str, (r, g, b): (u8, u8, u8)) -> String {
     let color = format!("rgb({r}, {g}, {b})");
-    // Two classes, so these win over the plain .now-playing-pill rules.
+    // Two classes, so these win over the plain .now-playing-card rules.
     [
-        format!(".now-playing-pill.{class} {{ background-color: color-mix(in srgb, {color} 30%, var(--window-bg-color)); }}"),
-        format!(".now-playing-pill.{class} .pill-progress highlight {{ background-color: color-mix(in srgb, {color} 30%, currentColor); }}"),
-        format!(".now-playing-pill.{class} .pill-play {{ background-color: color-mix(in srgb, {color} 45%, transparent); }}"),
+        format!(".now-playing-card.{class} {{ background-color: color-mix(in srgb, {color} 30%, var(--window-bg-color)); }}"),
+        format!(".now-playing-card.{class} .now-playing-progress highlight {{ background-color: color-mix(in srgb, {color} 30%, currentColor); }}"),
+        format!(".now-playing-card.{class} .now-playing-play {{ background-color: color-mix(in srgb, {color} 45%, transparent); }}"),
     ]
     .join("\n")
 }
@@ -237,7 +237,7 @@ pub(crate) fn reload() {
             rules
                 .borrow()
                 .values()
-                .map(|rule| pill_rule(&rule.class, rule.color))
+                .map(|rule| card_rule(&rule.class, rule.color))
                 .collect::<Vec<_>>()
                 .join("\n")
         })
@@ -260,7 +260,7 @@ pub(crate) fn reload() {
     });
 }
 
-/// A style class whose colour can change over time (the now-playing pill): the
+/// A style class whose colour can change over time (the now-playing card): the
 /// widget keeps one class and its rule is rewritten.
 pub struct Dynamic {
     id: u64,
@@ -280,7 +280,7 @@ impl Dynamic {
         &self.class
     }
 
-    /// The now-playing pill in the cover's colour (pill_rule).
+    /// The now-playing card in the cover's colour (card_rule).
     pub(crate) fn set_solid(&self, color: (u8, u8, u8)) {
         let class = self.class.clone();
         RULES.with(|rules| rules.borrow_mut().insert(self.id, Rule { class, color }));

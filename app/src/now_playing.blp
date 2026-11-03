@@ -9,7 +9,7 @@ template $VumiNowPlaying: Adw.Bin {
   child: Revealer revealer {
     transition-type: slide_up;
 
-    child: Box pill {
+    child: Box card {
       orientation: vertical;
       spacing: 10;
       margin-top: 6;
@@ -18,7 +18,7 @@ template $VumiNowPlaying: Adw.Bin {
       margin-end: 12;
 
       styles [
-        "now-playing-pill",
+        "now-playing-card",
       ]
 
       // Cover above the title; on a low window (set_compact) beside it.
@@ -49,7 +49,7 @@ template $VumiNowPlaying: Adw.Bin {
               overflow: hidden;
 
               styles [
-                "pill-cover",
+                "now-playing-cover",
               ]
 
               child: Image cover_placeholder {
@@ -82,7 +82,7 @@ template $VumiNowPlaying: Adw.Bin {
 
               styles [
                 "heading",
-                "pill-title",
+                "now-playing-title",
               ]
             }
 
@@ -130,7 +130,7 @@ template $VumiNowPlaying: Adw.Bin {
           }
 
           styles [
-            "pill-progress",
+            "now-playing-progress",
           ]
 
           adjustment: Adjustment {
@@ -200,7 +200,7 @@ template $VumiNowPlaying: Adw.Bin {
 
             styles [
               "circular",
-              "pill-play",
+              "now-playing-play",
             ]
           }
 

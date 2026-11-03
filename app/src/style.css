@@ -160,14 +160,14 @@ box.song-row.playing label.title {
 
 /* The now-playing card at the bottom of the sidebar; its colour comes from
    the cover (tint.rs). */
-.now-playing-pill {
+.now-playing-card {
   border-radius: 12px;
   border: 1px solid alpha(currentColor, 0.08);
   background-color: var(--headerbar-bg-color);
   transition: background-color 400ms ease, color 400ms ease;
 }
 
-.pill-cover {
+.now-playing-cover {
   border-radius: 8px;
   background-color: alpha(currentColor, 0.12);
 }
@@ -184,43 +184,43 @@ button.cover-button:active {
   box-shadow: none;
 }
 
-.pill-play {
+.now-playing-play {
   background-color: alpha(currentColor, 0.15);
 }
 
 /* Progress: a 4 px line, 6 px with a knob on hover. */
-.pill-progress {
+.now-playing-progress {
   padding: 6px 0 0 0;
   margin: 0;
 }
 
-.pill-progress trough,
-.pill-progress highlight {
+.now-playing-progress trough,
+.now-playing-progress highlight {
   min-height: 4px;
   border-radius: 3px;
 }
 
-.pill-progress trough {
+.now-playing-progress trough {
   background-color: alpha(currentColor, 0.15);
 }
 
-.pill-progress highlight {
+.now-playing-progress highlight {
   background-color: currentColor;
 }
 
-.pill-progress slider {
+.now-playing-progress slider {
   min-width: 0;
   min-height: 0;
   margin: 0;
   opacity: 0;
 }
 
-.pill-progress:hover trough,
-.pill-progress:hover highlight {
+.now-playing-progress:hover trough,
+.now-playing-progress:hover highlight {
   min-height: 6px;
 }
 
-.pill-progress:hover slider {
+.now-playing-progress:hover slider {
   min-width: 12px;
   min-height: 12px;
   margin: -5px 0;
@@ -253,16 +253,16 @@ button.artists-letter {
 
 /* The card: a slightly larger title and larger round buttons, with
    play/pause the largest because it is used the most. */
-.pill-title {
+.now-playing-title {
   font-size: 1.1em;
 }
 
-.now-playing-pill button.circular {
+.now-playing-card button.circular {
   min-width: 40px;
   min-height: 40px;
 }
 
-.now-playing-pill button.pill-play {
+.now-playing-card button.now-playing-play {
   min-width: 46px;
   min-height: 46px;
 }
