@@ -143,15 +143,51 @@ pub(crate) fn apply(widget: &impl IsA<gtk::Widget>, color: (u8, u8, u8)) {
     });
 }
 
+/// One stop of a page gradient: how far down the page it is, in pixels, and
+/// its colour as red, green, blue and alpha from 0 to 1.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub(crate) struct Stop {
+    pub(crate) at: f32,
+    pub(crate) rgba: [f32; 4],
+}
+
 /// The colour from the top of a page down, fading into the page's own
-/// background (album pages, Favorites). Softer in the light style, or dark
-/// covers drown the title.
-fn page_rule(class: &str, (r, g, b): (u8, u8, u8), dark: bool) -> String {
+/// background (album pages, Favorites): full at the top, less at 240 px, gone
+/// at 440 px. Softer in the light style, or dark covers drown the title.
+pub(crate) fn page_stops((r, g, b): (u8, u8, u8), dark: bool) -> [Stop; 3] {
     let (top, middle) = if dark { (0.6, 0.3) } else { (0.35, 0.15) };
+    let with = |alpha: f32| {
+        [
+            f32::from(r) / 255.0,
+            f32::from(g) / 255.0,
+            f32::from(b) / 255.0,
+            alpha,
+        ]
+    };
+    [
+        Stop {
+            at: 0.0,
+            rgba: with(top),
+        },
+        Stop {
+            at: 240.0,
+            rgba: with(middle),
+        },
+        Stop {
+            at: 440.0,
+            rgba: [0.0; 4],
+        },
+    ]
+}
+
+/// page_stops as a CSS background.
+fn page_rule(class: &str, (r, g, b): (u8, u8, u8), dark: bool) -> String {
+    let [top, middle, end] = page_stops((r, g, b), dark);
     format!(
         ".{class} {{ background-image: linear-gradient(to bottom, \
-         rgba({r}, {g}, {b}, {top}), rgba({r}, {g}, {b}, {middle}) 240px, \
-         transparent 440px); }}"
+         rgba({r}, {g}, {b}, {}), rgba({r}, {g}, {b}, {}) {}px, \
+         transparent {}px); }}",
+        top.rgba[3], middle.rgba[3], middle.at, end.at
     )
 }
 
@@ -224,14 +260,25 @@ pub(crate) fn card_share(color: (u8, u8, u8), dark: bool) -> u32 {
         .unwrap_or(0)
 }
 
-/// The flat colour of a card (the Tuner on the Start page): the cover colour
-/// mixed into the window background (card_share).
-pub(crate) fn card_rule(class: &str, (r, g, b): (u8, u8, u8), dark: bool) -> String {
-    let share = card_share((r, g, b), dark);
-    format!(
-        ".{class} {{ background-color: color-mix(in srgb, rgb({r}, {g}, {b}) {share}%, \
-         var(--window-bg-color)); }}"
-    )
+/// The flat colour of a card (the Tuner on the Start page): card_share
+/// percent of the cover colour mixed into Adwaita's window background, as
+/// color-mix in srgb mixes them; red, green, blue and alpha from 0 to 1.
+pub(crate) fn card_color(color: (u8, u8, u8), dark: bool) -> [f32; 4] {
+    let window = if dark { DARK_WINDOW } else { LIGHT_WINDOW };
+    let t = card_share(color, dark) as f32 / 100.0;
+    let mix = |c: u8, w: u8| (f32::from(c) * t + f32::from(w) * (1.0 - t)) / 255.0;
+    [
+        mix(color.0, window.0),
+        mix(color.1, window.1),
+        mix(color.2, window.2),
+        1.0,
+    ]
+}
+
+/// card_color as a CSS background.
+pub(crate) fn card_rule(class: &str, color: (u8, u8, u8), dark: bool) -> String {
+    let [r, g, b, _] = card_color(color, dark).map(|v| v * 255.0);
+    format!(".{class} {{ background-color: rgb({r}, {g}, {b}); }}")
 }
 
 /// "Cover Colors" in Preferences.
@@ -350,17 +397,41 @@ mod tests {
     }
 
     #[test]
-    fn the_card_takes_more_of_the_cover_in_the_dark_style() {
-        let dark = card_rule("tint-1", (200, 100, 50), true);
-        let light = card_rule("tint-1", (200, 100, 50), false);
-        for rule in [&dark, &light] {
-            assert!(rule.starts_with(".tint-1 {"), "{rule}");
-            assert!(rule.contains("rgb(200, 100, 50)"), "{rule}");
-            assert!(rule.contains("var(--window-bg-color)"), "{rule}");
-            assert!(!rule.contains("@media"), "{rule}");
+    fn the_page_fades_from_the_cover_colour_to_nothing() {
+        for (dark, top, middle) in [(true, 0.6, 0.3), (false, 0.35, 0.15)] {
+            let stops = page_stops((255, 0, 51), dark);
+            let at: Vec<f32> = stops.iter().map(|s| s.at).collect();
+            assert_eq!(at, [0.0, 240.0, 440.0]);
+            assert_eq!(stops[0].rgba, [1.0, 0.0, 0.2, top]);
+            assert_eq!(stops[1].rgba, [1.0, 0.0, 0.2, middle]);
+            assert_eq!(stops[2].rgba, [0.0; 4], "transparent at the end");
         }
-        assert!(dark.contains(" 35%"), "{dark}");
-        assert!(light.contains(" 20%"), "{light}");
+    }
+
+    #[test]
+    fn the_card_mixes_its_share_of_the_cover_into_the_window() {
+        // 35 % of a dark blue in the dark style: 0.35 * cover + 0.65 * window.
+        let [r, g, b, a] = card_color((30, 60, 120), true);
+        let expect = |c: f32, w: f32| (0.35 * c + 0.65 * w) / 255.0;
+        assert!((r - expect(30.0, 34.0)).abs() < 1e-6);
+        assert!((g - expect(60.0, 34.0)).abs() < 1e-6);
+        assert!((b - expect(120.0, 38.0)).abs() < 1e-6);
+        assert_eq!(a, 1.0);
+        // 20 % in the light style.
+        let [r, ..] = card_color((240, 200, 120), false);
+        assert!((r - (0.2 * 240.0 + 0.8 * 250.0) / 255.0).abs() < 1e-6);
+    }
+
+    #[test]
+    fn the_card_rule_is_the_card_colour() {
+        let rule = card_rule("tint-1", (30, 60, 120), true);
+        assert!(
+            rule.starts_with(".tint-1 { background-color: rgb("),
+            "{rule}"
+        );
+        assert!(!rule.contains("@media"), "{rule}");
+        let [r, g, b, _] = card_color((30, 60, 120), true).map(|v| v * 255.0);
+        assert!(rule.contains(&format!("rgb({r}, {g}, {b})")), "{rule}");
     }
 
     /// The luminance of the card's colour over Adwaita's window.
