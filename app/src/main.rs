@@ -8,6 +8,7 @@ mod continue_tile;
 mod cover_image;
 mod covers;
 mod dates;
+mod eq_bars;
 mod favorites;
 mod favorites_header;
 mod format;

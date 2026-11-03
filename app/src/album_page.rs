@@ -9,6 +9,7 @@ use std::cell::{Cell, RefCell};
 use std::collections::BTreeSet;
 use std::rc::Rc;
 
+use crate::eq_bars::Mode;
 use crate::favorites::{Favorite, star_button};
 use crate::{about, covers, error_message, format, player, runtime, tint};
 
@@ -410,7 +411,7 @@ pub(crate) struct TrackRow {
     song_id: String,
     row: adw::ActionRow,
     slot: gtk::Stack,
-    bars: gtk::Box,
+    bars: crate::eq_bars::EqBars,
 }
 
 /// One track: number (or a playing icon), title, duration, favourite star;
@@ -483,7 +484,7 @@ fn track_row(
         .css_classes(["dim-label", "numeric"])
         .build();
     // Three bars that bounce while the track plays and rest while it is paused.
-    let bars = crate::song_row::eq_bars();
+    let bars = crate::eq_bars::EqBars::new();
     let slot = gtk::Stack::new();
     slot.add_named(&number, Some("number"));
     slot.add_named(&bars, Some("icon"));
@@ -606,11 +607,13 @@ impl AlbumPage {
             track
                 .slot
                 .set_visible_child_name(if playing { "icon" } else { "number" });
-            if player.is_playing() {
-                track.bars.remove_css_class("paused");
+            track.bars.set_mode(if !player.is_playing() {
+                Mode::Paused
+            } else if playing {
+                Mode::Moving
             } else {
-                track.bars.add_css_class("paused");
-            }
+                Mode::Still
+            });
             if playing {
                 track.row.add_css_class("playing");
             } else {

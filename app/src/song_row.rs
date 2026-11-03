@@ -10,6 +10,8 @@ use gtk::glib;
 use gtk::prelude::*;
 use std::cell::{OnceCell, RefCell};
 
+use crate::eq_bars::{EqBars, Mode};
+
 mod imp {
     use super::*;
 
@@ -30,7 +32,7 @@ mod imp {
         pub duration: gtk::TemplateChild<gtk::Label>,
         /// The bars before the title, see-through unless the song plays, so
         /// the titles stay aligned either way.
-        pub bars: OnceCell<gtk::Box>,
+        pub bars: OnceCell<EqBars>,
         /// The song the row shows now.
         pub song: RefCell<Option<subsonic::Song>>,
     }
@@ -54,7 +56,7 @@ mod imp {
     impl ObjectImpl for SongRow {
         fn constructed(&self) {
             self.parent_constructed();
-            let bars = eq_bars();
+            let bars = EqBars::new();
             bars.set_opacity(0.0);
             self.prefixes.append(&bars);
             let _ = self.bars.set(bars);
@@ -142,70 +144,18 @@ impl SongRow {
     pub(crate) fn set_playing(&self, playing: bool, paused: bool) {
         if let Some(bars) = self.imp().bars.get() {
             bars.set_opacity(if playing { 1.0 } else { 0.0 });
-            if paused {
-                bars.add_css_class("paused");
+            bars.set_mode(if paused {
+                Mode::Paused
+            } else if playing {
+                Mode::Moving
             } else {
-                bars.remove_css_class("paused");
-            }
+                Mode::Still
+            });
         }
         if playing {
             self.add_css_class("playing");
         } else {
             self.remove_css_class("playing");
         }
-    }
-}
-
-/// Three bars that bounce while a track plays (style.css: .eq); the class
-/// "paused" makes them rest. Used by these rows (search results, Favorites,
-/// playlists, the queue) and by the track rows of album pages.
-pub(crate) fn eq_bars() -> gtk::Box {
-    let bars = gtk::Box::builder()
-        .spacing(2)
-        .halign(gtk::Align::End)
-        .valign(gtk::Align::Center)
-        .css_classes(["eq"])
-        .build();
-    for _ in 0..3 {
-        bars.append(&gtk::Box::builder().css_classes(["eq-bar"]).build());
-    }
-    bars
-}
-
-#[cfg(test)]
-mod tests {
-    /// The CSS rules of style.css as (selector, body), outside @keyframes.
-    fn rules(css: &str) -> Vec<(String, String)> {
-        css.split('}')
-            .filter_map(|block| block.rsplit_once('{'))
-            .map(|(selector, body)| {
-                let selector = selector.rsplit("*/").next().unwrap_or(selector);
-                (selector.trim().to_string(), body.trim().to_string())
-            })
-            .collect()
-    }
-
-    /// Each moving frame redraws the window: the bars move only in the row
-    /// that plays, never hidden in the other rows, and stand still while the
-    /// window is in the background.
-    #[test]
-    fn only_the_playing_row_moves_its_bars_and_not_in_the_background() {
-        let css = include_str!("style.css");
-        let all = rules(css);
-        let moving: Vec<&String> = all
-            .iter()
-            .filter(|(_, body)| body.contains("animation: eq-bounce"))
-            .map(|(selector, _)| selector)
-            .collect();
-        assert!(!moving.is_empty());
-        for selector in moving {
-            assert!(selector.contains(".playing"), "{selector}");
-        }
-        assert!(
-            all.iter()
-                .any(|(selector, body)| selector.contains(".eq-bar:backdrop")
-                    && body.contains("animation: none")),
-            "no rule stops the bars in the background"
-        );
     }
 }
