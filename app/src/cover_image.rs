@@ -5,7 +5,9 @@
 //! one. GTK's own downscaling is soft where the picture is much smaller than
 //! its source (it goes through mipmaps), which showed in the small playlist
 //! covers. The cover is shown whole and centred, never cropped; what a cover
-//! that is not square leaves of the frame is a neutral dark.
+//! that is not square leaves of the frame is a neutral dark. The downscaling
+//! runs in the background, not while the frame is drawn: a new cover shows
+//! once it is ready, a resized one keeps its former copy until then.
 //!
 //! `Square` is a square frame: of its child's own size, or (set_grows) as
 //! wide as it is given and as tall as that.
@@ -28,6 +30,10 @@ mod imp {
         /// The cover at the size it has on screen, in device pixels, kept
         /// until that size or the cover changes.
         pub scaled: RefCell<Option<gdk::Texture>>,
+        /// The size being made in the background, if any.
+        pub pending: Cell<Option<(i32, i32)>>,
+        /// One more for every cover: a copy made of an older one is dropped.
+        pub generation: Cell<u64>,
     }
 
     #[glib::object_subclass]
@@ -65,17 +71,21 @@ mod imp {
             let device_height = ((source_height as f32 * fit).round() as i32).max(1);
 
             let shown = if device_width < source_width {
-                let mut scaled = self.scaled.borrow_mut();
-                match scaled.as_ref() {
+                let scaled = self.scaled.borrow().clone();
+                match scaled {
                     Some(have)
                         if have.width() == device_width && have.height() == device_height =>
                     {
-                        have.clone()
+                        have
                     }
-                    _ => {
-                        let new = downscale(&texture, device_width, device_height);
-                        scaled.replace(new.clone());
-                        new
+                    other => {
+                        widget.scale_later(&texture, device_width, device_height);
+                        // Meanwhile the former copy (a new size), or nothing
+                        // yet (a new cover).
+                        let Some(other) = other else {
+                            return;
+                        };
+                        other
                     }
                 }
             } else {
@@ -202,21 +212,61 @@ impl CoverImage {
         let imp = self.imp();
         imp.texture.replace(texture.cloned());
         imp.scaled.replace(None);
+        imp.pending.set(None);
+        imp.generation.set(imp.generation.get() + 1);
         self.queue_draw();
+    }
+
+    /// Brings `texture` down to `width` x `height` in the background and
+    /// draws again with it. Only the copy of its pixels is made here.
+    fn scale_later(&self, texture: &gdk::Texture, width: i32, height: i32) {
+        let imp = self.imp();
+        if imp.pending.get() == Some((width, height)) {
+            return;
+        }
+        imp.pending.set(Some((width, height)));
+        let generation = imp.generation.get();
+        let (source_width, source_height) = (texture.width() as usize, texture.height() as usize);
+        let stride = source_width * 4;
+        let mut source = vec![0u8; stride * source_height];
+        // Premultiplied, so a see-through edge does not bleed its colour.
+        texture.download(&mut source, stride);
+        let image = self.downgrade();
+        glib::spawn_future_local(async move {
+            let (w, h) = (width as usize, height as usize);
+            let pixels = crate::runtime()
+                .spawn_blocking(move || downscale(&source, source_width, source_height, w, h))
+                .await;
+            let Some(image) = image.upgrade() else {
+                return;
+            };
+            let imp = image.imp();
+            // Another cover, or another size, meanwhile: this copy is not wanted.
+            if imp.generation.get() != generation || imp.pending.get() != Some((width, height)) {
+                return;
+            }
+            imp.pending.set(None);
+            if let Ok(pixels) = pixels {
+                imp.scaled
+                    .replace(Some(memory_texture(pixels, width, height)));
+                image.queue_draw();
+            }
+        });
     }
 }
 
-/// `texture` brought down to `width` x `height` pixels with a Lanczos filter
-/// (three lobes), the usual choice for making photos smaller: sharp, and
-/// without the jagged edges of plain sampling.
-fn downscale(texture: &gdk::Texture, width: i32, height: i32) -> gdk::Texture {
-    let (source_width, source_height) = (texture.width() as usize, texture.height() as usize);
-    let (width, height) = (width as usize, height as usize);
+/// `source` (4 bytes a pixel, as Texture::download gives them) brought down to
+/// `width` x `height` pixels with a Lanczos filter (three lobes), the usual
+/// choice for making photos smaller: sharp, and without the jagged edges of
+/// plain sampling. Any thread.
+fn downscale(
+    source: &[u8],
+    source_width: usize,
+    source_height: usize,
+    width: usize,
+    height: usize,
+) -> Vec<u8> {
     let stride = source_width * 4;
-    let mut source = vec![0u8; stride * source_height];
-    // Premultiplied, so a see-through edge does not bleed its colour.
-    texture.download(&mut source, stride);
-
     // Rows first, into fractions; then columns, back into bytes.
     let across = weights(source_width, width);
     let mut rows = vec![0f32; source_height * width * 4];
@@ -251,7 +301,11 @@ fn downscale(texture: &gdk::Texture, width: i32, height: i32) -> gdk::Texture {
             }
         }
     }
+    pixels
+}
 
+/// `pixels` of downscale() as a texture.
+fn memory_texture(pixels: Vec<u8>, width: i32, height: i32) -> gdk::Texture {
     // What Texture::download gives: Cairo's ARGB32, in the byte order of the
     // machine.
     let format = if cfg!(target_endian = "little") {
@@ -260,11 +314,11 @@ fn downscale(texture: &gdk::Texture, width: i32, height: i32) -> gdk::Texture {
         gdk::MemoryFormat::A8r8g8b8Premultiplied
     };
     gdk::MemoryTexture::new(
-        width as i32,
-        height as i32,
+        width,
+        height,
         format,
         &glib::Bytes::from_owned(pixels),
-        width * 4,
+        width as usize * 4,
     )
     .upcast()
 }
@@ -299,5 +353,47 @@ fn lanczos(x: f32) -> f32 {
     } else {
         let p = std::f32::consts::PI * x;
         3.0 * p.sin() * (p / 3.0).sin() / (p * p)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// A flat colour stays that colour, at the size asked for.
+    #[test]
+    fn a_flat_cover_stays_flat() {
+        let pixel = [40u8, 120, 200, 255];
+        let source: Vec<u8> = pixel.iter().copied().cycle().take(320 * 320 * 4).collect();
+        let small = downscale(&source, 320, 320, 96, 96);
+        assert_eq!(small.len(), 96 * 96 * 4);
+        for got in small.chunks(4) {
+            for (g, want) in got.iter().zip(pixel) {
+                assert!(g.abs_diff(want) <= 1, "{got:?}");
+            }
+        }
+    }
+
+    /// Halving a two-colour cover keeps the colours on their sides.
+    #[test]
+    fn the_halves_stay_where_they_are() {
+        let (left, right) = ([0u8, 0, 0, 255], [255u8, 255, 255, 255]);
+        let source: Vec<u8> = (0..64 * 64)
+            .flat_map(|i| if i % 64 < 32 { left } else { right })
+            .collect();
+        let small = downscale(&source, 64, 64, 32, 32);
+        assert!(
+            small[0..4]
+                .iter()
+                .zip(left)
+                .all(|(g, w)| g.abs_diff(w) <= 2)
+        );
+        let last = (32 * 32 - 1) * 4;
+        assert!(
+            small[last..last + 4]
+                .iter()
+                .zip(right)
+                .all(|(g, w)| g.abs_diff(w) <= 2)
+        );
     }
 }
