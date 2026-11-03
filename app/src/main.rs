@@ -12,6 +12,7 @@ mod eq_bars;
 mod favorites;
 mod favorites_header;
 mod format;
+mod grid_fill;
 mod library;
 mod login_page;
 mod main_view;

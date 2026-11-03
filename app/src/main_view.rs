@@ -14,7 +14,7 @@ use crate::album_card::AlbumCard;
 use crate::album_page::AlbumPage;
 use crate::artist_card::ArtistCard;
 use crate::artist_page::ArtistPage;
-use crate::{APP_NAME, covers, error_message, library, runtime, since_start};
+use crate::{APP_NAME, covers, error_message, grid_fill, library, runtime, since_start};
 
 /// One artist in the Artists grid.
 struct ArtistItem {
@@ -400,15 +400,12 @@ impl MainView {
             view.open_artist_from(grid, &artist.id, &artist.name, client);
         });
 
-        // The grid gets its model only when the section is first opened: with
-        // a model it makes cards (and loads pictures) for a few hundred artists
-        // even while hidden, and many never open this section.
-        let store = artists.clone();
-        imp.artists_grid.connect_map(move |grid| {
-            if grid.model().is_none() {
-                grid.set_model(Some(&gtk::NoSelection::new(Some(store.clone()))));
-            }
-        });
+        // The grid gets its artists only when the section is first opened: with
+        // them it makes cards (and loads pictures) for a few hundred artists
+        // even while hidden, and many never open this section. Then they come
+        // in parts: about a screen of cards at once, then 7 a frame (measured:
+        // a card on screen takes about 0.9 ms, one below it about 0.3 ms).
+        grid_fill::attach(&imp.artists_grid, &artists, 36, 7);
         imp.artists_grid.set_factory(Some(&factory));
         let _ = imp.artist_items.set(artists);
     }
@@ -1006,6 +1003,23 @@ impl MainView {
     /// first row, and moves the keyboard focus to that card.
     fn scroll_to_artist(&self, position: u32) {
         let grid = &self.imp().artists_grid;
+        // While the grid is still filling, all the artists first; the jump
+        // needs their rows laid out, which the next frame does.
+        if grid_fill::finish(grid) {
+            let view = self.downgrade();
+            let frames = Cell::new(0);
+            grid.add_tick_callback(move |_, _| {
+                frames.set(frames.get() + 1);
+                if frames.get() < 2 {
+                    return glib::ControlFlow::Continue;
+                }
+                if let Some(view) = view.upgrade() {
+                    view.scroll_to_artist(position);
+                }
+                glib::ControlFlow::Break
+            });
+            return;
+        }
         // scroll_to alone moves only as far as it must, which leaves an artist
         // further down in the last row on screen. All rows are as tall, so the
         // place of its row is known from the size of any one card.
