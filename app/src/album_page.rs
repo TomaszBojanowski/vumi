@@ -750,8 +750,6 @@ impl AlbumPage {
 impl AlbumPage {
     /// Puts a layer under the whole page, header bar included, for the
     /// cover-coloured gradient; the toolbar view on top of it is transparent.
-    /// In an unknown layout the old way stays (gradient on the toolbar, no
-    /// fade).
     fn add_backdrop(&self) {
         let imp = self.imp();
         if let Some(backdrop) = crate::tint_layer::TintLayer::under(&imp.toolbar.get()) {
@@ -761,14 +759,10 @@ impl AlbumPage {
 
     /// Applies the cover colour and fades it in.
     fn show_tint(&self, color: (u8, u8, u8)) {
-        let imp = self.imp();
-        let backdrop = imp.backdrop.borrow().clone();
-        match backdrop {
-            Some(backdrop) => {
-                backdrop.set_page(Some(color));
-                self.fade_in(&backdrop);
-            }
-            None => tint::apply(&imp.toolbar.get(), color),
+        let backdrop = self.imp().backdrop.borrow().clone();
+        if let Some(backdrop) = backdrop {
+            backdrop.set_page(Some(color));
+            self.fade_in(&backdrop);
         }
     }
 }

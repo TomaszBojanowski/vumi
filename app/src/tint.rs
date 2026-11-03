@@ -1,11 +1,8 @@
-//! Tints from the dominant colour of an album cover.
-//! Every widget tinted with apply() gets its own style class and rule,
-//! removed again when the widget is destroyed, so pages never share or steal
-//! colours. A Dynamic keeps one class whose rule is rewritten, never removed:
-//! its owners (the now-playing card, the Tuner, Favorites) last as long as
-//! the app.
-//! The rules are written for the style the app shows (Preferences can force
-//! light or dark), and again when it changes.
+//! Tints from the dominant colour of an album cover: the colour itself
+//! (dominant_color), the colours the pages and cards draw themselves
+//! (page_stops, card_color; tint_layer.rs), and the now-playing card's style
+//! rule (Dynamic). The rule follows the style the app shows through
+//! Adwaita's own colours, so one rule fits light and dark.
 
 use gtk::gdk;
 use gtk::prelude::*;
@@ -19,28 +16,10 @@ thread_local! {
     static NEXT_ID: Cell<u64> = const { Cell::new(0) };
 }
 
-/// What one tinted widget shows, in the colour of a cover.
-#[derive(Clone, Copy)]
-enum Tint {
-    /// The colour from the top of a page down (page_rule).
-    Page((u8, u8, u8)),
-    /// The now-playing pill (pill_rule).
-    Pill((u8, u8, u8)),
-}
-
-/// The tint of one widget and the style class it is drawn for.
+/// The cover colour of one tinted widget and the style class it is drawn for.
 struct Rule {
     class: String,
-    tint: Tint,
-}
-
-impl Rule {
-    fn css(&self, dark: bool) -> String {
-        match self.tint {
-            Tint::Page(color) => page_rule(&self.class, color, dark),
-            Tint::Pill(color) => pill_rule(&self.class, color),
-        }
-    }
+    color: (u8, u8, u8),
 }
 
 fn next_id() -> u64 {
@@ -123,23 +102,6 @@ pub(crate) fn dominant_color(texture: &gdk::Texture) -> Option<(u8, u8, u8)> {
     Some(((r / w) as u8, (g / w) as u8, (b / w) as u8))
 }
 
-/// Gives `widget` a background gradient in `color` that belongs to it alone
-/// (album pages).
-pub(crate) fn apply(widget: &impl IsA<gtk::Widget>, color: (u8, u8, u8)) {
-    let id = next_id();
-    let class = format!("album-tint-{id}");
-    widget.add_css_class(&class);
-    let tint = Tint::Page(color);
-    RULES.with(|rules| rules.borrow_mut().insert(id, Rule { class, tint }));
-    reload();
-
-    // The page is gone: drop its rule too.
-    widget.connect_destroy(move |_| {
-        RULES.with(|rules| rules.borrow_mut().remove(&id));
-        reload();
-    });
-}
-
 /// One stop of a page gradient: how far down the page it is, in pixels, and
 /// its colour as red, green, blue and alpha from 0 to 1.
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -177,17 +139,6 @@ pub(crate) fn page_stops((r, g, b): (u8, u8, u8), dark: bool) -> [Stop; 3] {
     ]
 }
 
-/// page_stops as a CSS background.
-fn page_rule(class: &str, (r, g, b): (u8, u8, u8), dark: bool) -> String {
-    let [top, middle, end] = page_stops((r, g, b), dark);
-    format!(
-        ".{class} {{ background-image: linear-gradient(to bottom, \
-         rgba({r}, {g}, {b}, {}), rgba({r}, {g}, {b}, {}) {}px, \
-         transparent {}px); }}",
-        top.rgba[3], middle.rgba[3], middle.at, end.at
-    )
-}
-
 /// The now-playing pill: the cover colour mixed into the window background,
 /// so the text keeps its normal colour and stays readable on any cover. Only
 /// the progress line and the play button carry the colour at full strength.
@@ -202,8 +153,8 @@ fn pill_rule(class: &str, (r, g, b): (u8, u8, u8)) -> String {
     .join("\n")
 }
 
-/// Adwaita's window backgrounds, against which a card's share of colour is
-/// chosen; the rule itself mixes with the theme's own colour.
+/// Adwaita's window backgrounds, into which a card's share of the cover
+/// colour is mixed (card_color).
 const LIGHT_WINDOW: (u8, u8, u8) = (250, 250, 251);
 const DARK_WINDOW: (u8, u8, u8) = (34, 34, 38);
 
@@ -278,19 +229,15 @@ pub(crate) fn enabled() -> bool {
     crate::settings().boolean("cover-colors")
 }
 
-/// Loads the rules for the style the app shows, or none when cover colours
-/// are off. The rules are kept either way, so turning the option back on
-/// shows them again at once. A media query in the rules would follow the
-/// system's style instead of one chosen in Preferences.
+/// Loads the rules, or none when cover colours are off. The rules are kept
+/// either way, so turning the option back on shows them again at once.
 pub(crate) fn reload() {
-    let style = adw::StyleManager::default();
     let css = if enabled() {
-        let dark = style.is_dark();
         RULES.with(|rules| {
             rules
                 .borrow()
                 .values()
-                .map(|rule| rule.css(dark))
+                .map(|rule| pill_rule(&rule.class, rule.color))
                 .collect::<Vec<_>>()
                 .join("\n")
         })
@@ -307,17 +254,14 @@ pub(crate) fn reload() {
                     gtk::STYLE_PROVIDER_PRIORITY_APPLICATION,
                 );
             }
-            // Another style: the rules again, written for it.
-            style.connect_dark_notify(|_| reload());
             provider
         });
         provider.load_from_string(&css);
     });
 }
 
-/// A style class whose colour can change over time (the now-playing pill,
-/// the Favorites page).
-/// Unlike apply(), the same widget keeps one class and its rule is rewritten.
+/// A style class whose colour can change over time (the now-playing pill): the
+/// widget keeps one class and its rule is rewritten.
 pub struct Dynamic {
     id: u64,
     class: String,
@@ -336,15 +280,11 @@ impl Dynamic {
         &self.class
     }
 
-    fn set(&self, tint: Tint) {
-        let class = self.class.clone();
-        RULES.with(|rules| rules.borrow_mut().insert(self.id, Rule { class, tint }));
-        reload();
-    }
-
     /// The now-playing pill in the cover's colour (pill_rule).
     pub(crate) fn set_solid(&self, color: (u8, u8, u8)) {
-        self.set(Tint::Pill(color));
+        let class = self.class.clone();
+        RULES.with(|rules| rules.borrow_mut().insert(self.id, Rule { class, color }));
+        reload();
     }
 
     /// Back to the default colours (no cover).
@@ -357,24 +297,6 @@ impl Dynamic {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn the_page_rule_has_no_media_query() {
-        // A media query follows the system's style, not one forced in
-        // Preferences: the rule is written for the style shown.
-        let dark = page_rule("tint-1", (200, 100, 50), true);
-        let light = page_rule("tint-1", (200, 100, 50), false);
-        for rule in [&dark, &light] {
-            assert!(!rule.contains("@media"), "{rule}");
-            assert!(rule.starts_with(".tint-1 {"), "{rule}");
-            assert!(rule.contains("rgba(200, 100, 50, "), "{rule}");
-        }
-        assert!(dark.contains(", 0.6)") && dark.contains(", 0.3)"), "{dark}");
-        assert!(
-            light.contains(", 0.35)") && light.contains(", 0.15)"),
-            "{light}"
-        );
-    }
 
     #[test]
     fn the_page_fades_from_the_cover_colour_to_nothing() {
