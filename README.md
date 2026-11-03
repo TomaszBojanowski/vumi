@@ -1,45 +1,85 @@
-# Vumi
+<p align="center">
+  <img src="data/icons/hicolor/256x256/apps/io.github.tomaszbojanowski.Vumi.png" width="128" height="128" alt="">
+</p>
 
-A fast GTK4/libadwaita music player for Navidrome and other Subsonic servers,
-with first-class AudioMuse-AI integration. Written in Rust.
+<h1 align="center">Vumi</h1>
+
+<p align="center">
+  A fast GTK 4 music player for Navidrome and other Subsonic servers, written in Rust.
+  With the AudioMuse-AI plugin on your Navidrome server, it also plays similar songs and
+  radio from the Start page and album pages.
+</p>
+
+<p align="center">
+  <a href="https://github.com/TomaszBojanowski/vumi/releases/latest"><img src="https://img.shields.io/github/v/release/TomaszBojanowski/vumi" alt="Latest release"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/TomaszBojanowski/vumi" alt="License"></a>
+  <a href="https://flatpak.bojanowski.me/io.github.tomaszbojanowski.Vumi.flatpakref"><img src="https://img.shields.io/badge/Flatpak-install-4a86cf?logo=flatpak&amp;logoColor=white" alt="Install with Flatpak"></a>
+</p>
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="data/screenshots/start-dark.png">
+    <img src="data/screenshots/start-light.png" alt="The Start page with recently played albums and the Tuner">
+  </picture>
+</p>
+
+<p align="center">
+  <b>0.46&nbsp;s</b> from start to my library on screen · <b>0.07&nbsp;%</b> of one CPU core while idle<br>
+  <sub>Vumi 0.1.2, 651 albums from a Navidrome server in my local network, medians of 5 runs: see <a href="#speed">Speed</a></sub>
+</p>
 
 Website: [vumi.bojanowski.me](https://vumi.bojanowski.me/)
 
-> Early development: used every day with the author's own library, but expect
-> rough edges.
-
-![The Start page with recently played albums and the Tuner](data/screenshots/1-start.png)
+> Early development: I use it every day with my own library, but expect rough
+> edges.
 
 ## Features
 
-- **Instant start:** the library comes from a local SQLite cache, so it is on
-  screen in a fraction of a second; the UI never waits for the network.
+### Library
+
+- **Instant start** from a local SQLite cache: the UI never waits for the network.
 - **Local full-text search** (FTS5) over the whole library.
 - **Albums, artists, playlists and favorites**, with composers on album pages.
-- **Start page:** the albums played lately, each resumed where it stopped;
-  the Tuner, a scale of the years in the library with Play This Year;
-  recently added albums; and albums with songs similar to what played last.
-- **Gapless playback**, repeat (queue or track), and optional volume
-  normalization from ReplayGain tags (off by default).
+
+### Start page
+
+- **Recently played** albums, each resumed where it stopped.
+- **The Tuner:** a scale of the years in the library, with Play This Year.
+- **Recently added** albums, and albums with songs similar to what played last.
+
+### Playback
+
+- **Gapless playback**, repeat (queue or track), optional ReplayGain normalization.
 - **AudioMuse-AI through Navidrome:** similar songs, endless radio, album radio.
-- **Keeps playing after the window is closed**, with MPRIS controls in GNOME Shell.
-- **Scrobbling** to the server, and a live "now playing" with pause and position
-  on servers with the OpenSubsonic `playbackReport` extension (Navidrome 0.62
-  and later). Both can be turned off.
-- **Light and dark style**, and colors taken from the album cover (optional).
-- **Narrow and low windows:** down to 366 px wide the sidebar folds away and
-  a compact player bar stays at the bottom; in low windows the player card
-  in the sidebar gets a small cover.
+- **Scrobbling** and a live "now playing" (OpenSubsonic, Navidrome 0.62+), both optional.
+
+### GNOME integration
+
+- **Keeps playing** after the window is closed, with MPRIS controls in GNOME Shell.
+- **Light and dark style**, with colors taken from the album cover (optional).
+- **Narrow and low windows:** down to 366 px wide, with a compact player bar.
 - **Keyboard shortcuts:** Ctrl+? lists them all.
 
-<img src="data/screenshots/4-narrow.png" alt="A narrow window with the compact player bar" width="300">
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="data/screenshots/album-narrow-dark.png">
+    <img src="data/screenshots/album-narrow-light.png" alt="An album page in a narrow window" width="300">
+  </picture>
+  &nbsp;
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="data/screenshots/start-narrow-dark.png">
+    <img src="data/screenshots/start-narrow-light.png" alt="The Start page in a narrow window, with the compact player bar" width="300">
+  </picture>
+  <br>
+  <sub>An album page and the Start page in a narrow window: the player becomes a bar at the bottom.</sub>
+</p>
 
 ## Speed
 
-Vumi is a native GTK 4 app written in Rust, with no web browser inside. Measured on the
-author's library: 651 albums and 11,333 songs on a Navidrome server in the local network.
+Vumi is a native GTK 4 app written in Rust, with no web browser inside. Measured on my
+library: 651 albums and 11,333 songs on a Navidrome server in my local network.
 
-| | |
+| Measurement | Vumi 0.1.2 |
 |---|---|
 | From start to the library on screen (saved login) | 0.46 s |
 | From the first login to the albums | 0.56 s |
@@ -49,7 +89,7 @@ author's library: 651 albums and 11,333 songs on a Navidrome server in the local
 | CPU while music plays, window in the background | 0.45 % of one core |
 | CPU while music plays, album page in front | 1.2 % of one core |
 
-Vumi 0.1.2, medians of 5 runs; a PC with an AMD Ryzen 7 9700X, a test compositor at 120 Hz.
+Vumi 0.1.2, medians of 5 runs on my PC (AMD Ryzen 7 9700X), in a test compositor at 120 Hz.
 
 ## Install
 
@@ -70,12 +110,20 @@ update itself.
 
 ## Building
 
-Vumi is built and run as a Flatpak:
+Vumi is built and run as a Flatpak. The `devel` branch keeps a build from source
+next to a Vumi installed from the repository, instead of replacing it:
 
 ```sh
 flatpak-builder --user --install --install-deps-from=flathub --force-clean \
-    flatpak-build io.github.tomaszbojanowski.Vumi.yml
-flatpak run io.github.tomaszbojanowski.Vumi
+    --default-branch=devel flatpak-build io.github.tomaszbojanowski.Vumi.yml
+flatpak run io.github.tomaszbojanowski.Vumi//devel
+```
+
+The installed `devel` branch becomes the current one, so the app menu starts it;
+this makes the released version current again:
+
+```sh
+flatpak make-current --user io.github.tomaszbojanowski.Vumi master
 ```
 
 ## Architecture
