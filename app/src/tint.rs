@@ -26,8 +26,6 @@ enum Tint {
     Page((u8, u8, u8)),
     /// The now-playing pill (pill_rule).
     Pill((u8, u8, u8)),
-    /// A flat card (card_rule).
-    Card((u8, u8, u8)),
 }
 
 /// The tint of one widget and the style class it is drawn for.
@@ -41,7 +39,6 @@ impl Rule {
         match self.tint {
             Tint::Page(color) => page_rule(&self.class, color, dark),
             Tint::Pill(color) => pill_rule(&self.class, color),
-            Tint::Card(color) => card_rule(&self.class, color, dark),
         }
     }
 }
@@ -275,12 +272,6 @@ pub(crate) fn card_color(color: (u8, u8, u8), dark: bool) -> [f32; 4] {
     ]
 }
 
-/// card_color as a CSS background.
-pub(crate) fn card_rule(class: &str, color: (u8, u8, u8), dark: bool) -> String {
-    let [r, g, b, _] = card_color(color, dark).map(|v| v * 255.0);
-    format!(".{class} {{ background-color: rgb({r}, {g}, {b}); }}")
-}
-
 /// "Cover Colors" in Preferences.
 fn enabled() -> bool {
     use gtk::gio::prelude::*;
@@ -356,17 +347,6 @@ impl Dynamic {
         self.set(Tint::Pill(color));
     }
 
-    /// The colour behind the top of a page, as on album pages (apply), for a
-    /// page whose colour changes (Favorites).
-    pub(crate) fn set_page(&self, color: (u8, u8, u8)) {
-        self.set(Tint::Page(color));
-    }
-
-    /// The flat colour of a card (card_rule).
-    pub(crate) fn set_card(&self, color: (u8, u8, u8)) {
-        self.set(Tint::Card(color));
-    }
-
     /// Back to the default colours (no cover).
     pub(crate) fn clear(&self) {
         RULES.with(|rules| rules.borrow_mut().remove(&self.id));
@@ -420,18 +400,6 @@ mod tests {
         // 20 % in the light style.
         let [r, ..] = card_color((240, 200, 120), false);
         assert!((r - (0.2 * 240.0 + 0.8 * 250.0) / 255.0).abs() < 1e-6);
-    }
-
-    #[test]
-    fn the_card_rule_is_the_card_colour() {
-        let rule = card_rule("tint-1", (30, 60, 120), true);
-        assert!(
-            rule.starts_with(".tint-1 { background-color: rgb("),
-            "{rule}"
-        );
-        assert!(!rule.contains("@media"), "{rule}");
-        let [r, g, b, _] = card_color((30, 60, 120), true).map(|v| v * 255.0);
-        assert!(rule.contains(&format!("rgb({r}, {g}, {b})")), "{rule}");
     }
 
     /// The luminance of the card's colour over Adwaita's window.

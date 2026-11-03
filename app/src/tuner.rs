@@ -31,7 +31,7 @@ mod imp {
     #[template(file = "src/tuner.blp")]
     pub struct Tuner {
         #[template_child]
-        pub card: gtk::TemplateChild<gtk::Box>,
+        pub card: gtk::TemplateChild<crate::tint_layer::TintCard>,
         #[template_child]
         pub header: gtk::TemplateChild<gtk::Box>,
         #[template_child]
@@ -62,10 +62,8 @@ mod imp {
         pub shown_year: Cell<Option<i32>>,
         /// The row waits for the year to stay (ROW_DELAY).
         pub row_timeout: RefCell<Option<glib::SourceId>>,
-        /// The card's colour: its rule, the cover it comes from, the colour
-        /// (None: plain), and the colour the rule shows now (None: no rule
-        /// written yet).
-        pub tint: OnceCell<crate::tint::Dynamic>,
+        /// The card's colour: the cover it comes from, the colour (None:
+        /// plain), and the colour the card shows now (None: not set yet).
         pub tint_cover: RefCell<Option<String>>,
         pub tint_color: Cell<Option<(u8, u8, u8)>>,
         pub tint_shown: Cell<Option<Option<(u8, u8, u8)>>>,
@@ -82,6 +80,7 @@ mod imp {
 
         fn class_init(klass: &mut Self::Class) {
             YearScale::static_type();
+            crate::tint_layer::TintCard::static_type();
             klass.bind_template();
         }
 
@@ -99,10 +98,6 @@ mod imp {
         fn dispose(&self) {
             if let Some(source) = self.row_timeout.take() {
                 source.remove();
-            }
-            // The card's colour rule goes with the card.
-            if let Some(tint) = self.tint.get() {
-                tint.clear();
             }
         }
     }
@@ -154,10 +149,6 @@ impl Tuner {
                 }
             }
         ));
-
-        let tint = crate::tint::Dynamic::new();
-        imp.card.add_css_class(tint.class());
-        let _ = imp.tint.set(tint);
 
         // The orange of the year and the needle is darker in the light style.
         // The style the app shows decides (Preferences can force either); a
@@ -365,10 +356,9 @@ impl Tuner {
         });
     }
 
-    /// Writes the rule of the card's colour, but not while the rows
-    /// crossfade: loading the rules again restyles the whole window (some
-    /// 50 ms), which would stall the fade. The end of the fade calls it
-    /// again, and the colour then changes smoothly (style.css).
+    /// Gives the card its colour once the rows have crossfaded (the end of
+    /// the fade calls it again); the colour then changes smoothly
+    /// (tint_layer.rs).
     fn apply_tint(&self) {
         let imp = self.imp();
         if imp.rows.is_transition_running() {
@@ -378,13 +368,7 @@ impl Tuner {
         if imp.tint_shown.replace(Some(color)) == Some(color) {
             return;
         }
-        let Some(tint) = imp.tint.get() else {
-            return;
-        };
-        match color {
-            Some(color) => tint.set_card(color),
-            None => tint.clear(),
-        }
+        imp.card.set_card(color);
     }
 
     /// "Play This Year": YEAR_SONGS songs at random from the year's albums,

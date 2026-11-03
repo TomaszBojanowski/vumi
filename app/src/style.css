@@ -399,11 +399,16 @@ progressbar.recent-tile-progress > trough > progress {
 }
 
 /* The Tuner card on the Start page (tuner.blp). Its colour comes from the
-   first cover of the year (tint.rs, card_rule) and changes smoothly. The
-   sides are 22 px: the text and the scale add 6 px of their own. */
+   first cover of the year and changes smoothly (tint_layer.rs, TintCard).
+   The sides are 22 px: the text and the scale add 6 px of their own. */
 .tuner {
   padding: 26px 22px 22px;
-  transition: background-color 250ms ease;
+}
+
+/* A card that draws its cover colour itself (tint_layer.rs, TintCard): once
+   the colour is in, the card's own background goes. */
+.tint-drawn {
+  background-color: transparent;
 }
 
 /* "Play This Year": a pill in the orange of the year, with dark text in

@@ -748,34 +748,15 @@ impl AlbumPage {
 }
 
 impl AlbumPage {
-    /// Puts an empty layer under the whole page, header bar included, for the
+    /// Puts a layer under the whole page, header bar included, for the
     /// cover-coloured gradient; the toolbar view on top of it is transparent.
+    /// In an unknown layout the old way stays (gradient on the toolbar, no
+    /// fade).
     fn add_backdrop(&self) {
         let imp = self.imp();
-        let toolbar = imp.toolbar.get();
-        let Some(parent) = toolbar.parent() else {
-            return;
-        };
-        let backdrop = crate::tint_layer::TintLayer::new();
-        let overlay = gtk::Overlay::new();
-        overlay.set_child(Some(&backdrop));
-
-        // Move the toolbar view from its parent onto the new layer.
-        let reparent = |set_child: &dyn Fn(Option<&gtk::Widget>)| {
-            set_child(None);
-            overlay.add_overlay(&toolbar);
-            overlay.set_measure_overlay(&toolbar, true);
-            set_child(Some(overlay.upcast_ref()));
-        };
-        if let Some(bin) = parent.downcast_ref::<adw::BreakpointBin>() {
-            reparent(&|child| bin.set_child(child));
-        } else if let Some(page) = parent.downcast_ref::<adw::NavigationPage>() {
-            reparent(&|child| page.set_child(child));
-        } else {
-            // Unknown layout: keep the old way (gradient on the toolbar, no fade).
-            return;
+        if let Some(backdrop) = crate::tint_layer::TintLayer::under(&imp.toolbar.get()) {
+            imp.backdrop.replace(Some(backdrop));
         }
-        imp.backdrop.replace(Some(backdrop));
     }
 
     /// Applies the cover colour and fades it in.

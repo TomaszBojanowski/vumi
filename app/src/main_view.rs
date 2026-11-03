@@ -167,7 +167,7 @@ mod imp {
         #[template_child]
         pub favorites_toolbar: gtk::TemplateChild<adw::ToolbarView>,
         /// The colour behind the header of the Favorites page.
-        pub favorites_tint: OnceCell<crate::tint::Dynamic>,
+        pub favorites_layer: OnceCell<crate::tint_layer::TintLayer>,
         /// The top of the Favorites page, put into its list.
         pub favorites_header: OnceCell<crate::favorites_header::FavoritesHeader>,
         /// What the Favorites page shows, as read from the database (songs
@@ -1208,18 +1208,17 @@ impl MainView {
         });
         // The page takes the colour of the header's first cover, fading
         // into its own background below the header.
-        let tint = imp.favorites_tint.get_or_init(crate::tint::Dynamic::new);
-        imp.favorites_toolbar.add_css_class(tint.class());
+        if imp.favorites_layer.get().is_none()
+            && let Some(layer) = crate::tint_layer::TintLayer::under(&imp.favorites_toolbar.get())
+        {
+            let _ = imp.favorites_layer.set(layer);
+        }
         let view = self.downgrade();
         header.connect_color(move |color| {
-            let Some(view) = view.upgrade() else {
-                return;
-            };
-            if let Some(tint) = view.imp().favorites_tint.get() {
-                match color {
-                    Some(color) => tint.set_page(color),
-                    None => tint.clear(),
-                }
+            if let Some(view) = view.upgrade()
+                && let Some(layer) = view.imp().favorites_layer.get()
+            {
+                layer.set_page(color);
             }
         });
         let _ = imp.favorites_header.set(header);
