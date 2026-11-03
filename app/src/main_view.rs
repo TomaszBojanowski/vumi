@@ -1573,7 +1573,12 @@ impl MainView {
                 .is_some()
         });
         if !on_stack {
+            // Straight in, without the slide: the results show as soon as
+            // they are there (the slide added about a quarter of a second).
+            let animate = nav.is_animate_transitions();
+            nav.set_animate_transitions(false);
             nav.push(&page);
+            nav.set_animate_transitions(animate);
         } else if nav.visible_page().as_ref() != Some(page_widget) {
             nav.pop_to_page(&page);
         }
