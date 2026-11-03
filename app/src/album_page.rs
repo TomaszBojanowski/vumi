@@ -338,20 +338,24 @@ impl AlbumPage {
             next: Cell::new(0),
             group: RefCell::new(None),
         });
+        // The first screenful now, so the page slides in filled; the rest once
+        // the slide-in is over, a few rows at a time, so no frame waits long.
         if self.build_rows(&builder, ROW_BATCH) {
-            let page = self.downgrade();
-            glib::idle_add_local(move || {
-                // The page was closed meanwhile: stop building.
-                let Some(page) = page.upgrade() else {
-                    return glib::ControlFlow::Break;
-                };
-                let more = page.build_rows(&builder, ROW_BATCH);
-                page.mark_playing();
-                if more {
-                    glib::ControlFlow::Continue
-                } else {
-                    glib::ControlFlow::Break
-                }
+            self.after_shown(move |page| {
+                let page = page.downgrade();
+                glib::idle_add_local(move || {
+                    // The page was closed meanwhile: stop building.
+                    let Some(page) = page.upgrade() else {
+                        return glib::ControlFlow::Break;
+                    };
+                    let more = page.build_rows(&builder, ROW_BATCH_LATER);
+                    page.mark_playing();
+                    if more {
+                        glib::ControlFlow::Continue
+                    } else {
+                        glib::ControlFlow::Break
+                    }
+                });
             });
         }
         self.mark_playing();
@@ -654,8 +658,12 @@ impl AlbumPage {
     }
 }
 
-/// How many track rows are built at a time (about one screenful).
+/// How many track rows are built before the page slides in (about one screenful).
 const ROW_BATCH: usize = 15;
+
+/// How many of the other rows are built at a time, after the slide-in: each
+/// batch and its layout fit well inside one frame at 120 Hz.
+const ROW_BATCH_LATER: usize = 5;
 
 /// Where building the track rows has got to (see show_tracks).
 struct RowBuilder {
