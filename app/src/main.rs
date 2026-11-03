@@ -30,6 +30,7 @@ mod song_menu;
 mod song_row;
 mod start_page;
 mod tint;
+mod tint_layer;
 mod tuner;
 mod welcome_page;
 mod year_scale;

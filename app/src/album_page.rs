@@ -62,7 +62,7 @@ mod imp {
         /// Running fade-in animations, kept alive until the page goes away.
         pub animations: RefCell<Vec<adw::TimedAnimation>>,
         /// Layer under the whole page that carries the cover-coloured gradient.
-        pub backdrop: RefCell<Option<gtk::Box>>,
+        pub backdrop: RefCell<Option<crate::tint_layer::TintLayer>>,
         /// The album this page was opened with (star and artist id included).
         pub album: RefCell<Option<subsonic::Album>>,
         /// The play queue: the album's songs, read by the buttons when clicked.
@@ -756,7 +756,7 @@ impl AlbumPage {
         let Some(parent) = toolbar.parent() else {
             return;
         };
-        let backdrop = gtk::Box::builder().can_target(false).build();
+        let backdrop = crate::tint_layer::TintLayer::new();
         let overlay = gtk::Overlay::new();
         overlay.set_child(Some(&backdrop));
 
@@ -784,7 +784,7 @@ impl AlbumPage {
         let backdrop = imp.backdrop.borrow().clone();
         match backdrop {
             Some(backdrop) => {
-                tint::apply(&backdrop, color);
+                backdrop.set_page(Some(color));
                 self.fade_in(&backdrop);
             }
             None => tint::apply(&imp.toolbar.get(), color),
