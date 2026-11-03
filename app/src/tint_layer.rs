@@ -18,6 +18,8 @@ mod imp {
         pub color: Cell<Option<(u8, u8, u8)>>,
         /// Redraws in the colours of the other style (light, dark).
         pub dark_handler: RefCell<Option<glib::SignalHandlerId>>,
+        /// Redraws when "Cover Colors" is turned on or off in Preferences.
+        pub setting_handler: RefCell<Option<glib::SignalHandlerId>>,
     }
 
     #[glib::object_subclass]
@@ -39,18 +41,28 @@ mod imp {
                 }
             });
             self.dark_handler.replace(Some(handler));
+            let layer = obj.downgrade();
+            let handler = crate::settings().connect_changed(Some("cover-colors"), move |_, _| {
+                if let Some(layer) = layer.upgrade() {
+                    layer.queue_draw();
+                }
+            });
+            self.setting_handler.replace(Some(handler));
         }
 
         fn dispose(&self) {
             if let Some(handler) = self.dark_handler.take() {
                 adw::StyleManager::default().disconnect(handler);
             }
+            if let Some(handler) = self.setting_handler.take() {
+                crate::settings().disconnect(handler);
+            }
         }
     }
 
     impl WidgetImpl for TintLayer {
         fn snapshot(&self, snapshot: &gtk::Snapshot) {
-            let Some(color) = self.color.get() else {
+            let Some(color) = self.color.get().filter(|_| tint::enabled()) else {
                 return;
             };
             let obj = self.obj();
@@ -140,6 +152,8 @@ mod card_imp {
         pub shown: Cell<Rgba>,
         pub animation: RefCell<Option<adw::TimedAnimation>>,
         pub dark_handler: RefCell<Option<glib::SignalHandlerId>>,
+        /// "Cover Colors" turned on or off in Preferences.
+        pub setting_handler: RefCell<Option<glib::SignalHandlerId>>,
     }
 
     #[glib::object_subclass]
@@ -162,11 +176,22 @@ mod card_imp {
                 }
             });
             self.dark_handler.replace(Some(handler));
+            let card = self.obj().downgrade();
+            let handler = crate::settings().connect_changed(Some("cover-colors"), move |_, _| {
+                if let Some(card) = card.upgrade() {
+                    card.settle();
+                    card.queue_draw();
+                }
+            });
+            self.setting_handler.replace(Some(handler));
         }
 
         fn dispose(&self) {
             if let Some(handler) = self.dark_handler.take() {
                 adw::StyleManager::default().disconnect(handler);
+            }
+            if let Some(handler) = self.setting_handler.take() {
+                crate::settings().disconnect(handler);
             }
         }
     }
@@ -179,6 +204,7 @@ mod card_imp {
             let [r, g, b, a] = self.shown.get();
             let obj = self.obj();
             if a > 0.0
+                && tint::enabled()
                 && let Some(rect) = obj.compute_bounds(&*obj)
             {
                 snapshot.push_rounded_clip(&gsk::RoundedRect::from_rect(rect, CARD_RADIUS));
@@ -200,6 +226,17 @@ glib::wrapper! {
 }
 
 impl TintCard {
+    /// The card's own background goes only under a colour fully in and
+    /// shown: without "Cover Colors" the card is plain.
+    fn settle(&self) {
+        let imp = self.imp();
+        if tint::enabled() && imp.color.get().is_some() && imp.shown.get()[3] >= 1.0 {
+            self.add_css_class("tint-drawn");
+        } else {
+            self.remove_css_class("tint-drawn");
+        }
+    }
+
     /// The colour the card should show now: none is the shown colour, clear.
     fn target(&self) -> Rgba {
         let dark = adw::StyleManager::default().is_dark();
@@ -250,10 +287,8 @@ impl TintCard {
         // blended once, as a CSS background's are (style.css: .tint-drawn).
         let card = self.downgrade();
         animation.connect_done(move |_| {
-            if let Some(card) = card.upgrade()
-                && card.imp().color.get().is_some()
-            {
-                card.add_css_class("tint-drawn");
+            if let Some(card) = card.upgrade() {
+                card.settle();
             }
         });
         animation.play();

@@ -273,7 +273,7 @@ pub(crate) fn card_color(color: (u8, u8, u8), dark: bool) -> [f32; 4] {
 }
 
 /// "Cover Colors" in Preferences.
-fn enabled() -> bool {
+pub(crate) fn enabled() -> bool {
     use gtk::gio::prelude::*;
     crate::settings().boolean("cover-colors")
 }
