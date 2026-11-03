@@ -288,8 +288,9 @@ row.playing label.title {
 }
 
 /* Bouncing bars on the playing track. Each bar has its own tempo and start,
-   so the motion looks natural. They are scaled, not resized, so only a few
-   pixels are redrawn. "Reduce animations" in GNOME stops them automatically. */
+   so the motion looks natural. "Reduce animations" in GNOME stops them
+   automatically. Each moving frame redraws the window, so only the bars of
+   the row that plays move: the hidden bars of the other rows stay still. */
 .eq {
   min-height: 12px;
 }
@@ -299,15 +300,18 @@ row.playing label.title {
   min-height: 12px;
   border-radius: 1px;
   background-color: var(--window-fg-color);
+}
+
+.playing .eq-bar {
   animation: eq-bounce 0.6s ease-in-out infinite alternate;
 }
 
-.eq-bar:nth-child(2) {
+.playing .eq-bar:nth-child(2) {
   animation-duration: 0.45s;
   animation-delay: -0.2s;
 }
 
-.eq-bar:nth-child(3) {
+.playing .eq-bar:nth-child(3) {
   animation-duration: 0.75s;
   animation-delay: -0.4s;
 }
@@ -317,7 +321,23 @@ row.playing label.title {
   to { transform: scaleY(1); }
 }
 
-/* Paused: the bars rest, low and still. */
+/* A window in the background: the bars stand still at different heights,
+   unlike the low bars of a paused track. */
+.eq-bar:backdrop {
+  animation: none;
+  transform: scaleY(0.65);
+}
+
+.eq-bar:backdrop:nth-child(2) {
+  transform: scaleY(1);
+}
+
+.eq-bar:backdrop:nth-child(3) {
+  transform: scaleY(0.45);
+}
+
+/* Paused: the bars rest, low and still, in the background too (after the
+   rules above, which are as specific). */
 .eq.paused .eq-bar {
   animation: none;
   transform: scaleY(0.3);

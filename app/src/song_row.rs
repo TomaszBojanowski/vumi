@@ -171,3 +171,41 @@ pub(crate) fn eq_bars() -> gtk::Box {
     }
     bars
 }
+
+#[cfg(test)]
+mod tests {
+    /// The CSS rules of style.css as (selector, body), outside @keyframes.
+    fn rules(css: &str) -> Vec<(String, String)> {
+        css.split('}')
+            .filter_map(|block| block.rsplit_once('{'))
+            .map(|(selector, body)| {
+                let selector = selector.rsplit("*/").next().unwrap_or(selector);
+                (selector.trim().to_string(), body.trim().to_string())
+            })
+            .collect()
+    }
+
+    /// Each moving frame redraws the window: the bars move only in the row
+    /// that plays, never hidden in the other rows, and stand still while the
+    /// window is in the background.
+    #[test]
+    fn only_the_playing_row_moves_its_bars_and_not_in_the_background() {
+        let css = include_str!("style.css");
+        let all = rules(css);
+        let moving: Vec<&String> = all
+            .iter()
+            .filter(|(_, body)| body.contains("animation: eq-bounce"))
+            .map(|(selector, _)| selector)
+            .collect();
+        assert!(!moving.is_empty());
+        for selector in moving {
+            assert!(selector.contains(".playing"), "{selector}");
+        }
+        assert!(
+            all.iter()
+                .any(|(selector, body)| selector.contains(".eq-bar:backdrop")
+                    && body.contains("animation: none")),
+            "no rule stops the bars in the background"
+        );
+    }
+}
