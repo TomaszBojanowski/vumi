@@ -330,8 +330,11 @@ impl MainView {
             }
         });
 
-        imp.grid
-            .set_model(Some(&gtk::NoSelection::new(Some(albums.clone()))));
+        // The grid gets its albums only when the section is first opened: with
+        // them it makes cards (and loads covers) for a few hundred albums even
+        // while hidden, which cost the start about 40 ms of work and frames of
+        // up to 50 ms. Then they come in parts, as in the Artists grid.
+        grid_fill::attach(&imp.grid, &albums, 48, 12);
         imp.grid.set_factory(Some(&factory));
         let _ = imp.albums.set(albums);
     }
@@ -803,9 +806,10 @@ impl MainView {
             view.imp().sort.replace(mode);
             view.refresh_grid();
 
-            // A new order starts from the top.
+            // A new order starts from the top (once the grid has its albums:
+            // it gets them when first shown).
             let imp = view.imp();
-            if imp.albums.get().is_some_and(|store| store.n_items() > 0) {
+            if imp.grid.model().is_some_and(|model| model.n_items() > 0) {
                 imp.grid.scroll_to(0, gtk::ListScrollFlags::NONE, None);
             }
         });
