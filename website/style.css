@@ -279,6 +279,39 @@ figcaption {
 
 .card p, .needs p { margin: 0; color: var(--dim); }
 
+/* Speed: the measured numbers in tiles, the same look as the cards. */
+.speed .lead {
+  max-width: 46rem;
+  margin: 0 0 18px;
+  color: var(--dim);
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.stats li {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px 20px;
+  color: var(--dim);
+}
+
+.stats strong {
+  display: block;
+  margin-bottom: 2px;
+  color: var(--fg);
+  font-size: 1.6rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
 .chip {
   flex: none;
   display: grid;
@@ -370,5 +403,6 @@ footer p { margin: 0 0 12px; }
     gap: 18px;
   }
   .cards { grid-template-columns: 1fr; grid-auto-rows: auto; }
+  .stats { grid-template-columns: repeat(2, 1fr); }
   .needs { grid-template-columns: 1fr; }
 }

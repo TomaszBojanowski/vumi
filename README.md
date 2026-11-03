@@ -34,6 +34,23 @@ Website: [vumi.bojanowski.me](https://vumi.bojanowski.me/)
 
 <img src="data/screenshots/4-narrow.png" alt="A narrow window with the compact player bar" width="300">
 
+## Speed
+
+Vumi is a native GTK 4 app written in Rust, with no web browser inside. Measured on the
+author's library: 651 albums and 11,333 songs on a Navidrome server in the local network.
+
+| | |
+|---|---|
+| From start to the library on screen (saved login) | 0.46 s |
+| From the first login to the albums | 0.56 s |
+| The window's first frame | 179 ms (261 ms on a cold start) |
+| CPU while idle | 0.07 % of one core |
+| From a typed phrase to the search results | 186 ms (150 ms of it is the search field's typing delay) |
+| CPU while music plays, window in the background | 0.45 % of one core |
+| CPU while music plays, album page in front | 1.2 % of one core |
+
+Vumi 0.1.2, medians of 5 runs; a PC with an AMD Ryzen 7 9700X, a test compositor at 120 Hz.
+
 ## Install
 
 ```sh
