@@ -63,8 +63,12 @@ pub(crate) struct Player {
     /// Counts the user's commands (play, stop, changes to the queue). Requests
     /// to the server remember it; an answer for an older command is dropped.
     command: Cell<u64>,
-    /// Where to jump once the new track is ready (resuming playback).
+    /// Where to jump once the new track is ready (resuming playback), and,
+    /// after a failed stream, where Play goes on from.
     pending_seek: Cell<Option<f64>>,
+    /// A stream has failed and the server is being asked whether it is still
+    /// there (stream_failed); what the user is told waits for the answer.
+    checking: Cell<bool>,
     /// Gapless: the next track (its id and address), read by GStreamer's
     /// about-to-finish signal (on its own thread) to start it without a gap.
     next_uri: Arc<Mutex<Option<(String, String)>>>,
@@ -203,6 +207,7 @@ impl Player {
                 leave_listeners: Listeners::new(),
                 command: Cell::new(0),
                 pending_seek: Cell::new(None),
+                checking: Cell::new(false),
                 next_uri,
                 switched_to,
                 _bus_watch: bus_watch,
@@ -290,7 +295,8 @@ impl Player {
         true
     }
 
-    /// Stops, remembers the error and tells the user.
+    /// Stops, remembers the error and tells the user (a track that could not
+    /// even be handed to GStreamer; a failed stream goes to stream_failed).
     fn fail(&self, message: String) {
         eprintln!("Playback error: {message}");
         let _ = self.playbin.set_state(gst::State::Null);
@@ -300,6 +306,85 @@ impl Player {
         }
         // A stream may fail because the server went away: the main view asks it.
         crate::reconnect::request_failed();
+    }
+
+    /// A stream failed: the server went away, or the track cannot be played.
+    /// Playback stops where it was, and Play goes on from there. Whether the
+    /// server is still there decides what the user is told: unless Vumi
+    /// already knows it is not, the server is asked (server_gone, or
+    /// track_failed). `same_track`: the error is the current track's own, not
+    /// that of a track handed to GStreamer ahead (gapless), which never began.
+    fn stream_failed(&self, same_track: bool) {
+        let at = if same_track {
+            self.position_secs()
+        } else {
+            None
+        };
+        let _ = self.playbin.set_state(gst::State::Null);
+        // A seek still waiting (resuming) is where the track was meant to be.
+        let resume = self
+            .pending_seek
+            .get()
+            .or(at)
+            .filter(|seconds| *seconds >= 1.0);
+        self.pending_seek.set(resume);
+        if crate::reconnect::is_offline() {
+            self.server_gone();
+            return;
+        }
+        let Some(client) = self.client.borrow().clone() else {
+            self.track_failed();
+            return;
+        };
+        // The main view asks too, at the same time: a server that hangs
+        // keeps both waiting for as long as one.
+        crate::reconnect::request_failed();
+        self.checking.set(true);
+        self.set_state(State::Failed(gettext("Could not play the track")));
+        let command = self.command.get();
+        gst::glib::spawn_future_local(async move {
+            let answer = crate::runtime()
+                .spawn(async move { client.ping().await })
+                .await;
+            let player = get();
+            player.checking.set(false);
+            // Something was started or stopped meanwhile: that counts now.
+            if !player.is_current(command) || player.failure().is_none() {
+                player.notify();
+                return;
+            }
+            match answer {
+                Ok(Err(subsonic::Error::Unreachable(_))) => player.server_gone(),
+                _ => player.track_failed(),
+            }
+        });
+    }
+
+    /// The server cannot be reached: the user is told that playing waits for
+    /// the connection, and the main view shows the offline state.
+    fn server_gone(&self) {
+        let message = gettext("Cannot play without a connection to the server");
+        self.set_state(State::Failed(message.clone()));
+        if let Some(handler) = self.error_handler.borrow().as_ref() {
+            handler(&message);
+        }
+        crate::reconnect::server_lost();
+    }
+
+    /// The server is there, the track is not playable (a broken or missing
+    /// file, a format GStreamer cannot read).
+    fn track_failed(&self) {
+        let message = gettext("Could not play the track");
+        self.set_state(State::Failed(message.clone()));
+        if let Some(handler) = self.error_handler.borrow().as_ref() {
+            handler(&message);
+        }
+    }
+
+    /// True while a failed stream waits for the server's answer: the error
+    /// the user will be told is not known yet.
+    pub(crate) fn is_checking(&self) -> bool {
+        self.checking.get()
     }
 
     /// A command that replaces or edits the queue, or picks a track by hand:
@@ -353,10 +438,15 @@ impl Player {
         of: QueueOf,
     ) {
         self.play(client, songs, start, of);
-        if seconds > 0.0 {
+        self.seek_when_ready(Some(seconds));
+    }
+
+    /// The track just loaded starts at `seconds` once it is ready.
+    fn seek_when_ready(&self, seconds: Option<f64>) {
+        if let Some(seconds) = seconds.filter(|seconds| *seconds > 0.0) {
             self.pending_seek.set(Some(seconds));
-            // play() has told the listeners about the track at its start; now
-            // they learn the second it is going to.
+            // The load has told the listeners about the track at its start;
+            // now they learn the second it is going to.
             self.notify();
         }
     }
@@ -464,7 +554,7 @@ impl Player {
     }
 
     /// Play/Pause: pauses or resumes; after the end of the queue it starts again,
-    /// after an error it tries the same track once more.
+    /// after an error it tries the same track once more, from where it stopped.
     pub(crate) fn toggle_pause(&self) {
         let state = self.state.borrow().clone();
         match state {
@@ -477,7 +567,11 @@ impl Player {
                 Err(_) => self.fail(gettext("Could not start playback")),
             },
             State::Ended => self.play_at(0),
-            State::Failed(_) => self.play_at(self.position.get()),
+            State::Failed(_) => {
+                let resume = self.pending_seek.get();
+                self.play_at(self.position.get());
+                self.seek_when_ready(resume);
+            }
             State::Idle => {}
         }
     }
@@ -555,15 +649,14 @@ impl Player {
                     self.seek(seconds);
                 }
             }
-            // Only the short error text: the debug details may contain the stream
-            // URL, and with it the login token.
+            // Only the short error text, and only in the log: the debug details
+            // may contain the stream URL, and with it the login token. The user
+            // is told in words of Vumi's own (stream_failed): GStreamer's
+            // ("Internal data stream error") say nothing to them.
             gst::MessageView::Error(err) => {
-                self.blame_pending_switch();
-                self.fail(format!(
-                    "{}: {}",
-                    gettext("Could not play the track"),
-                    err.error()
-                ));
+                eprintln!("Playback error: {}", err.error());
+                let handed_over = self.blame_pending_switch();
+                self.stream_failed(!handed_over);
             }
             _ => {}
         }
@@ -1103,10 +1196,10 @@ impl Player {
 
     /// Gapless: an error while a track handed to GStreamer has not begun yet
     /// is taken for that track's. It becomes the current one, so that Play
-    /// tries it again rather than the track before it.
-    fn blame_pending_switch(&self) {
+    /// tries it again rather than the track before it. True if there was one.
+    fn blame_pending_switch(&self) -> bool {
         let Some(id) = self.switched_to.lock().ok().and_then(|mut s| s.take()) else {
-            return;
+            return false;
         };
         let expected = self.following(self.position.get());
         let handed_over = self
@@ -1117,6 +1210,7 @@ impl Player {
         if handed_over {
             self.position.set(expected);
         }
+        true
     }
 
     /// A switch queued for the previous track must not move the queue on.
@@ -1310,7 +1404,7 @@ impl Player {
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use super::*;
 
     #[test]
@@ -1368,6 +1462,101 @@ mod tests {
         assert_eq!(calls.get(), 1);
         listeners.each(|listener| listener());
         assert_eq!(calls.get(), 11);
+    }
+
+    /// With a real playbin (playbin_tests.rs runs it): a stream that fails
+    /// is never shown in GStreamer's words. The server gone: playing waits
+    /// for the connection, and once it is back Play goes on where the track
+    /// stopped. The server there, the track not sound: it cannot be played.
+    pub(crate) fn a_failed_stream_says_why_and_play_goes_on_from_there(failures: &mut Vec<String>) {
+        use crate::playbin_tests::{Server, run_until, silent_wav};
+        use std::time::Duration;
+        let server = Server::start(silent_wav(60));
+        let client = subsonic::Client::new(&server.url, "user", "password");
+        let player = get();
+        let told: Rc<RefCell<Vec<String>>> = Rc::default();
+        {
+            let told = told.clone();
+            player.set_error_handler(move |message| told.borrow_mut().push(message.to_string()));
+        }
+        let offline = gettext("Cannot play without a connection to the server");
+        let cannot = gettext("Could not play the track");
+        let long = Duration::from_secs(15);
+
+        // The server goes three seconds into a track.
+        server.set_paced(true);
+        player.play(
+            client.clone(),
+            songs(&["a1", "a2"]).into(),
+            0,
+            QueueOf::Songs,
+        );
+        if !run_until(long, || {
+            player.is_playing() && player.position_secs().unwrap_or(0.0) >= 3.0
+        }) {
+            failures.push("a failed stream: a1 did not play".into());
+            return;
+        }
+        server.set_up(false);
+        let said = run_until(Duration::from_secs(40), || !told.borrow().is_empty());
+        let resume = player.resume_position().unwrap_or(0.0);
+        if !said
+            || *told.borrow() != [offline.clone()]
+            || player.failure().as_deref() != Some(offline.as_str())
+            || player.current().map(|song| song.id).as_deref() != Some("a1")
+            || resume < 2.5
+        {
+            failures.push(format!(
+                "the server gone: told {:?}, failure {:?}, current {:?}, resumes at {resume:.1} s",
+                told.borrow(),
+                player.failure(),
+                player.current().map(|song| song.id),
+            ));
+        }
+
+        // Back: Play goes on from there, not from the start.
+        server.set_up(true);
+        player.toggle_pause();
+        let playing = run_until(long, || {
+            player.is_playing() && player.position_secs().unwrap_or(0.0) > 0.0
+        });
+        let at = player.position_secs().unwrap_or(0.0);
+        if !playing
+            || player.current().map(|song| song.id).as_deref() != Some("a1")
+            || at < resume - 1.0
+        {
+            failures.push(format!(
+                "Play after the server came back: playing {playing}, at {at:.1} s of {:?}, resume was {resume:.1} s",
+                player.current().map(|song| song.id)
+            ));
+        }
+
+        // The server is there, the track is text: it cannot be played, and
+        // the queue stays as started, to go on with the next track.
+        server.set_paced(false);
+        server.set_not_audio(true);
+        told.borrow_mut().clear();
+        player.play(
+            client.clone(),
+            songs(&["b1", "b2"]).into(),
+            0,
+            QueueOf::Songs,
+        );
+        let said = run_until(long, || !told.borrow().is_empty());
+        if !said
+            || *told.borrow() != [cannot.clone()]
+            || player.failure().as_deref() != Some(cannot.as_str())
+            || player.current().map(|song| song.id).as_deref() != Some("b1")
+        {
+            failures.push(format!(
+                "a track that is not sound: told {:?}, failure {:?}, current {:?}",
+                told.borrow(),
+                player.failure(),
+                player.current().map(|song| song.id),
+            ));
+        }
+        server.set_not_audio(false);
+        player.stop();
     }
 
     fn songs(ids: &[&str]) -> Vec<subsonic::Song> {

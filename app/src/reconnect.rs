@@ -41,6 +41,7 @@ impl Gate {
 thread_local! {
     static ON_FAILURE: RefCell<Option<Box<dyn Fn()>>> = RefCell::new(None);
     static ON_WAKE: RefCell<Option<Box<dyn Fn()>>> = RefCell::new(None);
+    static ON_LOST: RefCell<Option<Box<dyn Fn()>>> = RefCell::new(None);
     static OFFLINE: Cell<bool> = const { Cell::new(false) };
 }
 
@@ -78,6 +79,21 @@ pub(crate) fn set_failure_handler(handler: impl Fn() + 'static) {
 /// may be gone.
 pub(crate) fn request_failed() {
     ON_FAILURE.with(|h| {
+        if let Some(handler) = h.borrow().as_ref() {
+            handler();
+        }
+    });
+}
+
+/// Who hears that the server could not be reached at all (the main view,
+/// which then asks it at once, however lately it did).
+pub(crate) fn set_lost_handler(handler: impl Fn() + 'static) {
+    ON_LOST.with(|h| h.replace(Some(Box::new(handler))));
+}
+
+/// The player asked the server after a failed stream, and got no answer.
+pub(crate) fn server_lost() {
+    ON_LOST.with(|h| {
         if let Some(handler) = h.borrow().as_ref() {
             handler();
         }
@@ -130,5 +146,10 @@ mod tests {
         request_failed();
         request_failed();
         assert_eq!(count.get(), 2);
+        let lost = std::rc::Rc::new(std::cell::Cell::new(0));
+        let seen = lost.clone();
+        set_lost_handler(move || seen.set(seen.get() + 1));
+        server_lost();
+        assert_eq!((count.get(), lost.get()), (2, 1));
     }
 }

@@ -20,6 +20,8 @@ mod mini_player;
 mod mpris;
 mod now_playing;
 mod offline_banner;
+#[cfg(test)]
+mod playbin_tests;
 mod player;
 mod playlist_page;
 mod preferences;
@@ -157,6 +159,13 @@ fn build_ui(app: &adw::Application) {
         reconnect::set_failure_handler(move || {
             if let Some(main) = main_weak.upgrade() {
                 main.check_connection();
+            }
+        });
+        // The player found the server gone: asked again at once.
+        let main_weak = main.downgrade();
+        reconnect::set_lost_handler(move || {
+            if let Some(main) = main_weak.upgrade() {
+                main.server_lost();
             }
         });
     }
@@ -436,8 +445,11 @@ fn build_ui(app: &adw::Application) {
             let (Some(window), Some(app)) = (window_weak.upgrade(), app_weak.upgrade()) else {
                 return;
             };
-            if !window.is_visible() && !crate::player::get().is_active() {
-                if let Some(message) = crate::player::get().failure() {
+            // A failed stream waits for the server's answer: the message
+            // (and so the notification) comes with it.
+            let player = crate::player::get();
+            if !window.is_visible() && !player.is_active() && !player.is_checking() {
+                if let Some(message) = player.failure() {
                     let notification = gtk::gio::Notification::new(&gettext("Playback Stopped"));
                     notification.set_body(Some(&message));
                     app.send_notification(Some("playback-error"), &notification);

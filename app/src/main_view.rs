@@ -714,6 +714,13 @@ impl MainView {
         });
     }
 
+    /// The player asked the server after a failed stream and got no answer:
+    /// the view asks it too, now, however lately it did.
+    pub(crate) fn server_lost(&self) {
+        self.imp().check_gate.replace(Default::default());
+        self.check_connection();
+    }
+
     /// What is known about the connection now (Preferences shows it).
     pub(crate) fn connection(&self) -> Connection {
         self.imp().connection.borrow().clone()

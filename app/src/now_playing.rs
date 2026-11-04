@@ -373,9 +373,11 @@ impl NowPlaying {
         }
     }
 
-    /// Moves the progress line and the time label to the current position.
+    /// Moves the progress line and the time label to the current position:
+    /// where the track is, or where it is going to start (resuming, and after
+    /// a failed stream, where Play goes on from).
     fn tick(&self) {
-        self.show_position(player::get().position_secs().unwrap_or(0.0));
+        self.show_position(player::get().resume_position().unwrap_or(0.0));
     }
 
     fn show_position(&self, position: f64) {

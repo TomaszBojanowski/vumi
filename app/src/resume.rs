@@ -130,113 +130,15 @@ fn remember(settings: &gio::Settings, song: &subsonic::Song, seconds: f64) {
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     //! Where an album stopped is remembered when the player leaves it by hand,
-    //! and only albums started as albums go into the history.
-    //! A real playbin plays a silent WAV from a local HTTP server into a
-    //! fakesink; the settings are kept in memory, so nothing outside the test
-    //! changes.
+    //! and only albums started as albums go into the history. With a real
+    //! playbin: playbin_tests.rs runs it.
     use super::*;
-    use gtk::glib;
+    use crate::playbin_tests::{Server, run_until, silent_wav};
     use std::cell::Cell;
-    use std::io::{Read, Write};
-    use std::net::{TcpListener, TcpStream};
     use std::rc::Rc;
-    use std::time::{Duration, Instant};
-
-    /// `seconds` of silence: 8 kHz, mono, 16 bit.
-    fn silent_wav(seconds: u32) -> Vec<u8> {
-        let rate = 8000u32;
-        let data = rate * 2 * seconds;
-        let mut wav = Vec::with_capacity(44 + data as usize);
-        wav.extend_from_slice(b"RIFF");
-        wav.extend_from_slice(&(36 + data).to_le_bytes());
-        wav.extend_from_slice(b"WAVEfmt ");
-        wav.extend_from_slice(&16u32.to_le_bytes());
-        wav.extend_from_slice(&1u16.to_le_bytes()); // PCM
-        wav.extend_from_slice(&1u16.to_le_bytes()); // mono
-        wav.extend_from_slice(&rate.to_le_bytes());
-        wav.extend_from_slice(&(rate * 2).to_le_bytes());
-        wav.extend_from_slice(&2u16.to_le_bytes());
-        wav.extend_from_slice(&16u16.to_le_bytes());
-        wav.extend_from_slice(b"data");
-        wav.extend_from_slice(&data.to_le_bytes());
-        wav.resize(44 + data as usize, 0);
-        wav
-    }
-
-    /// Answers every request with `wav` (the stream URL and the server's other
-    /// calls alike) and returns the server's address.
-    fn serve(wav: Vec<u8>) -> String {
-        let listener = TcpListener::bind("127.0.0.1:0").expect("no local port");
-        let port = listener.local_addr().expect("no local address").port();
-        std::thread::spawn(move || {
-            for stream in listener.incoming().flatten() {
-                let wav = wav.clone();
-                std::thread::spawn(move || answer(stream, &wav));
-            }
-        });
-        format!("http://127.0.0.1:{port}")
-    }
-
-    fn answer(mut stream: TcpStream, wav: &[u8]) {
-        let mut request = [0u8; 4096];
-        let _ = stream.read(&mut request);
-        let head = format!(
-            "HTTP/1.1 200 OK\r\nContent-Type: audio/x-wav\r\nContent-Length: {}\r\n\
-             Connection: close\r\n\r\n",
-            wav.len()
-        );
-        let _ = stream.write_all(head.as_bytes());
-        let _ = stream.write_all(wav);
-    }
-
-    /// The directory of the compiled schema, removed when the test ends.
-    struct Schemas(std::path::PathBuf);
-
-    impl Drop for Schemas {
-        fn drop(&mut self) {
-            // GSettings keeps the file it read open; on Linux it stays
-            // readable after the removal.
-            let _ = std::fs::remove_dir_all(&self.0);
-        }
-    }
-
-    /// The app's schema, compiled into a directory of the test, and settings
-    /// that live in memory. Must run before anything reads a setting.
-    fn settings_in_memory() -> Schemas {
-        let dir = std::env::temp_dir().join(format!("vumi-test-{}", std::process::id()));
-        std::fs::create_dir_all(&dir).expect("no temporary directory");
-        let status = std::process::Command::new("glib-compile-schemas")
-            .arg("--targetdir")
-            .arg(&dir)
-            .arg(concat!(env!("CARGO_MANIFEST_DIR"), "/../data"))
-            .status()
-            .expect("glib-compile-schemas is missing");
-        assert!(status.success(), "the schema does not compile");
-        // SAFETY: the first thing this test does, before GStreamer, tokio or
-        // GSettings start any thread that reads the environment; it is the only
-        // test of this program that touches settings or the environment.
-        unsafe {
-            std::env::set_var("GSETTINGS_SCHEMA_DIR", &dir);
-            std::env::set_var("GSETTINGS_BACKEND", "memory");
-        }
-        Schemas(dir)
-    }
-
-    /// Runs the main loop until `done` holds, at most `limit`.
-    fn run_until(limit: Duration, done: impl Fn() -> bool) -> bool {
-        let context = glib::MainContext::default();
-        let start = Instant::now();
-        while start.elapsed() < limit {
-            while context.iteration(false) {}
-            if done() {
-                return true;
-            }
-            std::thread::sleep(Duration::from_millis(20));
-        }
-        done()
-    }
+    use std::time::Duration;
 
     fn song(id: &str, album: &str) -> subsonic::Song {
         subsonic::Song {
@@ -270,17 +172,12 @@ mod tests {
             .map(|played| (played.song_id, played.seconds))
     }
 
-    #[test]
-    fn only_albums_played_as_albums_go_into_the_history_and_keep_their_place() {
-        let _schemas = settings_in_memory();
-        let context = glib::MainContext::default();
-        let _owner = context.acquire().expect("the main context is taken");
-        crate::settings()
-            .set_boolean("report-listens", false)
-            .expect("report-listens cannot be set");
-        let client = subsonic::Client::new(&serve(silent_wav(30)), "user", "password");
+    pub(crate) fn only_albums_played_as_albums_go_into_the_history_and_keep_their_place(
+        failures: &mut Vec<String>,
+    ) {
+        let server = Server::start(silent_wav(30));
+        let client = subsonic::Client::new(&server.url, "user", "password");
         let player = player::get();
-        player.use_fake_sink();
         watch();
         let long = Duration::from_secs(15);
         let played_for = |seconds: f64| {
@@ -288,7 +185,6 @@ mod tests {
                 player.is_playing() && player.position_secs().unwrap_or(0.0) >= seconds
             })
         };
-        let mut failures = Vec::new();
 
         // "Resume" on the Last Played card, then at once another album: the
         // first one keeps the second it was resumed at.
@@ -412,7 +308,5 @@ mod tests {
             failures.push("the volume was not written after the steps".into());
         }
         player.disconnect(listener);
-
-        assert!(failures.is_empty(), "{}", failures.join("; "));
     }
 }
