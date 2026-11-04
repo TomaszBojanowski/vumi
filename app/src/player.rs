@@ -429,6 +429,12 @@ impl Player {
         self.undo.replace(Some(undo));
     }
 
+    /// True from the user's start of a track until it plays: its stream may
+    /// still fail, and the queue before it come back.
+    pub(crate) fn is_starting(&self) -> bool {
+        self.undo.borrow().is_some()
+    }
+
     /// True while a failed stream waits for the server's answer: the error
     /// the user will be told is not known yet.
     pub(crate) fn is_checking(&self) -> bool {
@@ -726,16 +732,20 @@ impl Player {
             // A track has begun: if about-to-finish queued it, this is the gapless
             // step to the next track in the queue.
             gst::MessageView::StreamStart(..) => {
-                self.undo.take();
                 let begun = self.switched_to.lock().ok().and_then(|mut s| s.take());
                 if let Some(id) = begun {
                     self.advance_gapless(&id);
                 }
             }
-            // The new track is ready: a pending seek (resuming) takes effect now,
-            // and the queue before it is not needed any more.
+            // The new track is ready: a pending seek (resuming) takes effect now.
+            // A track the user started has begun: the queue before it is not
+            // needed any more, and the listeners hear of it (the history of
+            // played albums takes the album now, still with the second the
+            // seek is going to).
             gst::MessageView::AsyncDone(..) => {
-                self.undo.take();
+                if self.undo.take().is_some() {
+                    self.notify();
+                }
                 if let Some(seconds) = self.pending_seek.take() {
                     self.seek(seconds);
                 }

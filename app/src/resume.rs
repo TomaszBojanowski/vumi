@@ -98,8 +98,9 @@ fn save(settings: &gio::Settings) {
     let player = player::get();
     // Only while a track is in progress (playing or paused). After an error or
     // the end of the queue there is no position any more, and saving 0 would
-    // lose the real point to resume from.
-    if !player.is_active() {
+    // lose the real point to resume from. A track just started counts once it
+    // plays: one that never comes (the server gone) leaves no trace.
+    if !player.is_active() || player.is_starting() {
         return;
     }
     let Some(song) = player.current() else {
@@ -209,6 +210,24 @@ pub(crate) mod tests {
         if !remembered("B").is_some_and(|(id, seconds)| id == "b1" && seconds >= 2) {
             failures.push(format!("another album started: B is {:?}", remembered("B")));
         }
+
+        // A click on another album's track with the server gone: it never
+        // plays, so the history stays as it is.
+        assert!(played_for(0.5), "C did not play");
+        let before = snapshot();
+        server.set_up(false);
+        player.play(client.clone(), vec![song("g1", "G")].into(), 0, album("G"));
+        let failed = run_until(long, || {
+            player.failure().is_some() && player.current().is_some_and(|s| s.id == "c1")
+        });
+        if !failed || snapshot() != before {
+            failures.push(format!(
+                "a track that never played: back to c1 {failed}, history {:?}",
+                snapshot()
+            ));
+        }
+        server.set_up(true);
+        player.play(client.clone(), vec![song("c1", "C")].into(), 0, album("C"));
 
         // Stop (MPRIS) after two seconds and more.
         assert!(played_for(2.3), "C did not play");
