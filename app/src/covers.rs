@@ -66,6 +66,29 @@ pub(crate) fn set_server(key: String) {
     }
 }
 
+/// Picks the cover for a song (MainView::song_cover).
+type SongCover = Box<dyn Fn(&subsonic::Song) -> Option<String>>;
+
+thread_local! {
+    static SONG_COVER: std::cell::RefCell<Option<SongCover>> = const { std::cell::RefCell::new(None) };
+}
+
+/// How a song's cover is picked: the main view sets it (its album's cover).
+pub(crate) fn set_song_cover(pick: impl Fn(&subsonic::Song) -> Option<String> + 'static) {
+    SONG_COVER.with(|cover| cover.replace(Some(Box::new(pick))));
+}
+
+/// The cover to show for `song` wherever it plays (the sidebar card, the mini
+/// player, GNOME Shell): its album's, as the album page and the grid show it,
+/// and as the cache keeps it, offline too. The song's own until the main
+/// view says otherwise.
+pub(crate) fn song_cover(song: &subsonic::Song) -> Option<String> {
+    SONG_COVER.with(|cover| match cover.borrow().as_ref() {
+        Some(pick) => pick(song),
+        None => song.cover_art.clone(),
+    })
+}
+
 /// A stable, collision-free file name: MD5 of server, cover id and size.
 /// (Rust's own hasher may change between compiler versions; MD5 never does.)
 fn cache_path(server: &str, id: &str) -> PathBuf {

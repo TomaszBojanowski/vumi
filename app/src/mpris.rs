@@ -237,8 +237,7 @@ fn metadata() -> glib::Variant {
         if let Some(seconds) = song.duration {
             dict.insert_value("mpris:length", &(seconds as i64 * 1_000_000).to_variant());
         }
-        if let Some(uri) = song
-            .cover_art
+        if let Some(uri) = crate::covers::song_cover(&song)
             .as_deref()
             .and_then(crate::covers::cached_path)
             .and_then(|path| glib::filename_to_uri(path, None).ok())
@@ -364,7 +363,10 @@ fn emit_seeked(connection: &gio::DBusConnection, seconds: f64) {
 /// there.
 fn fetch_missing_cover() {
     let player = player::get();
-    let Some(id) = player.current().and_then(|song| song.cover_art) else {
+    let Some(id) = player
+        .current()
+        .and_then(|song| crate::covers::song_cover(&song))
+    else {
         return;
     };
     if crate::covers::cached_path(&id).is_some() {
@@ -384,7 +386,7 @@ fn fetch_missing_cover() {
         // Only if it really arrived, and still for the same track: no loop.
         let same_track = player::get()
             .current()
-            .and_then(|song| song.cover_art)
+            .and_then(|song| crate::covers::song_cover(&song))
             .as_deref()
             == Some(id.as_str());
         if same_track && crate::covers::cached_path(&id).is_some() {

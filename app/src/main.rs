@@ -205,6 +205,14 @@ fn build_ui(app: &adw::Application) {
 
     // Short in-app messages (e.g. a failed action) appear over the whole window.
     let toasts = adw::ToastOverlay::new();
+    // Wherever a song plays, it shows its album's cover.
+    {
+        let main_weak = main.downgrade();
+        covers::set_song_cover(move |song| match main_weak.upgrade() {
+            Some(main) => main.song_cover(song),
+            None => song.cover_art.clone(),
+        });
+    }
     // The now-playing card lives at the bottom of the sidebar.
     main.set_now_playing(&NowPlaying::new());
 

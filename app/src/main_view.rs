@@ -1042,10 +1042,11 @@ impl MainView {
         }
     }
 
-    /// The cover to show for `song`: its album's, as the album page and the
-    /// grid show it (and as the cache keeps it, offline too); the song's own
-    /// when its album is not in the library. Tracks have cover ids of their
-    /// own on the server, which the cache has only if they were shown.
+    /// The cover to show for `song` (covers::song_cover): its album's, as the
+    /// album page and the grid show it (and as the cache keeps it, offline
+    /// too); the song's own when its album is not in the library. Tracks have
+    /// cover ids of their own on the server, which the cache has only if they
+    /// were shown.
     pub(crate) fn song_cover(&self, song: &subsonic::Song) -> Option<String> {
         let album = song.album_id.as_deref().and_then(|id| {
             self.imp()
@@ -2215,18 +2216,6 @@ impl MainView {
                     split.set_show_sidebar(was_open.get() || split.shows_sidebar());
                 }
             });
-    }
-}
-
-/// MainView::song_cover for a widget inside the main view (the sidebar card,
-/// the mini player); the song's own cover outside it.
-pub(crate) fn cover_of(widget: &impl IsA<gtk::Widget>, song: &subsonic::Song) -> Option<String> {
-    match widget
-        .ancestor(MainView::static_type())
-        .and_downcast::<MainView>()
-    {
-        Some(main) => main.song_cover(song),
-        None => song.cover_art.clone(),
     }
 }
 
