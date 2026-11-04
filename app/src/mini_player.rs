@@ -103,12 +103,12 @@ impl MiniPlayer {
             imp.play_pause.set_tooltip_text(Some(&gettext("Play")));
         }
 
-        // A new cover only when the album changes (tracks of one album have their
-        // own cover ids on the server). The old cover stays until the new one is ready.
+        // A new cover only when the album changes: the album's, as on the card
+        // (MainView::song_cover). The old cover stays until the new one is ready.
         let key = song.album_id.clone().or_else(|| song.cover_art.clone());
         if *imp.cover_id.borrow() != key {
             imp.cover_id.replace(key.clone());
-            match (song.cover_art.clone(), key) {
+            match (crate::main_view::cover_of(self, &song), key) {
                 (Some(id), Some(key)) => {
                     covers::load_for(self, player.client(), id, move |mini, texture| {
                         let imp = mini.imp();

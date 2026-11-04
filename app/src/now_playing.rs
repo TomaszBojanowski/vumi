@@ -296,15 +296,15 @@ impl NowPlaying {
         }
         self.tick();
 
-        // A new cover, and a new colour, only when the album changes. Tracks of
-        // one album have their own cover ids on the server, so the album decides.
+        // A new cover, and a new colour, only when the album changes: the
+        // album's cover, the one its page shows (MainView::song_cover).
         let key = song.album_id.clone().or_else(|| song.cover_art.clone());
         // A hidden card waits for its cover before it slides in, so the
         // placeholder never shows first.
         let mut waiting = false;
         if *imp.cover_id.borrow() != key {
             imp.cover_id.replace(key.clone());
-            match (song.cover_art.clone(), key) {
+            match (crate::main_view::cover_of(self, &song), key) {
                 // The old cover stays until the new one is ready: no blank flash.
                 (Some(id), Some(key)) => {
                     waiting = !imp.revealer.reveals_child();
