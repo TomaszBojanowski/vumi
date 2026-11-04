@@ -24,8 +24,8 @@
 </p>
 
 <p align="center">
-  <b>0.46&nbsp;s</b> from start to my library on screen · <b>0.07&nbsp;%</b> of one CPU core while idle<br>
-  <sub>Vumi 0.1.2, 651 albums from a Navidrome server in my local network, medians of 5 runs: see <a href="#speed">Speed</a></sub>
+  <b>0.22&nbsp;s</b> from start to my library on screen · <b>133&nbsp;MB</b> of memory while idle<br>
+  <sub>Vumi 0.1.3, 651 albums from a Navidrome server in my local network, medians of 5 runs: see <a href="#speed">Speed</a></sub>
 </p>
 
 Website: [vumi.bojanowski.me](https://vumi.bojanowski.me/)
@@ -79,17 +79,18 @@ Website: [vumi.bojanowski.me](https://vumi.bojanowski.me/)
 Vumi is a native GTK 4 app written in Rust, with no web browser inside. Measured on my
 library: 651 albums and 11,333 songs on a Navidrome server in my local network.
 
-| Measurement | Vumi 0.1.2 |
+| Measurement | Vumi 0.1.3 |
 |---|---|
-| From start to the library on screen (saved login) | 0.46 s |
-| From the first login to the albums | 0.56 s |
-| The window's first frame | 179 ms (261 ms on a cold start) |
-| CPU while idle | 0.07 % of one core |
+| From start to the library on screen (saved login) | 0.22 s |
+| From the first login to the albums | 0.53 s |
+| The window's first frame | 166 ms (282 ms on a cold start) |
+| CPU while idle | under 0.03 % of one core |
+| Memory while idle | 133 MB (all of Vumi's processes, PSS) |
 | From a typed phrase to the search results | 186 ms (150 ms of it is the search field's typing delay) |
 | CPU while music plays, window in the background | 0.45 % of one core |
-| CPU while music plays, album page in front | 1.2 % of one core |
+| CPU while music plays, album page in front | 1.3 % of one core |
 
-Vumi 0.1.2, medians of 5 runs on my PC (AMD Ryzen 7 9700X), in a test compositor at 120 Hz.
+Vumi 0.1.3, medians of 5 runs on my PC (AMD Ryzen 7 9700X), in a test compositor at 120 Hz.
 
 ## Install
 

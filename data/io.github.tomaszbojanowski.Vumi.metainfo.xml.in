@@ -59,6 +59,16 @@
   </screenshots>
 
   <releases>
+    <release version="0.1.3" date="2026-11-04">
+      <description>
+        <p>Vumi 0.1.3 starts faster and uses less memory. On a library of 651 albums from a Navidrome server in the local network:</p>
+        <ul>
+          <li>With a saved login, the library is on screen in 0.22 s instead of 0.45 s.</li>
+          <li>While idle, Vumi uses 133 MB of memory instead of 224 MB.</li>
+          <li>The start is smoother, and so is the first time Artists opens.</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.1.2" date="2026-11-03">
       <description>
         <p>Vumi 0.1.2 is about speed. On a library of 651 albums from a Navidrome server in the local network:</p>
