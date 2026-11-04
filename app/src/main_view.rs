@@ -731,7 +731,13 @@ impl MainView {
         if *self.imp().connection.borrow() == connection {
             return;
         }
-        let offline = matches!(connection, Connection::Offline(_));
+        // Playing waits for the server while offline, and while the attempt
+        // Retry started is on its way.
+        let offline = match &connection {
+            Connection::Offline(_) => true,
+            Connection::Connecting => crate::reconnect::is_offline(),
+            _ => false,
+        };
         self.imp().connection.replace(connection);
         crate::reconnect::set_offline(offline);
         self.refresh_start_state();

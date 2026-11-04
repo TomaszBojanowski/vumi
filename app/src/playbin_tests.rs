@@ -26,6 +26,7 @@ fn scenarios_with_a_real_playbin() {
         &mut failures,
     );
     crate::player::tests::a_failed_stream_says_why_and_play_goes_on_from_there(&mut failures);
+    crate::player::tests::offline_leaves_the_queue_and_the_track_as_they_were(&mut failures);
     assert!(failures.is_empty(), "{}", failures.join("; "));
 }
 
