@@ -13,7 +13,7 @@ use std::time::Instant;
 use crate::album_card::AlbumCard;
 use crate::album_page::AlbumPage;
 use crate::artist_card::ArtistCard;
-use crate::artist_page::ArtistPage;
+use crate::artist_page::{ArtistPage, LocalArtist};
 use crate::{APP_NAME, covers, error_message, grid_fill, library, runtime, since_start};
 
 /// One artist in the Artists grid.
@@ -418,9 +418,8 @@ impl MainView {
             else {
                 return;
             };
-            let Some(client) = view.imp().client.borrow().clone() else {
-                return;
-            };
+            // Offline too: the page shows the albums in the library.
+            let client = view.imp().client.borrow().clone();
             let artist = object.borrow::<ArtistItem>();
             view.open_artist_from(grid, &artist.id, &artist.name, client);
         });
@@ -477,9 +476,13 @@ impl MainView {
         self.cancel_retry();
         imp.retry_attempt.set(0);
         self.set_connection(Connection::from_response(r));
-        // Album pages opened offline get the client and refresh.
-        for page in self.open_album_pages() {
-            page.set_client(client.clone());
+        // Album and artist pages opened offline get the client and refresh.
+        for page in self.open_pages() {
+            if let Some(page) = page.downcast_ref::<AlbumPage>() {
+                page.set_client(client.clone());
+            } else if let Some(page) = page.downcast_ref::<ArtistPage>() {
+                page.set_client(client.clone());
+            }
         }
         let text = match r.server_type.as_deref() {
             Some(server) => {
@@ -609,9 +612,9 @@ impl MainView {
         imp.retry_timer.replace(Some(id));
     }
 
-    /// The album pages open in every section's navigation (Start, Albums,
+    /// The pages open in every section's navigation (Start, Albums,
     /// Favorites... each has its own).
-    fn open_album_pages(&self) -> Vec<AlbumPage> {
+    fn open_pages(&self) -> Vec<adw::NavigationPage> {
         let mut found = Vec::new();
         let sections = self.imp().views.pages();
         for i in 0..sections.n_items() {
@@ -624,7 +627,7 @@ impl MainView {
             };
             let stack = nav.navigation_stack();
             for j in 0..stack.n_items() {
-                if let Some(page) = stack.item(j).and_downcast::<AlbumPage>() {
+                if let Some(page) = stack.item(j).and_downcast::<adw::NavigationPage>() {
                     found.push(page);
                 }
             }
@@ -1004,12 +1007,13 @@ impl MainView {
 
     /// Opens an artist page in the section `from` belongs to, as
     /// open_album_from does for albums.
+    /// Offline (no `client`) the page shows what the library knows.
     pub(crate) fn open_artist_from(
         &self,
         from: &impl IsA<gtk::Widget>,
         id: &str,
         name: &str,
-        client: subsonic::Client,
+        client: Option<subsonic::Client>,
     ) {
         let imp = self.imp();
         let nav = self.section_of(from);
@@ -1018,8 +1022,33 @@ impl MainView {
         }
 
         if !back_to::<ArtistPage>(&nav, |page| page.artist_id() == id) {
-            nav.push(&ArtistPage::new(id, name, client));
+            let local = match client {
+                Some(_) => LocalArtist::default(),
+                None => self.local_artist(id),
+            };
+            nav.push(&ArtistPage::new(id, name, client, local));
         }
+    }
+
+    /// What the library knows of the artist `id`: the albums in memory, by
+    /// year, and the picture from the server's list if it came this session.
+    fn local_artist(&self, id: &str) -> LocalArtist {
+        let imp = self.imp();
+        let mut albums: Vec<subsonic::Album> = imp
+            .current
+            .borrow()
+            .iter()
+            .filter(|album| album.artist_id.as_deref() == Some(id))
+            .map(|album| (**album).clone())
+            .collect();
+        albums.sort_by(|a, b| a.year.cmp(&b.year).then_with(|| a.name.cmp(&b.name)));
+        let picture = imp
+            .artists
+            .borrow()
+            .iter()
+            .find(|artist| artist.id == id)
+            .and_then(|artist| artist.cover_art.clone());
+        LocalArtist { albums, picture }
     }
 
     /// Uses the full album from the library if it is there, else `fallback`.

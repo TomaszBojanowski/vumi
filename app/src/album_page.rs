@@ -942,12 +942,11 @@ impl AlbumPage {
         let name = album.artist.clone().unwrap_or_default();
         let page = self.downgrade();
         imp.artist_button.connect_clicked(move |button| {
-            let Some(client) = page
-                .upgrade()
-                .and_then(|page| page.imp().client.borrow().clone())
-            else {
+            let Some(page) = page.upgrade() else {
                 return;
             };
+            // None offline: the artist page shows the albums in the library.
+            let client = page.imp().client.borrow().clone();
             // Back to the artist's page if it is open already (album, artist,
             // album, artist... does not stack up pages).
             if let Some(main) = button

@@ -141,7 +141,7 @@ pub(crate) fn install_actions(row: &gtk::Widget, current: &Current) {
                 .ancestor(MainView::static_type())
                 .and_downcast::<MainView>()
             {
-                main.open_artist_from(row, &artist_id, &name, client);
+                main.open_artist_from(row, &artist_id, &name, Some(client));
             }
         }),
     );

@@ -62,6 +62,14 @@ mod imp {
     impl NavigationPageImpl for ArtistPage {}
 }
 
+/// What the library knows of an artist: the page shows it while offline.
+#[derive(Default)]
+pub(crate) struct LocalArtist {
+    pub(crate) albums: Vec<subsonic::Album>,
+    /// The cover id of the artist's picture, if the server gave one.
+    pub(crate) picture: Option<String>,
+}
+
 glib::wrapper! {
     pub struct ArtistPage(ObjectSubclass<imp::ArtistPage>)
         @extends adw::NavigationPage, gtk::Widget,
@@ -74,7 +82,15 @@ impl ArtistPage {
         self.imp().artist_id.borrow().clone()
     }
 
-    pub(crate) fn new(id: &str, name: &str, client: subsonic::Client) -> Self {
+    /// `client` is None while offline: the page shows what the library
+    /// knows (`local`), and set_client fills it from the server once it is
+    /// back.
+    pub(crate) fn new(
+        id: &str,
+        name: &str,
+        client: Option<subsonic::Client>,
+        local: LocalArtist,
+    ) -> Self {
         let page: Self = glib::Object::new();
         crate::offline_banner::attach(&page);
         let imp = page.imp();
@@ -82,7 +98,7 @@ impl ArtistPage {
         page.set_title(name);
         imp.name.set_label(name);
         imp.avatar.set_text(Some(name));
-        imp.client.replace(Some(client.clone()));
+        imp.client.replace(client.clone());
         imp.artist_id.replace(id.to_string());
 
         // A click on an album card opens that album on top of this page.
@@ -105,9 +121,27 @@ impl ArtistPage {
             }
         });
 
-        page.load_artist(client.clone(), id.to_string());
-        page.load_biography(client, id.to_string());
+        match client {
+            Some(client) => {
+                page.load_artist(client.clone(), id.to_string());
+                page.load_biography(client, id.to_string());
+            }
+            None => page.show_albums(local.albums, None, local.picture),
+        }
         page
+    }
+
+    /// The connection is back: a page made offline fetches the artist (its
+    /// cards stay until the answer replaces them).
+    pub(crate) fn set_client(&self, client: subsonic::Client) {
+        let imp = self.imp();
+        if imp.client.borrow().is_some() {
+            return;
+        }
+        imp.client.replace(Some(client.clone()));
+        let id = self.artist_id();
+        self.load_artist(client.clone(), id.clone());
+        self.load_biography(client, id);
     }
 
     fn load_artist(&self, client: subsonic::Client, id: String) {
@@ -143,27 +177,40 @@ impl ArtistPage {
     }
 
     fn show_artist(&self, artist: subsonic::ArtistWithAlbums, client: subsonic::Client) {
+        self.show_albums(artist.album, Some(client), artist.cover_art);
+    }
+
+    /// The artist's albums as cards, and the photo; without a client (offline)
+    /// the covers and the photo come from the disk cache. Cards shown before
+    /// (the library's, offline) give way.
+    fn show_albums(
+        &self,
+        albums: Vec<subsonic::Album>,
+        client: Option<subsonic::Client>,
+        picture: Option<String>,
+    ) {
         let imp = self.imp();
 
         imp.details
-            .set_label(&crate::format::albums_text(artist.album.len() as u32));
+            .set_label(&crate::format::albums_text(albums.len() as u32));
 
-        for album in &artist.album {
+        imp.albums.remove_all();
+        for album in &albums {
             let card = AlbumCard::new();
-            card.set_album(album, Some(client.clone()));
+            card.set_album(album, client.clone());
             imp.albums.append(&card);
         }
 
         // The photo goes through the same disk cache as album covers.
-        if let Some(cover) = artist.cover_art.clone() {
-            covers::load_for(&imp.avatar.get(), Some(client), cover, |avatar, texture| {
+        if let Some(cover) = picture {
+            covers::load_for(&imp.avatar.get(), client, cover, |avatar, texture| {
                 if let Some(texture) = texture {
                     avatar.set_custom_image(Some(&texture));
                 }
             });
         }
 
-        imp.album_list.replace(artist.album);
+        imp.album_list.replace(albums);
     }
 
     fn load_biography(&self, client: subsonic::Client, id: String) {
