@@ -577,7 +577,7 @@ fn install_actions(row: &SongRow, item: &glib::WeakRef<gtk::ListItem>) {
     let row_weak = row.downgrade();
     let current: crate::song_menu::Current = Rc::new(move || {
         let song = row_weak.upgrade()?.song()?;
-        Some((song, player::get().client()?))
+        Some((song, player::get().client()))
     });
     crate::song_menu::install_actions(row.upcast_ref(), &current);
 

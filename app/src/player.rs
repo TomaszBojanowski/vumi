@@ -1424,15 +1424,15 @@ impl Player {
 
     /// Puts `song` right after the playing track (Play Next). With nothing in
     /// progress, it simply plays; after an error the queue is still there, so
-    /// the song joins it and nothing starts.
-    pub(crate) fn play_next(&self, client: subsonic::Client, song: subsonic::Song) {
+    /// the song joins it and nothing starts. False if nothing happened
+    /// (offline: the user is told).
+    pub(crate) fn play_next(&self, client: subsonic::Client, song: subsonic::Song) -> bool {
         if self.offline() {
-            return;
+            return false;
         }
         self.new_command();
         if !self.is_active() && self.failure().is_none() {
-            self.play(client, vec![song].into(), 0, QueueOf::Songs);
-            return;
+            return self.start_queue(client, vec![song].into(), 0, QueueOf::Songs);
         }
         let mut songs = self.queue.borrow().to_vec();
         let index = play_next_index(
@@ -1444,6 +1444,7 @@ impl Player {
         self.queue.replace(songs.into());
         self.prepare_next();
         self.notify();
+        true
     }
 
     /// Puts what comes after the current track into a random order (Shuffle
@@ -1484,18 +1485,19 @@ impl Player {
 
     /// Adds `song` at the end of the queue (Add to Queue). With nothing in
     /// progress, it simply plays; after an error the queue is still there, so
-    /// the song joins it and nothing starts.
-    pub(crate) fn enqueue(&self, client: subsonic::Client, song: subsonic::Song) {
+    /// the song joins it and nothing starts. False if nothing happened (it
+    /// would have played, offline: the user is told).
+    pub(crate) fn enqueue(&self, client: subsonic::Client, song: subsonic::Song) -> bool {
         self.new_command();
         if !self.is_active() && self.failure().is_none() {
-            self.play(client, vec![song].into(), 0, QueueOf::Songs);
-            return;
+            return self.start_queue(client, vec![song].into(), 0, QueueOf::Songs);
         }
         let mut songs = self.queue.borrow().to_vec();
         songs.push(song);
         self.queue.replace(songs.into());
         self.prepare_next();
         self.notify();
+        true
     }
 
     /// Forgets everything (logging out): the queue, the client with its

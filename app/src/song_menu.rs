@@ -24,14 +24,15 @@ pub(crate) fn attach(
     let songs = songs.clone();
     let button = menu_button(
         row,
-        move || songs.get(index).cloned().zip(client.clone()),
+        move || songs.get(index).cloned().map(|song| (song, client.clone())),
         go_to_album,
     );
     row.add_suffix(&button);
 }
 
-/// Asks for the song a menu is about, and the client, when the menu is used.
-pub(crate) type Current = Rc<dyn Fn() -> Option<(subsonic::Song, subsonic::Client)>>;
+/// Asks for the song a menu is about, and the client (None offline), when the
+/// menu is used.
+pub(crate) type Current = Rc<dyn Fn() -> Option<(subsonic::Song, Option<subsonic::Client>)>>;
 
 /// The ⋮ button with the song menu, for the end of a row. Its actions live on
 /// `owner` (the row, or what the row holds) and ask `current` for the song
@@ -43,7 +44,7 @@ pub(crate) type Current = Rc<dyn Fn() -> Option<(subsonic::Song, subsonic::Clien
 /// times what the rest of a row does.
 pub(crate) fn menu_button(
     owner: &impl IsA<gtk::Widget>,
-    current: impl Fn() -> Option<(subsonic::Song, subsonic::Client)> + 'static,
+    current: impl Fn() -> Option<(subsonic::Song, Option<subsonic::Client>)> + 'static,
     go_to_album: bool,
 ) -> gtk::MenuButton {
     let button = gtk::MenuButton::builder()
@@ -68,8 +69,10 @@ pub(crate) fn menu_button(
     button
 }
 
-/// What a song menu item does with the row, its song and the client.
-type SongAction = Box<dyn Fn(&gtk::Widget, subsonic::Song, subsonic::Client)>;
+/// What a song menu item does with the row, its song and the client. Offline
+/// (no client) the album, the artist and the information still open; what
+/// needs the server says so.
+type SongAction = Box<dyn Fn(&gtk::Widget, subsonic::Song, Option<subsonic::Client>)>;
 
 /// Puts the actions a song menu can use on `row`, as the group "song":
 /// play-next, add-to-queue, add-to-playlist, play-similar, go-to-album,
@@ -89,22 +92,46 @@ pub(crate) fn install_actions(row: &gtk::Widget, current: &Current) {
         actions.add_action(&action);
     };
 
+    // Said only when it happened: offline the player says why not.
     add(
         "play-next",
-        Box::new(|row, song, client| {
-            player::get().play_next(client, song);
-            crate::toast(row, &gettext("Will play next"));
+        Box::new(|row, song, client| match client {
+            Some(client) => {
+                if player::get().play_next(client, song) {
+                    crate::toast(row, &gettext("Will play next"));
+                }
+            }
+            None => crate::cannot_play(row),
         }),
     );
     add(
         "add-to-queue",
-        Box::new(|row, song, client| {
-            player::get().enqueue(client, song);
-            crate::toast(row, &gettext("Added to the queue"));
+        Box::new(|row, song, client| match client {
+            Some(client) => {
+                if player::get().enqueue(client, song) {
+                    crate::toast(row, &gettext("Added to the queue"));
+                }
+            }
+            None => crate::cannot_play(row),
         }),
     );
-    add("add-to-playlist", Box::new(choose_playlist));
-    add("play-similar", Box::new(play_similar));
+    add(
+        "add-to-playlist",
+        Box::new(|row, song, client| match client {
+            Some(client) => choose_playlist(row, song, client),
+            None => crate::toast(
+                row,
+                &crate::error_message(&subsonic::Error::Unreachable(String::new())),
+            ),
+        }),
+    );
+    add(
+        "play-similar",
+        Box::new(|row, song, client| match client {
+            Some(client) => play_similar(row, song, client),
+            None => crate::cannot_play(row),
+        }),
+    );
     add(
         "go-to-album",
         Box::new(|row, song, _| {
@@ -141,7 +168,7 @@ pub(crate) fn install_actions(row: &gtk::Widget, current: &Current) {
                 .ancestor(MainView::static_type())
                 .and_downcast::<MainView>()
             {
-                main.open_artist_from(row, &artist_id, &name, Some(client));
+                main.open_artist_from(row, &artist_id, &name, client);
             }
         }),
     );

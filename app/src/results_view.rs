@@ -293,7 +293,7 @@ impl ResultsView {
                     &row,
                     move || {
                         let song = row_weak.upgrade()?.song()?;
-                        let client = view.upgrade()?.imp().client.borrow().clone()?;
+                        let client = view.upgrade()?.imp().client.borrow().clone();
                         Some((song, client))
                     },
                     true,
