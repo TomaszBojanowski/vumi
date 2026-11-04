@@ -72,6 +72,10 @@ pub(crate) struct Player {
     /// The queue as it was before the user started another track, kept until
     /// that track plays: if the server turns out to be gone, it comes back.
     undo: RefCell<Option<Undo>>,
+    /// A jump by hand on its way: where the track was before it. If the
+    /// stream fails before the jump lands (the server gone), the track stays
+    /// there.
+    jumped_from: Cell<Option<f64>>,
     /// Gapless: the next track (its id and address), read by GStreamer's
     /// about-to-finish signal (on its own thread) to start it without a gap.
     next_uri: Arc<Mutex<Option<(String, String)>>>,
@@ -223,6 +227,7 @@ impl Player {
                 pending_seek: Cell::new(None),
                 checking: Cell::new(false),
                 undo: RefCell::new(None),
+                jumped_from: Cell::new(None),
                 next_uri,
                 switched_to,
                 _bus_watch: bus_watch,
@@ -329,9 +334,10 @@ impl Player {
     /// already knows it is not, the server is asked (server_gone, or
     /// track_failed). `same_track`: the error is the current track's own, not
     /// that of a track handed to GStreamer ahead (gapless), which never began.
-    fn stream_failed(&self, same_track: bool) {
+    /// `before_jump`: where the track was before a jump that failed.
+    fn stream_failed(&self, same_track: bool, before_jump: Option<f64>) {
         let at = if same_track {
-            self.position_secs()
+            before_jump.or_else(|| self.position_secs())
         } else {
             None
         };
@@ -695,7 +701,25 @@ impl Player {
         }
     }
 
+    /// A jump by hand (the slider, MPRIS). Offline it would need the server:
+    /// the stream comes again from the new place, and what was downloaded
+    /// goes. So the track plays on from where it is, the slider goes back
+    /// there, and the user is told.
     pub(crate) fn seek(&self, seconds: f64) {
+        if self.offline() {
+            if let Some(at) = self.resume_position() {
+                self.notify_seeked(at);
+            }
+            return;
+        }
+        if self.is_active() {
+            self.jumped_from.set(self.position_secs());
+        }
+        self.jump(seconds);
+    }
+
+    /// Moves the track in progress to `seconds`.
+    fn jump(&self, seconds: f64) {
         // A position no ClockTime can hold (a client may send anything over
         // MPRIS) is not a place in any track.
         let Ok(target) = gst::ClockTime::try_from_seconds_f64(seconds.max(0.0)) else {
@@ -744,11 +768,13 @@ impl Player {
             // played albums takes the album now, still with the second the
             // seek is going to).
             gst::MessageView::AsyncDone(..) => {
+                // A jump by hand has landed too.
+                self.jumped_from.set(None);
                 if self.undo.take().is_some() {
                     self.notify();
                 }
                 if let Some(seconds) = self.pending_seek.take() {
-                    self.seek(seconds);
+                    self.jump(seconds);
                 }
             }
             // Only the short error text, and only in the log: the debug details
@@ -757,8 +783,16 @@ impl Player {
             // ("Internal data stream error") say nothing to them.
             gst::MessageView::Error(err) => {
                 eprintln!("Playback error: {}", err.error());
-                let handed_over = self.blame_pending_switch();
-                self.stream_failed(!handed_over);
+                // A jump that failed is the current track's own error, even if
+                // GStreamer, its stream ended, has taken the next track meanwhile.
+                let before_jump = self.jumped_from.take();
+                let handed_over = if before_jump.is_some() {
+                    self.forget_switch();
+                    false
+                } else {
+                    self.blame_pending_switch()
+                };
+                self.stream_failed(!handed_over, before_jump);
             }
             _ => {}
         }
@@ -1808,6 +1842,103 @@ pub(crate) mod tests {
         } else {
             failures.push("offline: c1 did not play".into());
         }
+        player.stop();
+    }
+
+    /// With a real playbin (playbin_tests.rs runs it): a jump in a track
+    /// needs the server, the stream comes again from the new place. The
+    /// server gone before Vumi knows: the jump fails, and the track stays
+    /// where it was before it, never back at the start nor on the next track;
+    /// once the server is there, Play goes on from that place. Offline, known:
+    /// the track plays on from what was downloaded, and the user is told.
+    pub(crate) fn a_jump_offline_leaves_the_track_where_it_was(failures: &mut Vec<String>) {
+        use crate::playbin_tests::{Server, run_until, silent_wav};
+        use std::time::Duration;
+        let server = Server::start(silent_wav(60));
+        server.set_paced(true);
+        let client = subsonic::Client::new(&server.url, "user", "password");
+        let player = get();
+        let told: Rc<RefCell<Vec<String>>> = Rc::default();
+        {
+            let told = told.clone();
+            player.set_error_handler(move |message| told.borrow_mut().push(message.to_string()));
+        }
+        let offline = gettext("Cannot play without a connection to the server");
+        let long = Duration::from_secs(15);
+        let current = || player.current().map(|song| song.id);
+        player.play(
+            client.clone(),
+            songs(&["j1", "j2"]).into(),
+            0,
+            QueueOf::Songs,
+        );
+        if !run_until(long, || {
+            player.is_playing() && player.position_secs().unwrap_or(0.0) >= 4.0
+        }) {
+            failures.push("a jump: j1 did not play".into());
+            return;
+        }
+
+        // The server goes, Vumi does not know yet: a jump forward.
+        let before = player.position_secs().unwrap_or(0.0);
+        server.set_up(false);
+        player.seek(before + 20.0);
+        let said = run_until(long, || !told.borrow().is_empty());
+        let resume = player.resume_position().unwrap_or(0.0);
+        if !said
+            || current().as_deref() != Some("j1")
+            || player.failure().as_deref() != Some(offline.as_str())
+            || (resume - before).abs() > 1.5
+            || *told.borrow() != [offline.clone()]
+        {
+            failures.push(format!(
+                "a jump with the server gone: current {:?}, failure {:?}, resumes at {resume:.1} s (was at {before:.1} s), told {:?}",
+                current(),
+                player.failure(),
+                told.borrow()
+            ));
+        }
+
+        // Back: Play goes on from there.
+        server.set_up(true);
+        player.toggle_pause();
+        let playing = run_until(long, || {
+            player.is_playing() && player.position_secs().unwrap_or(0.0) > 0.0
+        });
+        let at = player.position_secs().unwrap_or(0.0);
+        if !playing || current().as_deref() != Some("j1") || at < resume - 1.0 {
+            failures.push(format!(
+                "Play after a failed jump: playing {playing}, {:?} at {at:.1} s, resume was {resume:.1} s",
+                current()
+            ));
+        }
+
+        // Offline, known: a jump only says so, and the track plays on. (The
+        // server stays: without it this test server closes the stream at once,
+        // where a network that went keeps it open and the track plays on from
+        // what was downloaded.)
+        run_until(long, || {
+            player.position_secs().unwrap_or(0.0) >= resume + 2.0
+        });
+        crate::reconnect::set_offline(true);
+        told.borrow_mut().clear();
+        let before = player.position_secs().unwrap_or(0.0);
+        player.seek(before + 20.0);
+        run_until(Duration::from_millis(1500), || false);
+        let at = player.position_secs().unwrap_or(0.0);
+        if !player.is_playing()
+            || current().as_deref() != Some("j1")
+            || !(before..before + 3.0).contains(&at)
+            || *told.borrow() != [offline.clone()]
+        {
+            failures.push(format!(
+                "a jump offline: playing {}, {:?} at {at:.1} s (was at {before:.1} s), told {:?}",
+                player.is_playing(),
+                current(),
+                told.borrow()
+            ));
+        }
+        crate::reconnect::set_offline(false);
         player.stop();
     }
 

@@ -247,12 +247,26 @@ fn build_ui(app: &adw::Application) {
         settings.connect_changed(Some("repeat"), |_, _| crate::player::get().repeat_changed());
     }
 
-    // Playback errors appear in the window, not only in the terminal.
+    // Playback errors appear in the window, not only in the terminal. The same
+    // message again while it is still there (a slider dragged offline, in
+    // several jumps) does not queue up behind it.
     let toasts_weak = toasts.downgrade();
+    let last: std::cell::RefCell<Option<(String, glib::WeakRef<adw::Toast>)>> =
+        std::cell::RefCell::default();
     player::get().set_error_handler(move |message| {
-        if let Some(toasts) = toasts_weak.upgrade() {
-            toasts.add_toast(plain_toast(message));
+        let Some(toasts) = toasts_weak.upgrade() else {
+            return;
+        };
+        let shown = last
+            .borrow()
+            .as_ref()
+            .is_some_and(|(text, toast)| text == message && toast.upgrade().is_some());
+        if shown {
+            return;
         }
+        let toast = plain_toast(message);
+        last.replace(Some((message.to_owned(), toast.downgrade())));
+        toasts.add_toast(toast);
     });
     toasts.set_child(Some(&nav));
 
