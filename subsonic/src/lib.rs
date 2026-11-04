@@ -57,6 +57,20 @@ pub struct Client {
     user: Arc<str>,
     password: Arc<str>,
     http: reqwest::Client,
+    /// For ping_fresh: keeps no connection (made on the first check).
+    fresh: Arc<std::sync::OnceLock<reqwest::Client>>,
+}
+
+/// An HTTP client with the app's timeouts; `keep` false: no connection is
+/// kept for the next request.
+fn http_client(keep: bool) -> reqwest::Client {
+    let mut builder = reqwest::Client::builder()
+        .connect_timeout(Duration::from_secs(5))
+        .timeout(Duration::from_secs(15));
+    if !keep {
+        builder = builder.pool_max_idle_per_host(0);
+    }
+    builder.build().expect("failed to create HTTP client")
 }
 
 #[derive(Deserialize)]
@@ -182,16 +196,12 @@ pub struct Song {
 
 impl Client {
     pub fn new(base_url: &str, user: &str, password: &str) -> Self {
-        let http = reqwest::Client::builder()
-            .connect_timeout(Duration::from_secs(5))
-            .timeout(Duration::from_secs(15))
-            .build()
-            .expect("failed to create HTTP client");
         Self {
             base_url: base_url.trim_end_matches('/').into(),
             user: user.into(),
             password: password.into(),
-            http,
+            http: http_client(true),
+            fresh: Arc::default(),
         }
     }
 
@@ -230,9 +240,18 @@ impl Client {
 
     /// Calls a Subsonic endpoint and turns a non-"ok" status into a typed error.
     async fn call(&self, endpoint: &str, extra: &[(&'static str, String)]) -> Result<Response> {
+        self.call_with(&self.http, endpoint, extra).await
+    }
+
+    /// call() through `http`.
+    async fn call_with(
+        &self,
+        http: &reqwest::Client,
+        endpoint: &str,
+        extra: &[(&'static str, String)],
+    ) -> Result<Response> {
         let url = self.build_url(endpoint, extra)?;
-        let envelope: Envelope = self
-            .http
+        let envelope: Envelope = http
             .get(url)
             .send()
             .await?
@@ -262,6 +281,15 @@ fn failure(response: Response) -> Error {
 impl Client {
     pub async fn ping(&self) -> Result<Response> {
         self.call("ping", &[]).await
+    }
+
+    /// Like ping(), always on a new connection: for checks whether the server
+    /// is still there. A connection kept from before can be dead without
+    /// either side knowing (the network went away), and a request on it waits
+    /// out the whole timeout; a new one fails at once.
+    pub async fn ping_fresh(&self) -> Result<Response> {
+        let http = self.fresh.get_or_init(|| http_client(false));
+        self.call_with(http, "ping", &[]).await
     }
 
     /// Albums sorted by name; `size` is how many, `offset` is where to start.

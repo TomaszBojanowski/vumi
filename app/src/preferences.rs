@@ -181,8 +181,9 @@ impl Preferences {
         };
         let dialog = self.downgrade();
         glib::spawn_future_local(async move {
+            // On a new connection: one kept from before may be dead.
             let result = crate::runtime()
-                .spawn(async move { client.ping().await })
+                .spawn(async move { client.ping_fresh().await })
                 .await;
             let Some(dialog) = dialog.upgrade() else {
                 return;

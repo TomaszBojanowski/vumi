@@ -1384,3 +1384,46 @@ mod library_changes {
         assert!(starred.album.is_empty() && starred.song.is_empty());
     }
 }
+
+/// The network goes away after a ping: the connection the client keeps falls
+/// silent (nothing closes it) and new ones are refused. A request on the kept
+/// connection waits out the timeout; ping_fresh, for checks, is told at once.
+#[tokio::test]
+async fn a_check_does_not_wait_on_a_connection_the_network_took() {
+    use std::io::{Read, Write};
+    use std::time::Duration;
+    let listener = std::net::TcpListener::bind("127.0.0.1:0").expect("no local port");
+    let url = format!(
+        "http://{}",
+        listener.local_addr().expect("no local address")
+    );
+    let (gone, went) = std::sync::mpsc::channel();
+    std::thread::spawn(move || {
+        let (mut stream, _) = listener.accept().expect("no connection");
+        let mut request = [0u8; 4096];
+        let _ = stream.read(&mut request);
+        let body = r#"{"subsonic-response":{"status":"ok","version":"1.16.1"}}"#;
+        let _ = write!(
+            stream,
+            "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\n\r\n{body}",
+            body.len()
+        );
+        // No new connections from now on.
+        drop(listener);
+        let _ = gone.send(());
+        // The kept one: read, never answer, never close.
+        while stream.read(&mut request).is_ok_and(|n| n > 0) {}
+    });
+    let client = Client::new(&url, USER, PASSWORD);
+    client.ping().await.expect("the first ping");
+    went.recv().expect("the server thread ended");
+    let kept = tokio::time::timeout(Duration::from_secs(1), client.ping()).await;
+    assert!(kept.is_err(), "the kept connection answered");
+    let check = tokio::time::timeout(Duration::from_secs(1), client.ping_fresh()).await;
+    match check {
+        Ok(Err(Error::Unreachable(_))) => {}
+        Ok(Err(e)) => panic!("a check: {e:?}"),
+        Ok(Ok(_)) => panic!("a check: the server answered"),
+        Err(_) => panic!("a check waited for more than a second"),
+    }
+}

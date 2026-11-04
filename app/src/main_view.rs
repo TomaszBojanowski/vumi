@@ -699,7 +699,11 @@ impl MainView {
         let session = self.session();
         let view = self.downgrade();
         glib::spawn_future_local(async move {
-            let result = runtime().spawn(async move { client.ping().await }).await;
+            // On a new connection: one kept from before may be dead (the
+            // network went) and hold the answer up for the whole timeout.
+            let result = runtime()
+                .spawn(async move { client.ping_fresh().await })
+                .await;
             let Some(view) = view.upgrade() else {
                 return;
             };

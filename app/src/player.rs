@@ -358,8 +358,9 @@ impl Player {
         self.set_state(State::Failed(gettext("Could not play the track")));
         let command = self.command.get();
         gst::glib::spawn_future_local(async move {
+            // On a new connection, as the main view asks (check_connection).
             let answer = crate::runtime()
-                .spawn(async move { client.ping().await })
+                .spawn(async move { client.ping_fresh().await })
                 .await;
             let player = get();
             player.checking.set(false);
