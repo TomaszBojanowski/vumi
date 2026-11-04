@@ -59,7 +59,9 @@ glib::wrapper! {
 
 impl SearchPage {
     pub(crate) fn new() -> Self {
-        glib::Object::new()
+        let page: Self = glib::Object::new();
+        crate::offline_banner::attach(&page);
+        page
     }
 
     /// Shows what a search found.

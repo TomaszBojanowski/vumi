@@ -19,6 +19,7 @@ mod main_view;
 mod mini_player;
 mod mpris;
 mod now_playing;
+mod offline_banner;
 mod player;
 mod playlist_page;
 mod preferences;
@@ -490,7 +491,7 @@ fn auto_connect(
                 }
                 Err(subsonic::Error::WrongCredentials) => true,
                 Err(e) => {
-                    main.show_offline(&error_message(&e));
+                    main.show_offline(&e);
                     false
                 }
             },
@@ -502,7 +503,7 @@ fn auto_connect(
                 true
             }
             Err(_) => {
-                main.show_offline(&gettext("Something went wrong. Please try again."));
+                main.show_offline_message(&gettext("Something went wrong. Please try again."));
                 false
             }
         };

@@ -117,6 +117,7 @@ impl AlbumPage {
     ) -> Self {
         let page: Self = glib::Object::new();
         let imp = page.imp();
+        crate::offline_banner::attach(&page);
 
         page.set_title(&album.name);
         imp.album_id.replace(album.id.clone());

@@ -1,5 +1,5 @@
-//! Main view: the album grid, plus the connection state and an offline
-//! banner with a Retry button.
+//! Main view: the album grid, plus the connection state, which the offline
+//! banner of every page shows (offline_banner).
 
 use adw::prelude::*;
 use adw::subclass::prelude::*;
@@ -92,8 +92,6 @@ mod imp {
     #[derive(Default, gtk::CompositeTemplate)]
     #[template(file = "src/main_view.blp")]
     pub struct MainView {
-        #[template_child]
-        pub banner: gtk::TemplateChild<adw::Banner>,
         #[template_child]
         pub status: gtk::TemplateChild<adw::StatusPage>,
         #[template_child]
@@ -202,6 +200,11 @@ mod imp {
         /// Attempts started by the window becoming active, or by the network.
         pub activation_gate: RefCell<crate::reconnect::Gate>,
         pub network_gate: RefCell<crate::reconnect::Gate>,
+        /// The offline state is a lost connection (not a server error): the
+        /// banners say so in their own words.
+        pub offline_lost: Cell<bool>,
+        /// Retry was pressed and its attempt is on its way: "Connecting…".
+        pub user_retrying: Cell<bool>,
         /// A check after a failed request: one at a time, at most every 5 s.
         pub checking: Cell<bool>,
         pub check_gate: RefCell<crate::reconnect::Gate>,
@@ -474,7 +477,6 @@ impl MainView {
         self.cancel_retry();
         imp.retry_attempt.set(0);
         self.set_connection(Connection::from_response(r));
-        imp.banner.set_revealed(false);
         let text = match r.server_type.as_deref() {
             Some(server) => {
                 // Translators: {server} is the server software (e.g. navidrome), {version} its version.
@@ -492,13 +494,56 @@ impl MainView {
         self.sync(client, false);
     }
 
-    pub(crate) fn show_offline(&self, message: &str) {
+    /// The server could not be reached, or did not answer as it should.
+    pub(crate) fn show_offline(&self, error: &subsonic::Error) {
+        self.go_offline(
+            &error_message(error),
+            matches!(error, subsonic::Error::Unreachable(_)),
+        );
+    }
+
+    /// The same, with a message of its own (a failure that is not the server's).
+    pub(crate) fn show_offline_message(&self, message: &str) {
+        self.go_offline(message, false);
+    }
+
+    fn go_offline(&self, message: &str, lost: bool) {
         let imp = self.imp();
+        imp.offline_lost.set(lost);
         self.set_connection(Connection::Offline(message.to_string()));
-        imp.banner.set_title(message);
-        imp.banner.set_revealed(true);
         imp.status.set_description(Some(&gettext("Offline")));
+        self.refresh_banners();
         self.schedule_retry();
+    }
+
+    /// The banner on every page: shown while offline, with Retry; while the
+    /// attempt Retry started is on its way, "Connecting…" without the button.
+    fn refresh_banners(&self) {
+        let imp = self.imp();
+        // Retry's attempt (it shows "Connecting…" in Preferences too) keeps
+        // the banners up, saying so.
+        if imp.user_retrying.get() {
+            crate::offline_banner::show(true, &gettext("Connecting…"), None);
+            return;
+        }
+        let message = match &*imp.connection.borrow() {
+            Connection::Offline(message) => message.clone(),
+            _ => {
+                crate::offline_banner::show(false, "", None);
+                return;
+            }
+        };
+        if imp.offline_lost.get() {
+            crate::offline_banner::show(
+                true,
+                // Translators: the banner on every page while the server cannot be reached.
+                &gettext("Offline — showing the library saved on this computer"),
+                Some(&gettext("Retry")),
+            );
+        } else {
+            // A server error or an answer that is not Subsonic: the error itself.
+            crate::offline_banner::show(true, &message, Some(&gettext("Retry")));
+        }
     }
 
     /// How Vumi connects with the saved login (main.rs), for Retry and for
@@ -512,10 +557,17 @@ impl MainView {
     /// not quiet.
     pub(crate) fn retry_now(&self, quiet: bool) {
         let imp = self.imp();
+        // Retry while offline: the banners say an attempt is on its way, also
+        // when one Vumi started by itself is (its answer counts).
+        if !quiet && self.is_offline() {
+            imp.user_retrying.set(true);
+            self.refresh_banners();
+        }
         if imp.attempting.get() {
             return;
         }
         let Some(reconnect) = imp.reconnect.borrow().clone() else {
+            imp.user_retrying.set(false);
             return;
         };
         self.cancel_retry();
@@ -523,9 +575,13 @@ impl MainView {
         reconnect(quiet);
     }
 
-    /// The attempt of retry_now has an answer (whatever it was).
+    /// The attempt of retry_now has an answer (whatever it was). The banners
+    /// follow from what comes next (connected, offline, logged out), so they
+    /// never hide for a moment between "Connecting…" and the offline text.
     pub(crate) fn attempt_done(&self) {
-        self.imp().attempting.set(false);
+        let imp = self.imp();
+        imp.attempting.set(false);
+        imp.user_retrying.set(false);
     }
 
     /// The next quiet attempt, later each time: 5 s, 15 s, 30 s, 60 s, then
@@ -626,7 +682,7 @@ impl MainView {
                 return;
             }
             if let Ok(Err(e @ subsonic::Error::Unreachable(_))) = result {
-                view.show_offline(&error_message(&e));
+                view.show_offline(&e);
             }
         });
     }
@@ -643,6 +699,7 @@ impl MainView {
         }
         self.imp().connection.replace(connection);
         self.refresh_start_state();
+        self.refresh_banners();
         self.emit_by_name::<()>("connection-changed", &[]);
     }
 
@@ -664,14 +721,27 @@ impl MainView {
         self.imp().client.borrow().clone()
     }
 
-    /// Retry in the offline banner: an attempt now, shown as one.
+    /// Retry in the offline banners: an attempt now, shown as one. Every
+    /// section's first page gets its banner here; other pages add theirs.
     fn setup_retry(&self) {
         let view = self.downgrade();
-        self.imp().banner.connect_button_clicked(move |_| {
+        crate::offline_banner::set_retry(move || {
             if let Some(view) = view.upgrade() {
                 view.retry_now(false);
             }
         });
+        let pages = self.imp().views.pages();
+        for i in 0..pages.n_items() {
+            let root = pages
+                .item(i)
+                .and_downcast::<adw::ViewStackPage>()
+                .and_then(|page| page.child().downcast::<adw::NavigationView>().ok())
+                .and_then(|nav| nav.navigation_stack().item(0))
+                .and_downcast::<adw::NavigationPage>();
+            if let Some(root) = root {
+                crate::offline_banner::attach(&root);
+            }
+        }
     }
 
     /// Syncs the library of `client`'s account: in full when `full` (Ctrl+R),
@@ -782,7 +852,7 @@ impl MainView {
                     view.sync_playlists();
                 }
                 Ok(Err(e)) if !stale => {
-                    view.show_offline(&error_message(&e));
+                    view.show_offline(&e);
                     view.set_syncing(false);
                 }
                 Err(_) if !stale => view.set_syncing(false),
@@ -1829,6 +1899,7 @@ impl MainView {
         let imp = self.imp();
         self.cancel_retry();
         imp.retry_attempt.set(0);
+        imp.user_retrying.set(false);
         imp.sync_generation.set(imp.sync_generation.get() + 1);
         imp.client.replace(None);
         self.set_connection(Connection::None);

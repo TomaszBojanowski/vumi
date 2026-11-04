@@ -76,6 +76,7 @@ impl ArtistPage {
 
     pub(crate) fn new(id: &str, name: &str, client: subsonic::Client) -> Self {
         let page: Self = glib::Object::new();
+        crate::offline_banner::attach(&page);
         let imp = page.imp();
 
         page.set_title(name);

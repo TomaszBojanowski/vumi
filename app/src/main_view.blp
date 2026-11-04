@@ -169,14 +169,6 @@ template $VumiMainView: Adw.NavigationPage {
                     }
                   }
 
-                  // Hidden until the server cannot be reached.
-                  [top]
-                  Adw.Banner banner {
-                    // The title is a message from the server: plain text.
-                    use-markup: false;
-                    button-label: _("Retry");
-                  }
-
                   content: Stack stack {
                     StackPage {
                       name: "status";
