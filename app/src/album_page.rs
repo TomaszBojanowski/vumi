@@ -208,6 +208,11 @@ impl AlbumPage {
             let Some(page) = page.upgrade() else {
                 return;
             };
+            // The server did not answer: the main view asks it once whether it
+            // is still there.
+            if matches!(result, Ok(Err(subsonic::Error::Unreachable(_)))) {
+                crate::reconnect::request_failed();
+            }
             match result {
                 Ok(Ok(album)) => {
                     // Nothing new: the page stays exactly as it is.

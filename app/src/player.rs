@@ -284,6 +284,8 @@ impl Player {
         if let Some(handler) = self.error_handler.borrow().as_ref() {
             handler(&message);
         }
+        // A stream may fail because the server went away: the main view asks it.
+        crate::reconnect::request_failed();
     }
 
     /// A command that replaces or edits the queue, or picks a track by hand:

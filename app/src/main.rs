@@ -23,6 +23,7 @@ mod player;
 mod playlist_page;
 mod preferences;
 mod queue_page;
+mod reconnect;
 mod results_view;
 mod resume;
 mod search_page;
@@ -128,28 +129,15 @@ fn build_ui(app: &adw::Application) {
     let main = MainView::new();
     let login_page: adw::NavigationPage = LoginPage::new(&nav, &settings, &main).upcast();
 
-    // With saved credentials the main view shows up at once and the
-    // connection happens in the background. Otherwise: welcome or login.
-    let saved_url = settings.string("server-url").to_string();
-    let saved_user = settings.string("username").to_string();
-    if !saved_url.is_empty() && !saved_user.is_empty() {
-        nav.push(&main);
-        main.load_cached(subsonic::server_key(&saved_url, &saved_user));
-        auto_connect(&nav, &login_page, &main, saved_url, saved_user);
-    } else if settings.boolean("welcome-shown") {
-        nav.push(&login_page);
-    } else {
-        nav.push(&WelcomePage::new(&nav, &login_page, &settings));
-    }
-
-    // "Retry" in the offline banner reconnects with the saved credentials.
-    // A weak reference, so the view does not keep itself alive through its own banner.
+    // Connecting with the saved login: at start, on Retry in the offline
+    // banner, and by itself while the server cannot be reached. A weak
+    // reference, so the view does not keep itself alive through it.
     {
         let nav = nav.clone();
         let login_page = login_page.clone();
         let main_weak = main.downgrade();
         let settings = settings.clone();
-        main.connect_retry(move || {
+        main.set_reconnect(move |quiet| {
             if let Some(main) = main_weak.upgrade() {
                 auto_connect(
                     &nav,
@@ -157,9 +145,43 @@ fn build_ui(app: &adw::Application) {
                     &main,
                     settings.string("server-url").to_string(),
                     settings.string("username").to_string(),
+                    quiet,
                 );
             }
         });
+    }
+    // A failed request (an album page, a stream) makes the view ask the server.
+    {
+        let main_weak = main.downgrade();
+        reconnect::set_failure_handler(move || {
+            if let Some(main) = main_weak.upgrade() {
+                main.check_connection();
+            }
+        });
+    }
+    // The network coming back starts an attempt at once; the network going
+    // away makes the view ask the server.
+    {
+        let main_weak = main.downgrade();
+        gtk::gio::NetworkMonitor::default().connect_network_changed(move |_, available| {
+            if let Some(main) = main_weak.upgrade() {
+                main.network_changed(available);
+            }
+        });
+    }
+
+    // With saved credentials the main view shows up at once and the
+    // connection happens in the background. Otherwise: welcome or login.
+    let saved_url = settings.string("server-url").to_string();
+    let saved_user = settings.string("username").to_string();
+    if !saved_url.is_empty() && !saved_user.is_empty() {
+        nav.push(&main);
+        main.load_cached(subsonic::server_key(&saved_url, &saved_user));
+        main.retry_now(false);
+    } else if settings.boolean("welcome-shown") {
+        nav.push(&login_page);
+    } else {
+        nav.push(&WelcomePage::new(&nav, &login_page, &settings));
     }
 
     // Short in-app messages (e.g. a failed action) appear over the whole window.
@@ -222,6 +244,16 @@ fn build_ui(app: &adw::Application) {
         .height_request(294)
         .content(&toasts)
         .build();
+
+    // Back to the window while offline: an attempt to connect.
+    {
+        let main_weak = main.downgrade();
+        window.connect_is_active_notify(move |window| {
+            if let (true, Some(main)) = (window.is_active(), main_weak.upgrade()) {
+                main.window_activated();
+            }
+        });
+    }
 
     // Restore the window size and state from the last session.
     window.set_default_size(settings.int("window-width"), settings.int("window-height"));
@@ -409,15 +441,19 @@ fn build_ui(app: &adw::Application) {
 }
 
 /// Connects with the saved server, user and keyring password without
-/// blocking the UI: the main view is already on screen while this runs.
+/// blocking the UI: the main view is already on screen while this runs. A
+/// `quiet` attempt (made by itself while offline) shows nothing on its way.
 fn auto_connect(
     nav: &adw::NavigationView,
     login_page: &adw::NavigationPage,
     main: &MainView,
     url: String,
     user: String,
+    quiet: bool,
 ) {
-    main.show_connecting();
+    if !quiet {
+        main.show_connecting();
+    }
     let session = main.session();
     let nav = nav.clone();
     let login_page = login_page.clone();
@@ -440,6 +476,7 @@ fn auto_connect(
             })
             .await;
 
+        main.attempt_done();
         // Logged out, or logged in again, while the ping was on its way: this
         // answer is about an account that is no longer the one in use.
         if main.session() != session {

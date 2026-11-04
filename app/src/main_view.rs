@@ -83,6 +83,9 @@ impl Connection {
     }
 }
 
+/// How the view connects with the saved login; `true` for a quiet attempt.
+type Reconnect = Rc<dyn Fn(bool)>;
+
 mod imp {
     use super::*;
 
@@ -187,6 +190,21 @@ mod imp {
         pub client: RefCell<Option<subsonic::Client>>,
         /// What the last attempt to reach the server came to.
         pub connection: RefCell<Connection>,
+        /// Connects with the saved login (main.rs: auto_connect); `true` for a
+        /// quiet attempt, which leaves the screen as it is unless it succeeds.
+        pub reconnect: RefCell<Option<super::Reconnect>>,
+        /// An attempt to connect is on its way: no second one meanwhile.
+        pub attempting: Cell<bool>,
+        /// Failed attempts since the server last answered (the retry delay).
+        pub retry_attempt: Cell<u32>,
+        /// The next attempt, while the server cannot be reached.
+        pub retry_timer: RefCell<Option<glib::SourceId>>,
+        /// Attempts started by the window becoming active, or by the network.
+        pub activation_gate: RefCell<crate::reconnect::Gate>,
+        pub network_gate: RefCell<crate::reconnect::Gate>,
+        /// A check after a failed request: one at a time, at most every 5 s.
+        pub checking: Cell<bool>,
+        pub check_gate: RefCell<crate::reconnect::Gate>,
         /// Every card the grid created (only as many as fit on screen, plus a few).
         pub cards: RefCell<Vec<glib::WeakRef<AlbumCard>>>,
         /// Whether the startup time was already reported.
@@ -261,6 +279,7 @@ impl MainView {
         view.setup_favorites();
         view.setup_sorting();
         view.setup_search();
+        view.setup_retry();
         // An empty star, as on the star buttons of songs not yet starred.
         view.imp().favorites.set_empty(
             "non-starred-symbolic",
@@ -452,6 +471,8 @@ impl MainView {
     /// Called after a successful ping; syncs the album list in the background.
     pub(crate) fn show_connected(&self, r: &subsonic::Response, client: subsonic::Client) {
         let imp = self.imp();
+        self.cancel_retry();
+        imp.retry_attempt.set(0);
         self.set_connection(Connection::from_response(r));
         imp.banner.set_revealed(false);
         let text = match r.server_type.as_deref() {
@@ -477,6 +498,137 @@ impl MainView {
         imp.banner.set_title(message);
         imp.banner.set_revealed(true);
         imp.status.set_description(Some(&gettext("Offline")));
+        self.schedule_retry();
+    }
+
+    /// How Vumi connects with the saved login (main.rs), for Retry and for
+    /// the attempts it makes by itself while the server cannot be reached.
+    pub(crate) fn set_reconnect(&self, reconnect: impl Fn(bool) + 'static) {
+        self.imp().reconnect.replace(Some(Rc::new(reconnect)));
+    }
+
+    /// Tries to connect now, unless an attempt is on its way. A `quiet` one
+    /// (by itself) shows nothing until it succeeds; Retry and the start are
+    /// not quiet.
+    pub(crate) fn retry_now(&self, quiet: bool) {
+        let imp = self.imp();
+        if imp.attempting.get() {
+            return;
+        }
+        let Some(reconnect) = imp.reconnect.borrow().clone() else {
+            return;
+        };
+        self.cancel_retry();
+        imp.attempting.set(true);
+        reconnect(quiet);
+    }
+
+    /// The attempt of retry_now has an answer (whatever it was).
+    pub(crate) fn attempt_done(&self) {
+        self.imp().attempting.set(false);
+    }
+
+    /// The next quiet attempt, later each time: 5 s, 15 s, 30 s, 60 s, then
+    /// every 2 minutes (reconnect::retry_delay).
+    fn schedule_retry(&self) {
+        let imp = self.imp();
+        if imp.reconnect.borrow().is_none() {
+            return;
+        }
+        self.cancel_retry();
+        let attempt = imp.retry_attempt.get();
+        imp.retry_attempt.set(attempt.saturating_add(1));
+        let view = self.downgrade();
+        let id = glib::timeout_add_local_once(crate::reconnect::retry_delay(attempt), move || {
+            if let Some(view) = view.upgrade() {
+                // It has run: nothing left to remove.
+                view.imp().retry_timer.take();
+                view.retry_now(true);
+            }
+        });
+        imp.retry_timer.replace(Some(id));
+    }
+
+    fn cancel_retry(&self) {
+        if let Some(id) = self.imp().retry_timer.take() {
+            id.remove();
+        }
+    }
+
+    fn is_offline(&self) -> bool {
+        matches!(*self.imp().connection.borrow(), Connection::Offline(_))
+    }
+
+    /// The network came back, or went (GNetworkMonitor). Back: an attempt now,
+    /// and the delays start over. Gone: the server is asked once; the monitor
+    /// alone never decides (a server in the local network works without the
+    /// internet, and the monitor may be wrong).
+    pub(crate) fn network_changed(&self, available: bool) {
+        let imp = self.imp();
+        let now = Instant::now();
+        if available && self.is_offline() {
+            if imp
+                .network_gate
+                .borrow_mut()
+                .allow(now, std::time::Duration::from_secs(2))
+            {
+                imp.retry_attempt.set(0);
+                self.retry_now(true);
+            }
+        } else if !available {
+            self.check_connection();
+        }
+    }
+
+    /// The window became active again: while offline, an attempt now (at most
+    /// every 10 s).
+    pub(crate) fn window_activated(&self) {
+        if self.is_offline()
+            && self
+                .imp()
+                .activation_gate
+                .borrow_mut()
+                .allow(Instant::now(), std::time::Duration::from_secs(10))
+        {
+            self.retry_now(true);
+        }
+    }
+
+    /// A request failed (reconnect::request_failed) or the network went: the
+    /// server is asked once, at most every 5 s and one question at a time;
+    /// only if it cannot be reached does the offline state show.
+    pub(crate) fn check_connection(&self) {
+        let imp = self.imp();
+        if !matches!(*imp.connection.borrow(), Connection::Connected { .. }) || imp.checking.get() {
+            return;
+        }
+        let Some(client) = imp.client.borrow().clone() else {
+            return;
+        };
+        if !imp
+            .check_gate
+            .borrow_mut()
+            .allow(Instant::now(), std::time::Duration::from_secs(5))
+        {
+            return;
+        }
+        imp.checking.set(true);
+        let session = self.session();
+        let view = self.downgrade();
+        glib::spawn_future_local(async move {
+            let result = runtime().spawn(async move { client.ping().await }).await;
+            let Some(view) = view.upgrade() else {
+                return;
+            };
+            view.imp().checking.set(false);
+            // Logged out, or connected anew, meanwhile.
+            if view.session() != session {
+                return;
+            }
+            if let Ok(Err(e @ subsonic::Error::Unreachable(_))) = result {
+                view.show_offline(&error_message(&e));
+            }
+        });
     }
 
     /// What is known about the connection now (Preferences shows it).
@@ -512,9 +664,14 @@ impl MainView {
         self.imp().client.borrow().clone()
     }
 
-    /// Runs `f` when the user presses Retry in the offline banner.
-    pub(crate) fn connect_retry<F: Fn() + 'static>(&self, f: F) {
-        self.imp().banner.connect_button_clicked(move |_| f());
+    /// Retry in the offline banner: an attempt now, shown as one.
+    fn setup_retry(&self) {
+        let view = self.downgrade();
+        self.imp().banner.connect_button_clicked(move |_| {
+            if let Some(view) = view.upgrade() {
+                view.retry_now(false);
+            }
+        });
     }
 
     /// Syncs the library of `client`'s account: in full when `full` (Ctrl+R),
@@ -1670,6 +1827,8 @@ impl MainView {
     /// results instead of showing or saving them.
     pub(crate) fn log_out(&self) {
         let imp = self.imp();
+        self.cancel_retry();
+        imp.retry_attempt.set(0);
         imp.sync_generation.set(imp.sync_generation.get() + 1);
         imp.client.replace(None);
         self.set_connection(Connection::None);
@@ -1759,8 +1918,11 @@ impl MainView {
         // Taken out first: in `if let`, the borrow would last for the whole block,
         // while sync stores the client (borrow_mut).
         let client = self.imp().client.borrow().clone();
-        if let Some(client) = client {
-            self.sync(client, true);
+        match client {
+            // Offline: connecting comes first (then the usual sync).
+            Some(_) | None if self.is_offline() => self.retry_now(false),
+            Some(client) => self.sync(client, true),
+            None => {}
         }
     }
 
