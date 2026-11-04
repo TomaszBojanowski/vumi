@@ -348,7 +348,7 @@ impl MainView {
                 .ancestor(adw::NavigationView::static_type())
                 .and_downcast::<adw::NavigationView>()
             {
-                crate::album_page::open(&nav, &album, client);
+                crate::album_page::open(&nav, &album, client, view.imp().server.borrow().clone());
             }
         });
 
@@ -477,6 +477,10 @@ impl MainView {
         self.cancel_retry();
         imp.retry_attempt.set(0);
         self.set_connection(Connection::from_response(r));
+        // Album pages opened offline get the client and refresh.
+        for page in self.open_album_pages() {
+            page.set_client(client.clone());
+        }
         let text = match r.server_type.as_deref() {
             Some(server) => {
                 // Translators: {server} is the server software (e.g. navidrome), {version} its version.
@@ -605,6 +609,29 @@ impl MainView {
         imp.retry_timer.replace(Some(id));
     }
 
+    /// The album pages open in every section's navigation (Start, Albums,
+    /// Favorites... each has its own).
+    fn open_album_pages(&self) -> Vec<AlbumPage> {
+        let mut found = Vec::new();
+        let sections = self.imp().views.pages();
+        for i in 0..sections.n_items() {
+            let Some(nav) = sections
+                .item(i)
+                .and_downcast::<adw::ViewStackPage>()
+                .and_then(|page| page.child().downcast::<adw::NavigationView>().ok())
+            else {
+                continue;
+            };
+            let stack = nav.navigation_stack();
+            for j in 0..stack.n_items() {
+                if let Some(page) = stack.item(j).and_downcast::<AlbumPage>() {
+                    found.push(page);
+                }
+            }
+        }
+        found
+    }
+
     fn cancel_retry(&self) {
         if let Some(id) = self.imp().retry_timer.take() {
             id.remove();
@@ -636,9 +663,9 @@ impl MainView {
         }
     }
 
-    /// The window became active again: while offline, an attempt now (at most
-    /// every 10 s).
-    pub(crate) fn window_activated(&self) {
+    /// The window became active again, or something wanted the server (Play):
+    /// while offline, an attempt now (at most every 10 s).
+    pub(crate) fn retry_soon(&self) {
         if self.is_offline()
             && self
                 .imp()
@@ -697,7 +724,9 @@ impl MainView {
         if *self.imp().connection.borrow() == connection {
             return;
         }
+        let offline = matches!(connection, Connection::Offline(_));
         self.imp().connection.replace(connection);
+        crate::reconnect::set_offline(offline);
         self.refresh_start_state();
         self.refresh_banners();
         self.emit_by_name::<()>("connection-changed", &[]);
@@ -992,7 +1021,7 @@ impl MainView {
         }
 
         if !back_to::<AlbumPage>(nav, |page| page.album_id() == id) {
-            crate::album_page::open(nav, &album, client);
+            crate::album_page::open(nav, &album, client, imp.server.borrow().clone());
         }
     }
 

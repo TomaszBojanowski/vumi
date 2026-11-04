@@ -276,6 +276,20 @@ impl Player {
         self.notify();
     }
 
+    /// While the server cannot be reached nothing new can play: says so (the
+    /// toast of the error handler, nothing stops) and wakes the attempts to
+    /// connect. True then.
+    fn offline(&self) -> bool {
+        if !crate::reconnect::is_offline() {
+            return false;
+        }
+        if let Some(handler) = self.error_handler.borrow().as_ref() {
+            handler(&gettext("Cannot play without a connection to the server"));
+        }
+        crate::reconnect::wake();
+        true
+    }
+
     /// Stops, remembers the error and tells the user.
     fn fail(&self, message: String) {
         eprintln!("Playback error: {message}");
@@ -306,6 +320,9 @@ impl Player {
         start: usize,
         of: QueueOf,
     ) {
+        if self.offline() {
+            return;
+        }
         self.leave();
         self.new_command();
         self.client.replace(Some(client));
@@ -1174,6 +1191,9 @@ impl Player {
     /// progress, it simply plays; after an error the queue is still there, so
     /// the song joins it and nothing starts.
     pub(crate) fn play_next(&self, client: subsonic::Client, song: subsonic::Song) {
+        if self.offline() {
+            return;
+        }
         self.new_command();
         if !self.is_active() && self.failure().is_none() {
             self.play(client, vec![song].into(), 0, QueueOf::Songs);

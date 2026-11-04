@@ -160,6 +160,15 @@ fn build_ui(app: &adw::Application) {
             }
         });
     }
+    // Playing while offline makes the view try to connect (at most every 10 s).
+    {
+        let main_weak = main.downgrade();
+        reconnect::set_wake_handler(move || {
+            if let Some(main) = main_weak.upgrade() {
+                main.retry_soon();
+            }
+        });
+    }
     // The network coming back starts an attempt at once; the network going
     // away makes the view ask the server.
     {
@@ -251,7 +260,7 @@ fn build_ui(app: &adw::Application) {
         let main_weak = main.downgrade();
         window.connect_is_active_notify(move |window| {
             if let (true, Some(main)) = (window.is_active(), main_weak.upgrade()) {
-                main.window_activated();
+                main.retry_soon();
             }
         });
     }
@@ -551,6 +560,16 @@ fn error_message(e: &subsonic::Error) -> String {
         // Translators: {message} is the error text sent by the server.
         Server { message, .. } => gettext("Server error: {message}").replace("{message}", message),
     }
+}
+
+/// Playing needs the server: a toast says so, and Vumi tries to connect
+/// (unless it did lately). For the places that have no client yet.
+pub(crate) fn cannot_play(near: &impl IsA<gtk::Widget>) {
+    toast(
+        near,
+        &gettext("Cannot play without a connection to the server"),
+    );
+    reconnect::wake();
 }
 
 /// A short note at the bottom of the window `near` is in.

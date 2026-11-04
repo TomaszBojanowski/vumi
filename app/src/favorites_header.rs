@@ -219,8 +219,11 @@ impl FavoritesHeader {
 
     fn play(&self, shuffle: bool) {
         let imp = self.imp();
-        let (Some(songs), Some(client)) = (imp.songs.borrow().clone(), imp.client.borrow().clone())
-        else {
+        let Some(songs) = imp.songs.borrow().clone() else {
+            return;
+        };
+        let Some(client) = imp.client.borrow().clone() else {
+            crate::cannot_play(self);
             return;
         };
         player::play_list(client, songs, shuffle, player::QueueOf::Songs);

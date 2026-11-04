@@ -376,7 +376,11 @@ impl Tuner {
     /// history of played albums stays as it is).
     fn play_year(&self) {
         let imp = self.imp();
-        let (Some(year), Some(client)) = (self.year(), imp.client.borrow().clone()) else {
+        let Some(year) = self.year() else {
+            return;
+        };
+        let Some(client) = imp.client.borrow().clone() else {
+            crate::cannot_play(self);
             return;
         };
         let server = client.server_key();

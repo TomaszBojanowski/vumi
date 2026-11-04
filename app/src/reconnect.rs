@@ -3,7 +3,7 @@
 //! server failed (the main view then asks the server once whether it is still
 //! there).
 
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 use std::time::{Duration, Instant};
 
 /// How long to wait before attempt `attempt` after a failed one (0 is the
@@ -40,6 +40,33 @@ impl Gate {
 
 thread_local! {
     static ON_FAILURE: RefCell<Option<Box<dyn Fn()>>> = RefCell::new(None);
+    static ON_WAKE: RefCell<Option<Box<dyn Fn()>>> = RefCell::new(None);
+    static OFFLINE: Cell<bool> = const { Cell::new(false) };
+}
+
+/// Whether the main view shows the offline state now (set by it).
+pub(crate) fn set_offline(offline: bool) {
+    OFFLINE.with(|o| o.set(offline));
+}
+
+/// True while the server cannot be reached: playing waits for it.
+pub(crate) fn is_offline() -> bool {
+    OFFLINE.with(Cell::get)
+}
+
+/// Who hears that something wanted the server while offline (the main view,
+/// which then tries to connect, unless it did lately).
+pub(crate) fn set_wake_handler(handler: impl Fn() + 'static) {
+    ON_WAKE.with(|h| h.replace(Some(Box::new(handler))));
+}
+
+/// Something wanted the server while offline (Play, a track).
+pub(crate) fn wake() {
+    ON_WAKE.with(|h| {
+        if let Some(handler) = h.borrow().as_ref() {
+            handler();
+        }
+    });
 }
 
 /// Who hears about failed requests: the main view, which checks the connection.
@@ -79,6 +106,20 @@ mod tests {
         // Counted from the last time it let one through.
         assert!(!gate.allow(start + Duration::from_secs(15), gap));
         assert!(gate.allow(start + Duration::from_secs(20), gap));
+    }
+
+    #[test]
+    fn the_offline_state_is_kept_and_a_wake_reaches_the_handler() {
+        assert!(!is_offline());
+        set_offline(true);
+        assert!(is_offline());
+        set_offline(false);
+        assert!(!is_offline());
+        let woken = std::rc::Rc::new(std::cell::Cell::new(0));
+        let seen = woken.clone();
+        set_wake_handler(move || seen.set(seen.get() + 1));
+        wake();
+        assert_eq!(woken.get(), 1);
     }
 
     #[test]

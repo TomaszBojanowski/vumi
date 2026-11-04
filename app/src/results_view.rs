@@ -213,7 +213,15 @@ impl ResultsView {
             let client = imp.client.borrow().clone();
             // The header is the first item: the songs start after it.
             let index = (position as usize).checked_sub(1);
-            if let (Some(songs), Some(client), Some(index)) = (songs, client, index) {
+            let (Some(songs), Some(index)) = (songs, index) else {
+                return;
+            };
+            // Found offline (search and Favorites read the local database).
+            let Some(client) = client else {
+                crate::cannot_play(&view);
+                return;
+            };
+            {
                 let player = player::get();
                 // Started from this list, the queue is this list: a song in
                 // it twice is then told apart by its place.

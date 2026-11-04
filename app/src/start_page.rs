@@ -384,7 +384,11 @@ impl StartPage {
             .get(album_id)
             .map(|data| (data.songs.clone(), data.song_id.clone(), data.seconds));
         let client = imp.client.borrow().clone();
-        let (Some((songs, song_id, seconds)), Some(client)) = (data, client) else {
+        let Some((songs, song_id, seconds)) = data else {
+            return;
+        };
+        let Some(client) = client else {
+            crate::cannot_play(self);
             return;
         };
         let Some(index) = songs.iter().position(|song| song.id == song_id) else {
