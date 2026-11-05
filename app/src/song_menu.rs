@@ -1,5 +1,6 @@
 //! The menu of a song row (album pages, search results, favourites): a ⋮
-//! button at the end of the row.
+//! button at the end of the row, and only there, by design (no right-click
+//! menu).
 
 use adw::prelude::*;
 use gettextrs::gettext;
@@ -9,26 +10,6 @@ use std::rc::Rc;
 
 use crate::main_view::MainView;
 use crate::player;
-
-/// Gives `row` a ⋮ menu for the song at `index` in `songs`; the menu is
-/// under that button only, by design (no right-click menu). The list is
-/// shared, not copied; the song is taken from it when the menu is used.
-/// `go_to_album` is false on the album's own page.
-pub(crate) fn attach(
-    row: &adw::ActionRow,
-    songs: &Rc<[subsonic::Song]>,
-    index: usize,
-    client: Option<subsonic::Client>,
-    go_to_album: bool,
-) {
-    let songs = songs.clone();
-    let button = menu_button(
-        row,
-        move || songs.get(index).cloned().map(|song| (song, client.clone())),
-        go_to_album,
-    );
-    row.add_suffix(&button);
-}
 
 /// Asks for the song a menu is about, and the client (None offline), when the
 /// menu is used.

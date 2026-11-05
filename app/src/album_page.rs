@@ -299,6 +299,7 @@ impl AlbumPage {
 
         if !imp.tracks_shown.replace(true) {
             self.build_actions(&album.id);
+            self.install_track_action();
             // Mark the playing track whenever the player changes; the page stops
             // listening when it is closed.
             let page = self.downgrade();
@@ -374,7 +375,6 @@ impl AlbumPage {
         let generation = imp.row_generation.get() + 1;
         imp.row_generation.set(generation);
         let builder = Rc::new(RowBuilder {
-            album_id: album.id.clone(),
             queue,
             album_artist: album_artist.map(str::to_owned),
             client: client.clone(),
@@ -457,19 +457,56 @@ impl AlbumPage {
     }
 }
 
-/// A track row and the widgets that show whether it is playing.
+/// A track row and the widgets that show whether it is playing. The row is
+/// built like the inside of an Adw.ActionRow (a box "header" with the parts
+/// in it), so the theme draws it the same way, but holds only what it shows:
+/// an ActionRow brings boxes and an icon of its own, and every row had its
+/// own bars.
 pub(crate) struct TrackRow {
     song_id: String,
-    row: adw::ActionRow,
-    slot: gtk::Stack,
-    bars: crate::eq_bars::EqBars,
+    row: adw::PreferencesRow,
+    /// The track number, and over it the bars while the track is the
+    /// current one.
+    slot: gtk::Overlay,
+    number: gtk::Label,
+    track: String,
+    bars: Option<crate::eq_bars::EqBars>,
 }
 
-/// One track: number (or a playing icon), title, duration, favourite star;
-/// the artist only if it differs from the album's, the composer only if it is
-/// not the one named in the header and not one of the track's performers.
+impl TrackRow {
+    /// The bars instead of the number and the highlight while the track is
+    /// the current one; the bars are made then and go when it stops being it.
+    fn set_playing(&mut self, playing: bool, mode: Mode) {
+        if playing {
+            if self.bars.is_none() {
+                // Three bars that bounce while the track plays and rest while
+                // it is paused. The number keeps its width, so the titles stay
+                // aligned.
+                let bars = crate::eq_bars::EqBars::new();
+                self.slot.add_overlay(&bars);
+                self.number.set_label("");
+                self.bars = Some(bars);
+            }
+            if let Some(bars) = &self.bars {
+                bars.set_mode(mode);
+            }
+            self.row.add_css_class("playing");
+        } else {
+            if let Some(bars) = self.bars.take() {
+                self.slot.remove_overlay(&bars);
+                self.number.set_label(&self.track);
+            }
+            self.row.remove_css_class("playing");
+        }
+    }
+}
+
+/// One track: number (or the bars while it plays), title, duration,
+/// favourite star, ⋮; the artist only if it differs from the album's, the
+/// composer only if it is not the one named in the header and not one of the
+/// track's performers. A click plays the album from this track (the page's
+/// "album.play-track").
 fn track_row(
-    album_id: &str,
     song: &subsonic::Song,
     album_artist: Option<&str>,
     hidden_composer: Option<&str>,
@@ -477,37 +514,45 @@ fn track_row(
     index: usize,
     queue: &Rc<[subsonic::Song]>,
 ) -> TrackRow {
-    // Markup for the composer in italics: the title and the artist are escaped.
-    let row = adw::ActionRow::builder()
-        .title(glib::markup_escape_text(&song.title))
-        .use_markup(true)
-        .subtitle_lines(1)
+    let row = adw::PreferencesRow::builder().activatable(true).build();
+    row.set_action_name(Some("album.play-track"));
+    row.set_action_target_value(Some(&(index as u32).to_variant()));
+    let header = gtk::Box::builder()
+        .valign(gtk::Align::Center)
+        .css_classes(["header"])
         .build();
 
-    // A click on a row plays the album from this track.
-    row.set_activatable(true);
-    let client_for_play = client.cloned();
-    let play_queue = queue.clone();
-    let song_id = song.id.clone();
-    let album_id = album_id.to_owned();
-    row.connect_activated(move |row| {
-        let player = player::get();
-        // The playing track: pause or resume it instead of starting it again.
-        if player.toggle_if_current(player::Clicked::Song(&song_id)) {
-            return;
-        }
-        match &client_for_play {
-            Some(client) => player.play(
-                client.clone(),
-                play_queue.clone(),
-                index,
-                player::QueueOf::Album(album_id.clone()),
-            ),
-            // Shown offline from the local copy: playing needs the server.
-            None => crate::cannot_play(row),
-        }
-    });
+    // The track number; the theme gives the "prefixes" the room after them.
+    let track = song.track.map(|n| n.to_string()).unwrap_or_default();
+    let number = gtk::Label::builder()
+        .label(track.as_str())
+        .width_chars(3)
+        .xalign(1.0)
+        .css_classes(["dim-label", "numeric"])
+        .build();
+    let slot = gtk::Overlay::builder()
+        .child(&number)
+        .css_classes(["prefixes"])
+        .build();
+    header.append(&slot);
 
+    let title_box = gtk::Box::builder()
+        .orientation(gtk::Orientation::Vertical)
+        .valign(gtk::Align::Center)
+        .hexpand(true)
+        .css_classes(["title"])
+        .build();
+    // Plain text: names like "Simon & Garfunkel" are not markup.
+    let title = gtk::Label::builder()
+        .label(song.title.as_str())
+        .wrap(true)
+        .wrap_mode(gtk::pango::WrapMode::WordChar)
+        .xalign(0.0)
+        .css_classes(["title"])
+        .build();
+    title_box.append(&title);
+
+    // Markup for the composer in italics: the artist is escaped.
     let mut subtitle: Vec<String> = Vec::new();
     if let Some(artist) = song.artist.as_deref().filter(|a| Some(*a) != album_artist) {
         subtitle.push(glib::markup_escape_text(artist).to_string());
@@ -527,48 +572,67 @@ fn track_row(
             ));
         }
     }
+    let mut described_by = Vec::new();
     if !subtitle.is_empty() {
-        row.set_subtitle(&subtitle.join(" · "));
+        // One line: a long list of performers must not make a row taller
+        // than the others.
+        let line = gtk::Label::builder()
+            .label(subtitle.join(" · "))
+            .use_markup(true)
+            .wrap(true)
+            .wrap_mode(gtk::pango::WrapMode::WordChar)
+            .lines(1)
+            .ellipsize(gtk::pango::EllipsizeMode::End)
+            .xalign(0.0)
+            .css_classes(["subtitle"])
+            .build();
+        title_box.append(&line);
+        described_by.push(line.upcast::<gtk::Widget>());
     }
-
-    // The track number, swapped for an icon while this track plays. The stack
-    // keeps one width for both, so the titles stay aligned.
-    let number = gtk::Label::builder()
-        .label(song.track.map(|n| n.to_string()).unwrap_or_default())
-        .width_chars(3)
-        .xalign(1.0)
-        .css_classes(["dim-label", "numeric"])
-        .build();
-    // Three bars that bounce while the track plays and rest while it is paused.
-    let bars = crate::eq_bars::EqBars::new();
-    let slot = gtk::Stack::new();
-    slot.add_named(&number, Some("number"));
-    slot.add_named(&bars, Some("icon"));
-    slot.set_visible_child_name("number");
-    row.add_prefix(&slot);
+    header.append(&title_box);
 
     if let Some(d) = song.duration {
         let duration = gtk::Label::builder()
             .label(format::clock(d.into()))
             .css_classes(["dim-label", "numeric"])
             .build();
-        row.add_suffix(&duration);
+        header.append(&duration);
     }
 
-    row.add_suffix(&star_button(
+    header.append(&star_button(
         song.starred.is_some(),
         client.cloned(),
         Favorite::Song(song.id.clone()),
     ));
 
-    // The ⋮ menu, last in the row: after the time and the star.
-    crate::song_menu::attach(&row, queue, index, client.cloned(), false);
+    // The ⋮ menu, last in the row: after the time and the star. The list is
+    // shared, not copied; the song is taken from it when the menu is used.
+    let songs = queue.clone();
+    let client = client.cloned();
+    header.append(&crate::song_menu::menu_button(
+        &row,
+        move || songs.get(index).cloned().map(|song| (song, client.clone())),
+        false,
+    ));
+
+    row.set_child(Some(&header));
+    // Read as an Adw.ActionRow is: the title, the line below it as the
+    // description.
+    let accessible = row.upcast_ref::<gtk::Widget>();
+    accessible.update_relation(&[gtk::accessible::Relation::LabelledBy(&[title.upcast_ref()])]);
+    if !described_by.is_empty() {
+        let described_by: Vec<&gtk::Accessible> =
+            described_by.iter().map(|w| w.upcast_ref()).collect();
+        accessible.update_relation(&[gtk::accessible::Relation::DescribedBy(&described_by)]);
+    }
 
     TrackRow {
         song_id: song.id.clone(),
         row,
         slot,
-        bars,
+        number,
+        track,
+        bars: None,
     }
 }
 
@@ -658,23 +722,14 @@ impl AlbumPage {
             .current()
             .filter(|_| player.is_active())
             .map(|song| song.id);
-        for track in self.imp().rows.borrow().iter() {
+        let mode = if player.is_playing() {
+            Mode::Moving
+        } else {
+            Mode::Paused
+        };
+        for track in self.imp().rows.borrow_mut().iter_mut() {
             let playing = current.as_deref() == Some(track.song_id.as_str());
-            track
-                .slot
-                .set_visible_child_name(if playing { "icon" } else { "number" });
-            track.bars.set_mode(if !player.is_playing() {
-                Mode::Paused
-            } else if playing {
-                Mode::Moving
-            } else {
-                Mode::Still
-            });
-            if playing {
-                track.row.add_css_class("playing");
-            } else {
-                track.row.remove_css_class("playing");
-            }
+            track.set_playing(playing, mode);
         }
 
         // The round Play button follows too: Pause while this album plays.
@@ -719,8 +774,6 @@ const ROW_BATCH_LATER: usize = 5;
 
 /// Where building the track rows has got to (see show_tracks).
 struct RowBuilder {
-    /// The album the queue is started as when a row is played.
-    album_id: String,
     queue: Rc<[subsonic::Song]>,
     album_artist: Option<String>,
     client: Option<subsonic::Client>,
@@ -771,7 +824,6 @@ impl AlbumPage {
             }
             if let Some((_, group)) = builder.group.borrow().as_ref() {
                 let track = track_row(
-                    &builder.album_id,
                     song,
                     builder.album_artist.as_deref(),
                     builder.hidden_composer.as_deref(),
@@ -831,6 +883,50 @@ impl AlbumPage {
 }
 
 impl AlbumPage {
+    /// "album.play-track" (the track's index): a click on a track row. The
+    /// rows only name their index, so a row needs no handler of its own.
+    fn install_track_action(&self) {
+        let actions = gtk::gio::SimpleActionGroup::new();
+        let play = gtk::gio::SimpleAction::new("play-track", Some(glib::VariantTy::UINT32));
+        let page = self.downgrade();
+        play.connect_activate(move |_, index| {
+            let (Some(page), Some(index)) = (page.upgrade(), index.and_then(|i| i.get::<u32>()))
+            else {
+                return;
+            };
+            page.play_track(index as usize);
+        });
+        actions.add_action(&play);
+        self.insert_action_group("album", Some(&actions));
+    }
+
+    /// Plays the album from the track at `index`; the playing track pauses or
+    /// resumes instead of starting again.
+    fn play_track(&self, index: usize) {
+        let imp = self.imp();
+        let Some(queue) = imp.queue.borrow().clone() else {
+            return;
+        };
+        let Some(song) = queue.get(index) else {
+            return;
+        };
+        let player = player::get();
+        if player.toggle_if_current(player::Clicked::Song(&song.id)) {
+            return;
+        }
+        let client = imp.client.borrow().clone();
+        match client {
+            Some(client) => player.play(
+                client,
+                queue.clone(),
+                index,
+                player::QueueOf::Album(self.album_id()),
+            ),
+            // Shown offline from the local copy: playing needs the server.
+            None => crate::cannot_play(self),
+        }
+    }
+
     /// The round Play and Shuffle buttons (once per page). They read the queue
     /// and the client when clicked, so after a refresh they play the current
     /// track list, and once the connection is back they play at all.
