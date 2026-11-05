@@ -180,6 +180,18 @@ impl Player {
             .expect("GStreamer playbin is missing");
         let bus = playbin.bus().expect("playbin has a bus");
 
+        // A stream waits as long for the server as the other requests do
+        // (subsonic::ANSWER_TIMEOUT), not GStreamer's own 15 seconds: a
+        // server waking its disks is slow, not gone.
+        playbin.connect("source-setup", false, |values| {
+            if let Ok(source) = values[1].get::<gst::Element>()
+                && source.has_property("timeout")
+            {
+                source.set_property("timeout", subsonic::ANSWER_TIMEOUT.as_secs() as u32);
+            }
+            None
+        });
+
         // Gapless: a few seconds before a track ends, GStreamer asks for the next
         // one (on its own thread). The address was prepared on the main thread
         // (prepare_next), so the track after starts without any silence.

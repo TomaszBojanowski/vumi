@@ -61,12 +61,18 @@ pub struct Client {
     fresh: Arc<std::sync::OnceLock<reqwest::Client>>,
 }
 
+/// How long an answer may take. A NAS waking its disks, or busy with other
+/// work, can take 20 to 30 seconds; a network that is gone fails at once
+/// anyway (a new connection is refused), so only a server that takes the
+/// request and never answers waits this long.
+pub const ANSWER_TIMEOUT: Duration = Duration::from_secs(35);
+
 /// An HTTP client with the app's timeouts; `keep` false: no connection is
 /// kept for the next request.
 fn http_client(keep: bool) -> reqwest::Client {
     let mut builder = reqwest::Client::builder()
         .connect_timeout(Duration::from_secs(5))
-        .timeout(Duration::from_secs(15));
+        .timeout(ANSWER_TIMEOUT);
     if !keep {
         builder = builder.pool_max_idle_per_host(0);
     }
