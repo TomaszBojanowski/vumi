@@ -504,6 +504,20 @@ pub(crate) fn load_album_songs(
     })
 }
 
+/// The albums with songs by the artist `artist_id`, also those where the album
+/// is someone else's (compilations): the server lists them on the artist's
+/// page, and so does the page offline.
+pub(crate) fn albums_with_songs_by(server: &str, artist_id: &str) -> rusqlite::Result<Vec<String>> {
+    with_connection(|conn| {
+        let mut stmt = conn.prepare_cached(
+            "SELECT DISTINCT album_id FROM songs
+             WHERE server = ?1 AND artist_id = ?2 AND album_id IS NOT NULL",
+        )?;
+        let rows = stmt.query_map(params![server, artist_id], |row| row.get(0))?;
+        rows.collect()
+    })
+}
+
 /// The songs of each album of `album_ids`, in the album's order, read
 /// together (the Start page asks for the albums of its tiles at once).
 pub(crate) fn load_songs_by_album(
@@ -818,6 +832,36 @@ mod tests {
         assert_eq!(
             found,
             [("b", vec!["b1"]), ("none", vec![]), ("a", vec!["a1", "a2"])]
+        );
+    }
+
+    #[test]
+    fn an_artists_albums_include_those_with_only_a_song_of_theirs() {
+        let _temporary = Temporary::new("artist-songs");
+        let by = |id: &str, album: &str, artist: Option<&str>| subsonic::Song {
+            artist_id: artist.map(Into::into),
+            ..song(id, id, album, 1, 1)
+        };
+        save_songs(
+            SERVER,
+            &[
+                by("a1", "own", Some("x")),
+                by("a2", "own", Some("x")),
+                by("c1", "compilation", Some("y")),
+                by("c2", "compilation", Some("x")),
+                by("o1", "other", Some("y")),
+                by("n1", "unknown", None),
+            ],
+        )
+        .unwrap();
+        let mut found = albums_with_songs_by(SERVER, "x").unwrap();
+        found.sort();
+        assert_eq!(found, ["compilation", "own"]);
+        assert!(albums_with_songs_by(SERVER, "nobody").unwrap().is_empty());
+        assert!(
+            albums_with_songs_by("other@server", "x")
+                .unwrap()
+                .is_empty()
         );
     }
 

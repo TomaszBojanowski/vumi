@@ -1023,24 +1023,56 @@ impl MainView {
             imp.split.set_show_sidebar(false);
         }
 
-        if !back_to::<ArtistPage>(&nav, |page| page.artist_id() == id) {
-            let local = match client {
-                Some(_) => LocalArtist::default(),
-                None => self.local_artist(id),
-            };
-            nav.push(&ArtistPage::new(id, name, client, local));
+        if back_to::<ArtistPage>(&nav, |page| page.artist_id() == id) {
+            return;
         }
+        if client.is_some() {
+            nav.push(&ArtistPage::new(id, name, client, LocalArtist::default()));
+            return;
+        }
+        // Offline: the albums with songs by the artist come from the
+        // database, off the main thread; the page opens with them.
+        let server = imp.server.borrow().clone();
+        let view = self.downgrade();
+        let (id, name) = (id.to_owned(), name.to_owned());
+        glib::spawn_future_local(async move {
+            let artist = id.clone();
+            let result = runtime()
+                .spawn_blocking(move || library::albums_with_songs_by(&server, &artist))
+                .await;
+            let Some(view) = view.upgrade() else {
+                return;
+            };
+            let with_songs = match result {
+                Ok(Ok(albums)) => albums,
+                Ok(Err(e)) => {
+                    eprintln!("Could not read the library database: {e}");
+                    Vec::new()
+                }
+                Err(_) => Vec::new(),
+            };
+            // Opened meanwhile (a second click): once is enough.
+            if !back_to::<ArtistPage>(&nav, |page| page.artist_id() == id) {
+                let local = view.local_artist(&id, &with_songs);
+                nav.push(&ArtistPage::new(&id, &name, None, local));
+            }
+        });
     }
 
-    /// What the library knows of the artist `id`: the albums in memory, by
+    /// What the library knows of the artist `id`: the albums in memory that
+    /// are theirs or have songs of theirs (`with_songs`: compilations), by
     /// year, and the picture from the server's list if it came this session.
-    fn local_artist(&self, id: &str) -> LocalArtist {
+    fn local_artist(&self, id: &str, with_songs: &[String]) -> LocalArtist {
         let imp = self.imp();
+        let with_songs: std::collections::HashSet<&str> =
+            with_songs.iter().map(String::as_str).collect();
         let mut albums: Vec<subsonic::Album> = imp
             .current
             .borrow()
             .iter()
-            .filter(|album| album.artist_id.as_deref() == Some(id))
+            .filter(|album| {
+                album.artist_id.as_deref() == Some(id) || with_songs.contains(album.id.as_str())
+            })
             .map(|album| (**album).clone())
             .collect();
         albums.sort_by(|a, b| a.year.cmp(&b.year).then_with(|| a.name.cmp(&b.name)));
