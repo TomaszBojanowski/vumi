@@ -8,6 +8,7 @@ use gtk::{gio, glib};
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 
+use crate::favorites::{self, Favorite};
 use crate::main_view::MainView;
 use crate::player;
 
@@ -36,7 +37,11 @@ pub(crate) fn menu_button(
         if !made.replace(true) {
             install_actions(&owner, &current);
         }
-        Some(menu(go_to_album))
+        // Whether the song is a favourite now: the item says what it will do.
+        let starred = current().is_some_and(|(song, _)| {
+            favorites::is_starred(&Favorite::Song(song.id.clone()), song.starred.is_some())
+        });
+        Some(menu(go_to_album, starred))
     })
 }
 
@@ -112,8 +117,9 @@ pub(crate) fn more_button(menu: impl Fn() -> Option<gio::Menu> + 'static) -> gtk
 type SongAction = Box<dyn Fn(&gtk::Widget, subsonic::Song, Option<subsonic::Client>)>;
 
 /// Puts the actions a song menu can use on `row`, as the group "song":
-/// play-next, add-to-queue, add-to-playlist, play-similar, go-to-album,
-/// go-to-artist and info. The queue builds a menu of its own from them.
+/// play-next, add-to-queue, add-to-playlist, favorite, play-similar,
+/// go-to-album, go-to-artist and info. The queue builds a menu of its own
+/// from them.
 pub(crate) fn install_actions(row: &gtk::Widget, current: &Current) {
     let actions = gio::SimpleActionGroup::new();
     let add = |name: &str, run: SongAction| {
@@ -156,6 +162,22 @@ pub(crate) fn install_actions(row: &gtk::Widget, current: &Current) {
         "add-to-playlist",
         Box::new(|row, song, client| match client {
             Some(client) => choose_playlist(row, song, client),
+            None => crate::toast(
+                row,
+                &crate::error_message(&subsonic::Error::Unreachable(String::new())),
+            ),
+        }),
+    );
+    // Adds the song to the favourites, or takes it out if it is one: the
+    // star of a row shows only under the pointer, and a touch screen has none.
+    add(
+        "favorite",
+        Box::new(|row, song, client| match client {
+            Some(client) => {
+                let item = Favorite::Song(song.id.clone());
+                let starred = favorites::is_starred(&item, song.starred.is_some());
+                favorites::set(row, client, item, !starred);
+            }
             None => crate::toast(
                 row,
                 &crate::error_message(&subsonic::Error::Unreachable(String::new())),
@@ -213,8 +235,9 @@ pub(crate) fn install_actions(row: &gtk::Widget, current: &Current) {
     row.insert_action_group("song", Some(&actions));
 }
 
-/// The menu of a song in a list, for the actions above.
-fn menu(go_to_album: bool) -> gio::Menu {
+/// The menu of a song in a list, for the actions above; `starred`: the song
+/// is a favourite now.
+fn menu(go_to_album: bool, starred: bool) -> gio::Menu {
     // Grouped as in the picture: queue, radio, navigation, information.
     let menu = gio::Menu::new();
     let queue = gio::Menu::new();
@@ -224,6 +247,12 @@ fn menu(go_to_album: bool) -> gio::Menu {
         Some(&gettext("Add to Playlist…")),
         Some("song.add-to-playlist"),
     );
+    let favorite = if starred {
+        gettext("Remove from Favorites")
+    } else {
+        gettext("Add to Favorites")
+    };
+    queue.append(Some(&favorite), Some("song.favorite"));
     menu.append_section(None, &queue);
     let radio = gio::Menu::new();
     radio.append(Some(&gettext("Play Similar")), Some("song.play-similar"));

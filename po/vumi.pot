@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vumi\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-05 10:03+0100\n"
+"POT-Creation-Date: 2026-11-05 10:21+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -154,7 +154,7 @@ msgstr ""
 
 #: app/src/main.rs:574 app/src/main_view.rs:1833 app/src/login_page.rs:204
 #: app/src/album_page.rs:278 app/src/artist_page.rs:163
-#: app/src/song_menu.rs:494 app/src/playlist_page.rs:127
+#: app/src/song_menu.rs:523 app/src/playlist_page.rs:127
 msgid "Something went wrong. Please try again."
 msgstr ""
 
@@ -290,11 +290,11 @@ msgstr ""
 msgid "Recently Starred"
 msgstr ""
 
-#: app/src/main_view.rs:1551 app/src/song_menu.rs:421
+#: app/src/main_view.rs:1551 app/src/song_menu.rs:450
 msgid "Title"
 msgstr ""
 
-#: app/src/main_view.rs:1552 app/src/main_view.blp:463 app/src/song_menu.rs:422
+#: app/src/main_view.rs:1552 app/src/main_view.blp:463 app/src/song_menu.rs:451
 msgid "Artist"
 msgstr ""
 
@@ -356,7 +356,7 @@ msgstr ""
 msgid "Collections"
 msgstr ""
 
-#: app/src/main_view.blp:343 app/src/main_view.blp:349 app/src/song_menu.rs:355
+#: app/src/main_view.blp:343 app/src/main_view.blp:349 app/src/song_menu.rs:384
 msgid "Playlists"
 msgstr ""
 
@@ -401,7 +401,7 @@ msgstr ""
 msgid "Queue"
 msgstr ""
 
-#: app/src/main_view.blp:512 app/src/song_menu.rs:425
+#: app/src/main_view.blp:512 app/src/song_menu.rs:454
 msgid "Track"
 msgstr ""
 
@@ -542,11 +542,11 @@ msgstr ""
 msgid "Could not change favorites. Please try again."
 msgstr ""
 
-#: app/src/favorites.rs:262 app/src/queue_page.rs:641
+#: app/src/favorites.rs:262 app/src/queue_page.rs:641 app/src/song_menu.rs:251
 msgid "Remove from Favorites"
 msgstr ""
 
-#: app/src/favorites.rs:265 app/src/queue_page.rs:643
+#: app/src/favorites.rs:265 app/src/queue_page.rs:643 app/src/song_menu.rs:253
 msgid "Add to Favorites"
 msgstr ""
 
@@ -717,7 +717,7 @@ msgid "Show Less"
 msgstr ""
 
 #: app/src/now_playing.blp:37 app/src/queue_page.rs:648
-#: app/src/song_menu.rs:234
+#: app/src/song_menu.rs:263
 msgid "Go to Album"
 msgstr ""
 
@@ -978,7 +978,7 @@ msgstr[1] ""
 msgid "Clear Queue?"
 msgstr ""
 
-#: app/src/queue_page.rs:398 app/src/song_menu.rs:310
+#: app/src/queue_page.rs:398 app/src/song_menu.rs:339
 msgid "New Playlist"
 msgstr ""
 
@@ -1013,89 +1013,89 @@ msgstr ""
 msgid "Remove from Queue"
 msgstr ""
 
-#: app/src/queue_page.rs:637 app/src/song_menu.rs:224
+#: app/src/queue_page.rs:637 app/src/song_menu.rs:247
 msgid "Add to Playlist…"
 msgstr ""
 
-#: app/src/queue_page.rs:649 app/src/song_menu.rs:236
+#: app/src/queue_page.rs:649 app/src/song_menu.rs:265
 msgid "Go to Artist"
 msgstr ""
 
-#: app/src/queue_page.rs:650 app/src/song_menu.rs:239 app/src/song_menu.rs:472
+#: app/src/queue_page.rs:650 app/src/song_menu.rs:268 app/src/song_menu.rs:501
 msgid "Song Information"
 msgstr ""
 
-#: app/src/queue_page.rs:653 app/src/song_menu.rs:229
+#: app/src/queue_page.rs:653 app/src/song_menu.rs:258
 msgid "Play Similar"
 msgstr ""
 
-#: app/src/song_menu.rs:56 app/src/song_menu.rs:61
+#: app/src/song_menu.rs:61 app/src/song_menu.rs:66
 msgid "More"
 msgstr ""
 
-#: app/src/song_menu.rs:138
+#: app/src/song_menu.rs:144
 msgid "Will play next"
 msgstr ""
 
-#: app/src/song_menu.rs:149
+#: app/src/song_menu.rs:155
 msgid "Added to the queue"
 msgstr ""
 
-#: app/src/song_menu.rs:221
+#: app/src/song_menu.rs:244
 msgid "Play Next"
 msgstr ""
 
-#: app/src/song_menu.rs:222
+#: app/src/song_menu.rs:245
 msgid "Add to Queue"
 msgstr ""
 
-#: app/src/song_menu.rs:294
+#: app/src/song_menu.rs:323
 msgid "Add to Playlist"
 msgstr ""
 
 #. Translators: {name} is the name of a playlist.
-#: app/src/song_menu.rs:341 app/src/song_menu.rs:393
+#: app/src/song_menu.rs:370 app/src/song_menu.rs:422
 #, rust-format
 msgid "Added to “{name}”"
 msgstr ""
 
-#: app/src/song_menu.rs:345 app/src/song_menu.rs:397
+#: app/src/song_menu.rs:374 app/src/song_menu.rs:426
 msgid "Could not add to the playlist"
 msgstr ""
 
-#: app/src/song_menu.rs:423
+#: app/src/song_menu.rs:452
 msgid "Composer"
 msgstr ""
 
-#: app/src/song_menu.rs:424
+#: app/src/song_menu.rs:453
 msgid "Album"
 msgstr ""
 
-#: app/src/song_menu.rs:426
+#: app/src/song_menu.rs:455
 msgid "Disc"
 msgstr ""
 
-#: app/src/song_menu.rs:427
+#: app/src/song_menu.rs:456
 msgid "Duration"
 msgstr ""
 
-#: app/src/song_menu.rs:429
+#: app/src/song_menu.rs:458
 msgid "Format"
 msgstr ""
 
-#: app/src/song_menu.rs:434
+#: app/src/song_menu.rs:463
 msgid "Bit Depth"
 msgstr ""
 
-#: app/src/song_menu.rs:438
+#: app/src/song_menu.rs:467
 msgid "Sample Rate"
 msgstr ""
 
-#: app/src/song_menu.rs:442
+#: app/src/song_menu.rs:471
 msgid "Bit Rate"
 msgstr ""
 
-#: app/src/song_menu.rs:489
+#: app/src/song_menu.rs:518
 msgid "No similar songs found"
 msgstr ""
 
