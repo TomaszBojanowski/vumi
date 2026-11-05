@@ -548,7 +548,16 @@ fn auto_connect(
                     main.show_connected(&response, client);
                     false
                 }
-                Err(subsonic::Error::WrongCredentials) => true,
+                // The saved password no longer fits (changed on the server
+                // while Vumi was offline, say): the login page says why it
+                // is there, with the password to type again.
+                Err(e @ subsonic::Error::WrongCredentials) => {
+                    if let Some(page) = login_page.downcast_ref::<LoginPage>() {
+                        page.clear_password();
+                        page.show_error(&error_message(&e));
+                    }
+                    true
+                }
                 Err(e) => {
                     main.show_offline(&e);
                     false
