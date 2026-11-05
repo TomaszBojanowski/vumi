@@ -476,6 +476,8 @@ impl MainView {
         self.cancel_retry();
         imp.retry_attempt.set(0);
         self.set_connection(Connection::from_response(r));
+        // Listens finished while the server could not be reached go now.
+        crate::player::send_unsent_listens(client.clone());
         // Album and artist pages opened offline get the client and refresh.
         for page in self.open_pages() {
             if let Some(page) = page.downcast_ref::<AlbumPage>() {

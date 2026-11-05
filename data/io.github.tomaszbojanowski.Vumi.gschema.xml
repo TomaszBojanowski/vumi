@@ -34,6 +34,11 @@
       <summary>Albums that played lately, newest first</summary>
       <description>One entry per album: the album, the song of it that played last and where in that song playback stopped, in seconds.</description>
     </key>
+    <key name="unsent-listens" type="a(ssx)">
+      <default>[]</default>
+      <summary>Finished listens not sent to the server yet</summary>
+      <description>Listens that came due while the server could not be reached: the account, the song and when the listen began, in milliseconds since the Unix epoch. Sent once the connection is back.</description>
+    </key>
     <key name="endless-radio" type="b">
       <default>false</default>
       <summary>When the queue ends, keep playing songs similar to the last one</summary>

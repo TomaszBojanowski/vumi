@@ -28,6 +28,8 @@ fn scenarios_with_a_real_playbin() {
     crate::player::tests::a_failed_stream_says_why_and_play_goes_on_from_there(&mut failures);
     crate::player::tests::offline_leaves_the_queue_and_the_track_as_they_were(&mut failures);
     crate::player::tests::a_jump_offline_leaves_the_track_where_it_was(&mut failures);
+    crate::player::tests::a_finished_listen_waits_for_the_server(&mut failures);
+    crate::player::tests::a_listen_goes_on_after_a_failed_stream(&mut failures);
     assert!(failures.is_empty(), "{}", failures.join("; "));
 }
 
@@ -64,6 +66,8 @@ pub(crate) struct Server {
     listening: Arc<AtomicBool>,
     paced: Arc<AtomicBool>,
     not_audio: Arc<AtomicBool>,
+    /// The first line of every request (with its query: the test's own login).
+    requests: Arc<std::sync::Mutex<Vec<String>>>,
 }
 
 impl Server {
@@ -76,11 +80,13 @@ impl Server {
             listening: Arc::new(AtomicBool::new(true)),
             paced: Arc::new(AtomicBool::new(false)),
             not_audio: Arc::new(AtomicBool::new(false)),
+            requests: Arc::default(),
         };
         let up = server.up.clone();
         let listening = server.listening.clone();
         let paced = server.paced.clone();
         let not_audio = server.not_audio.clone();
+        let requests = server.requests.clone();
         let wav: Arc<[u8]> = wav.into();
         std::thread::spawn(move || {
             let mut listener = Some(listener);
@@ -101,10 +107,10 @@ impl Server {
                     continue;
                 };
                 let _ = stream.set_nonblocking(false);
-                let (wav, up) = (wav.clone(), up.clone());
+                let (wav, up, requests) = (wav.clone(), up.clone(), requests.clone());
                 let paced = paced.load(Ordering::SeqCst);
                 let not_audio = not_audio.load(Ordering::SeqCst);
-                std::thread::spawn(move || answer(stream, &wav, &up, paced, not_audio));
+                std::thread::spawn(move || answer(stream, &wav, &up, paced, not_audio, &requests));
             }
         });
         server
@@ -130,12 +136,27 @@ impl Server {
     pub(crate) fn set_not_audio(&self, not_audio: bool) {
         self.not_audio.store(not_audio, Ordering::SeqCst);
     }
+
+    /// The first lines of the requests that came so far.
+    pub(crate) fn requests(&self) -> Vec<String> {
+        self.requests.lock().map(|r| r.clone()).unwrap_or_default()
+    }
 }
 
-fn answer(mut stream: TcpStream, wav: &[u8], up: &AtomicBool, paced: bool, not_audio: bool) {
+fn answer(
+    mut stream: TcpStream,
+    wav: &[u8],
+    up: &AtomicBool,
+    paced: bool,
+    not_audio: bool,
+    requests: &std::sync::Mutex<Vec<String>>,
+) {
     let mut request = [0u8; 4096];
     let read = stream.read(&mut request).unwrap_or(0);
     let request = String::from_utf8_lossy(&request[..read]);
+    if let (Some(first), Ok(mut requests)) = (request.lines().next(), requests.lock()) {
+        requests.push(first.to_owned());
+    }
     let (kind, whole): (&str, &[u8]) = if not_audio {
         ("text/plain", b"This is not a sound.")
     } else {

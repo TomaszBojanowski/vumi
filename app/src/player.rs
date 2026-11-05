@@ -72,6 +72,8 @@ pub(crate) struct Player {
     /// Stopped because the server could not be reached (server_gone): the
     /// track waits for the connection, Play goes on once it is back.
     waits_for_server: Cell<bool>,
+    /// Play after a failed stream: the track's listen goes on (begin_listen).
+    continue_listen: Cell<bool>,
     /// The queue as it was before the user started another track, kept until
     /// that track plays: if the server turns out to be gone, it comes back.
     undo: RefCell<Option<Undo>>,
@@ -102,6 +104,8 @@ struct Undo {
     /// Where the track was: Play goes on from there.
     resume: Option<f64>,
     state: State,
+    /// Its listen, which goes on with it.
+    listen: Option<Listen>,
 }
 
 /// Shows a playback error to the user.
@@ -230,6 +234,7 @@ impl Player {
                 pending_seek: Cell::new(None),
                 checking: Cell::new(false),
                 waits_for_server: Cell::new(false),
+                continue_listen: Cell::new(false),
                 undo: RefCell::new(None),
                 jumped_from: Cell::new(None),
                 next_uri,
@@ -405,6 +410,7 @@ impl Player {
             self.queue_album.replace(undo.queue_album);
             self.position.set(undo.position);
             self.pending_seek.set(undo.resume);
+            self.listen.replace(undo.listen);
             self.prepare_next();
             // Nothing had played yet, or the queue had played to its end: so
             // it stays (Play starts it from the first track).
@@ -444,6 +450,7 @@ impl Player {
             position: self.position.get(),
             resume: self.resume_position(),
             state: self.state.borrow().clone(),
+            listen: self.listen.borrow().clone(),
         };
         self.undo.replace(Some(undo));
     }
@@ -473,6 +480,7 @@ impl Player {
     /// track still plays.
     fn new_command(&self) {
         self.command.set(self.command.get() + 1);
+        self.continue_listen.set(false);
     }
 
     /// Replaces the queue with `songs`, started as `of`, and starts playing
@@ -677,6 +685,7 @@ impl Player {
             State::Failed(_) => {
                 self.new_command();
                 self.keep_undo();
+                self.continue_listen.set(true);
                 let resume = self.pending_seek.get();
                 self.play_at(self.position.get());
                 self.seek_when_ready(resume);
@@ -851,6 +860,7 @@ pub(crate) fn shutdown() {
 }
 
 /// One play of one song, as the server hears about it.
+#[derive(Clone)]
 struct Listen {
     id: String,
     /// When it began, in milliseconds since the Unix epoch.
@@ -867,6 +877,23 @@ impl Player {
         let Some(song) = self.current() else {
             return;
         };
+        // Play after a failed stream: the same listen goes on. What was played
+        // still counts, and a listen already submitted is not submitted again;
+        // the server hears the track is playing once more.
+        let goes_on = self.continue_listen.take()
+            && self
+                .listen
+                .borrow()
+                .as_ref()
+                .is_some_and(|listen| listen.id == song.id);
+        if goes_on {
+            if self.report_support.get() == Some(true) {
+                self.report("playing", None);
+            } else {
+                self.scrobble(song.id.clone(), false, None);
+            }
+            return;
+        }
         let started = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .map(|d| d.as_millis() as u64)
@@ -990,7 +1017,9 @@ impl Player {
         });
     }
 
-    /// Sends a scrobble in the background; a failure only goes to the log.
+    /// Sends a scrobble in the background; a failure only goes to the log. A
+    /// finished listen (`submission`) the server cannot be reached for is
+    /// kept and sent once the connection is back (send_unsent_listens).
     fn scrobble(&self, id: String, submission: bool, time: Option<u64>) {
         if !report_listens() {
             return;
@@ -998,9 +1027,27 @@ impl Player {
         let Some(client) = self.client.borrow().clone() else {
             return;
         };
-        crate::runtime().spawn(async move {
-            if let Err(e) = client.scrobble(&id, submission, time).await {
-                eprintln!("Could not scrobble {id}: {e}");
+        if !submission {
+            crate::runtime().spawn(async move {
+                if let Err(e) = client.scrobble(&id, false, time).await {
+                    eprintln!("Could not scrobble {id}: {e}");
+                }
+            });
+            return;
+        }
+        gst::glib::spawn_future_local(async move {
+            let account = client.server_key();
+            let song = id.clone();
+            let result = crate::runtime()
+                .spawn(async move { client.scrobble(&song, true, time).await })
+                .await;
+            match result {
+                Ok(Ok(())) | Err(_) => {}
+                Ok(Err(subsonic::Error::Unreachable(e))) => {
+                    eprintln!("Could not scrobble {id}, kept for later: {e}");
+                    keep_unsent(&account, &id, time.unwrap_or(0));
+                }
+                Ok(Err(e)) => eprintln!("Could not scrobble {id}: {e}"),
             }
         });
     }
@@ -1082,6 +1129,71 @@ impl Player {
         self.playbin
             .set_property("volume", self.volume.get().powi(3));
     }
+}
+
+/// The settings key of the finished listens not sent yet: (account, song,
+/// when the listen began in milliseconds since the Unix epoch).
+const UNSENT: &str = "unsent-listens";
+
+/// At most this many listens wait (the oldest go first).
+const UNSENT_LIMIT: usize = 500;
+
+fn unsent() -> Vec<(String, String, i64)> {
+    use gtk::gio::prelude::*;
+    crate::settings().value(UNSENT).get().unwrap_or_default()
+}
+
+fn write_unsent(listens: &[(String, String, i64)]) {
+    use gtk::gio::prelude::*;
+    use gtk::glib::variant::ToVariant;
+    let _ = crate::settings().set_value(UNSENT, &listens.to_variant());
+}
+
+/// Keeps a finished listen the server could not be reached for.
+fn keep_unsent(account: &str, id: &str, time: u64) {
+    let mut listens = unsent();
+    listens.push((account.to_owned(), id.to_owned(), time as i64));
+    let over = listens.len().saturating_sub(UNSENT_LIMIT);
+    listens.drain(..over);
+    write_unsent(&listens);
+}
+
+/// The connection is back (or there at the start): the listens kept for the
+/// account of `client` go to the server, oldest first, each with the time it
+/// began. One the server has, or refuses, leaves the list; while it cannot be
+/// reached the rest wait.
+pub(crate) fn send_unsent_listens(client: subsonic::Client) {
+    thread_local! {
+        static SENDING: Cell<bool> = const { Cell::new(false) };
+    }
+    if !report_listens() || SENDING.with(|sending| sending.replace(true)) {
+        return;
+    }
+    let account = client.server_key();
+    gst::glib::spawn_future_local(async move {
+        while let Some((_, id, time)) = unsent().into_iter().find(|(a, _, _)| *a == account) {
+            let request = client.clone();
+            let song = id.clone();
+            let result = crate::runtime()
+                .spawn(async move { request.scrobble(&song, true, Some(time as u64)).await })
+                .await;
+            match result {
+                Ok(Err(subsonic::Error::Unreachable(_) | subsonic::Error::WrongCredentials))
+                | Err(_) => break,
+                Ok(Err(e)) => eprintln!("The server refused the listen of {id}: {e}"),
+                Ok(Ok(())) => {}
+            }
+            let mut listens = unsent();
+            if let Some(i) = listens
+                .iter()
+                .position(|(a, i, t)| *a == account && *i == id && *t == time)
+            {
+                listens.remove(i);
+                write_unsent(&listens);
+            }
+        }
+        SENDING.with(|sending| sending.set(false));
+    });
 }
 
 fn write_volume(volume: f64) {
@@ -1960,6 +2072,101 @@ pub(crate) mod tests {
         }
         crate::reconnect::set_offline(false);
         player.stop();
+    }
+
+    /// The submissions of the song `id` the server got.
+    fn submissions(server: &crate::playbin_tests::Server, id: &str) -> usize {
+        server
+            .requests()
+            .iter()
+            .filter(|r| {
+                r.contains("/scrobble")
+                    && r.contains(&format!("id={id}&"))
+                    && r.contains("submission=true")
+            })
+            .count()
+    }
+
+    /// With a real playbin (playbin_tests.rs runs it): a listen comes due (half
+    /// the track) while the server cannot be reached. It is kept, with the
+    /// time it began, and the server gets it once, when the connection is back.
+    pub(crate) fn a_finished_listen_waits_for_the_server(failures: &mut Vec<String>) {
+        use crate::playbin_tests::{Server, run_until, silent_wav};
+        use gtk::gio::prelude::*;
+        use std::time::Duration;
+        crate::settings()
+            .set_boolean("report-listens", true)
+            .expect("report-listens cannot be set");
+        write_unsent(&[]);
+        let server = Server::start(silent_wav(24));
+        let client = subsonic::Client::new(&server.url, "user", "password");
+        let player = get();
+        player.play(client.clone(), songs(&["l1"]).into(), 0, QueueOf::Songs);
+        let long = Duration::from_secs(20);
+        // The whole track came at once: it plays on without the server.
+        run_until(long, || player.position_secs().unwrap_or(0.0) >= 8.0);
+        server.set_up(false);
+        run_until(long, || player.position_secs().unwrap_or(0.0) >= 14.0);
+        let kept = unsent();
+        let sent_offline = submissions(&server, "l1");
+        server.set_up(true);
+        send_unsent_listens(client.clone());
+        let sent = run_until(Duration::from_secs(5), || {
+            submissions(&server, "l1") == 1 && unsent().is_empty()
+        });
+        let time = server
+            .requests()
+            .iter()
+            .any(|r| r.contains("id=l1&") && r.contains("&time="));
+        if kept.len() != 1 || sent_offline != 0 || !sent || !time {
+            failures.push(format!(
+                "a listen due offline: kept {kept:?}, sent offline {sent_offline}, sent once back {sent} ({} times, with its time {time}), left {:?}",
+                submissions(&server, "l1"),
+                unsent()
+            ));
+        }
+        player.stop();
+        crate::settings()
+            .set_boolean("report-listens", false)
+            .expect("report-listens cannot be set");
+    }
+
+    /// With a real playbin (playbin_tests.rs runs it): Play after a failed
+    /// stream goes on with the same listen, so what was played counts (and a
+    /// listen already submitted is not submitted twice).
+    pub(crate) fn a_listen_goes_on_after_a_failed_stream(failures: &mut Vec<String>) {
+        use crate::playbin_tests::{Server, run_until, silent_wav};
+        use gtk::gio::prelude::*;
+        use std::time::Duration;
+        crate::settings()
+            .set_boolean("report-listens", true)
+            .expect("report-listens cannot be set");
+        let server = Server::start(silent_wav(24));
+        let client = subsonic::Client::new(&server.url, "user", "password");
+        let player = get();
+        let long = Duration::from_secs(20);
+        player.play(client.clone(), songs(&["l2"]).into(), 0, QueueOf::Songs);
+        run_until(long, || player.position_secs().unwrap_or(0.0) >= 6.0);
+        // The server goes: a jump fails, the track waits at 6 s.
+        server.set_up(false);
+        let at = player.position_secs().unwrap_or(0.0);
+        player.seek(at + 5.0);
+        run_until(long, || player.failure().is_some() && !player.is_checking());
+        server.set_up(true);
+        player.toggle_pause();
+        // Half of 24 s is 12 s played: 6 before, 6 after, so at about 12 s;
+        // counted from nothing again it would come at about 18 s.
+        let sent = run_until(long, || submissions(&server, "l2") == 1);
+        let when = player.position_secs().unwrap_or(0.0);
+        if !sent || when > 15.5 {
+            failures.push(format!(
+                "a listen after a failed stream: submitted {sent}, at {when:.1} s of the track (was at {at:.1} s when it failed)"
+            ));
+        }
+        player.stop();
+        crate::settings()
+            .set_boolean("report-listens", false)
+            .expect("report-listens cannot be set");
     }
 
     fn songs(ids: &[&str]) -> Vec<subsonic::Song> {
