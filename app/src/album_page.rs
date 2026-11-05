@@ -378,11 +378,7 @@ impl AlbumPage {
             queue,
             album_artist: album_artist.map(str::to_owned),
             client: client.clone(),
-            disc_titles: album
-                .disc_titles
-                .iter()
-                .map(|t| (t.disc, t.title.clone()))
-                .collect(),
+            disc_titles: disc_titles(album),
             multi_disc,
             hidden_composer,
             generation,
@@ -1019,13 +1015,25 @@ fn short_names(text: &str) -> String {
     }
 }
 
+/// The discs that have a name, with it. The server lists every disc of some
+/// albums with an empty title (Rubber Soul (Super Deluxe)): those have none.
+fn disc_titles(album: &subsonic::AlbumWithSongs) -> Vec<(u32, String)> {
+    album
+        .disc_titles
+        .iter()
+        .filter(|t| !t.title.trim().is_empty())
+        .map(|t| (t.disc, t.title.clone()))
+        .collect()
+}
+
 /// True if the server's answer shows nothing the local copy does not.
 fn same_album(local: &subsonic::AlbumWithSongs, server: &subsonic::AlbumWithSongs) -> bool {
     local.name == server.name
         && local.artist == server.artist
         && local.starred == server.starred
         && local.artist_id == server.artist_id
-        && server.disc_titles.is_empty()
+        // The local copy has no disc titles.
+        && disc_titles(server).is_empty()
         // Every field of every song: the ids too, which "Go to Artist" uses.
         && local.song == server.song
 }
@@ -1150,5 +1158,26 @@ mod tests {
         let mut renamed = song("2");
         renamed.album = Some("Album (Remastered)".into());
         assert!(!same_album(&local, &album(vec![song("1"), renamed])));
+    }
+
+    #[test]
+    fn discs_with_empty_titles_have_no_titles() {
+        // The server lists every disc of some albums with an empty title
+        // (Rubber Soul (Super Deluxe): four); the local copy has no titles.
+        let local = album(vec![song("1"), song("2")]);
+        let mut server = album(vec![song("1"), song("2")]);
+        server.disc_titles = (1..=4)
+            .map(|disc| subsonic::DiscTitle {
+                disc,
+                title: String::new(),
+            })
+            .collect();
+        assert!(same_album(&local, &server));
+        assert!(disc_titles(&server).is_empty());
+
+        // A disc with a name: the page shows it.
+        server.disc_titles[1].title = "Bonus Tracks".into();
+        assert!(!same_album(&local, &server));
+        assert_eq!(disc_titles(&server), [(2, "Bonus Tracks".to_string())]);
     }
 }
