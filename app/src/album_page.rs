@@ -1034,8 +1034,20 @@ fn same_album(local: &subsonic::AlbumWithSongs, server: &subsonic::AlbumWithSong
         && local.artist_id == server.artist_id
         // The local copy has no disc titles.
         && disc_titles(server).is_empty()
-        // Every field of every song: the ids too, which "Go to Artist" uses.
-        && local.song == server.song
+        && local.song.len() == server.song.len()
+        && local.song.iter().zip(&server.song).all(|(a, b)| same_song(a, b))
+}
+
+/// Every field of the two songs but the cover id: the ids too, which "Go to
+/// Artist" uses. The server gives a song a new cover id now and then without
+/// a new scan, and the light sync keeps the old one; the page never shows a
+/// song's own cover, and the old id gives the same picture.
+fn same_song(local: &subsonic::Song, server: &subsonic::Song) -> bool {
+    let without_cover = |song: &subsonic::Song| subsonic::Song {
+        cover_art: None,
+        ..song.clone()
+    };
+    without_cover(local) == without_cover(server)
 }
 
 /// Opens an album page on `nav`. The album's songs are read from the local
@@ -1158,6 +1170,22 @@ mod tests {
         let mut renamed = song("2");
         renamed.album = Some("Album (Remastered)".into());
         assert!(!same_album(&local, &album(vec![song("1"), renamed])));
+    }
+
+    #[test]
+    fn a_new_cover_id_of_a_song_is_no_change() {
+        // The server gives a song a new cover id now and then without a new
+        // scan; the light sync keeps the old one, which gives the same picture.
+        let local = album(vec![song("1"), song("2")]);
+        let mut new_id = song("2");
+        new_id.cover_art = Some("al-1_5de644142867f459".into());
+        assert!(same_album(&local, &album(vec![song("1"), new_id])));
+        // A song more or less is a change.
+        assert!(!same_album(&local, &album(vec![song("1")])));
+        assert!(!same_album(
+            &local,
+            &album(vec![song("1"), song("2"), song("3")])
+        ));
     }
 
     #[test]
