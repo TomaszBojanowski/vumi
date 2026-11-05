@@ -1088,8 +1088,10 @@ impl AlbumPage {
         ] {
             play_names.add_named(&gtk::Label::new(Some(&text)), Some(name));
         }
+        // Spaced as Adw.ButtonContent spaces the Play pills of playlists and
+        // Favorites.
         let play_content = gtk::Box::builder()
-            .spacing(8)
+            .spacing(6)
             .halign(gtk::Align::Center)
             .build();
         play_content.append(&play_icon);

@@ -80,15 +80,20 @@ template $VumiPlaylistPage: Adw.NavigationPage {
             spacing: 6;
             margin-top: 6;
 
+            // Play as a pill with its name, as on album pages.
             Button play_button {
-              icon-name: "media-playback-start-symbolic";
-              tooltip-text: _("Play");
               valign: center;
 
               styles [
-                "circular",
-                "album-play",
+                "pill",
+                "suggested-action",
+                "album-pill",
               ]
+
+              child: Adw.ButtonContent {
+                icon-name: "media-playback-start-symbolic";
+                label: _("Play");
+              };
             }
 
             Button shuffle_button {

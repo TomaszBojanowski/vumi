@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vumi\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-05 19:57+0100\n"
+"POT-Creation-Date: 2026-11-05 20:59+0100\n"
 "PO-Revision-Date: 2026-09-27 20:40+0200\n"
 "Last-Translator: Tomasz Bojanowski <tomasz@bojanowski.me>\n"
 "Language-Team: Polish\n"
@@ -335,7 +335,7 @@ msgstr "Wykonawca"
 
 #: app/src/main_view.rs:1759 app/src/album_page.rs:1085
 #: app/src/now_playing.rs:296 app/src/mini_player.rs:103
-#: app/src/playlist_page.blp:85
+#: app/src/playlist_page.blp:95
 msgid "Play"
 msgstr "Odtwórz"
 
@@ -564,8 +564,8 @@ msgstr "Wstrzymaj"
 msgid "Resume"
 msgstr "Wznów"
 
-#: app/src/album_page.rs:1105 app/src/favorites_header.blp:102
-#: app/src/playlist_page.blp:96
+#: app/src/album_page.rs:1107 app/src/favorites_header.blp:103
+#: app/src/playlist_page.blp:101
 msgid "Shuffle"
 msgstr "Odtwórz losowo"
 
@@ -597,7 +597,7 @@ msgstr "Dodaj do ulubionych"
 msgid "Collection"
 msgstr "Kolekcja"
 
-#: app/src/favorites_header.blp:96
+#: app/src/favorites_header.blp:97
 msgid "Play Songs"
 msgstr "Odtwórz utwory"
 
