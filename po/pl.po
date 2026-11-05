@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vumi\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-05 19:49+0100\n"
+"POT-Creation-Date: 2026-11-05 19:57+0100\n"
 "PO-Revision-Date: 2026-09-27 20:40+0200\n"
 "Last-Translator: Tomasz Bojanowski <tomasz@bojanowski.me>\n"
 "Language-Team: Polish\n"
@@ -186,7 +186,7 @@ msgstr "Nie można odczytać hasła z bazy kluczy"
 
 #: app/src/main.rs:574 app/src/main_view.rs:1833 app/src/login_page.rs:204
 #: app/src/album_page.rs:281 app/src/artist_page.rs:163
-#: app/src/song_menu.rs:523 app/src/playlist_page.rs:127
+#: app/src/song_menu.rs:525 app/src/playlist_page.rs:127
 msgid "Something went wrong. Please try again."
 msgstr "Wystąpił nieoczekiwany błąd. Spróbuj ponownie."
 
@@ -325,16 +325,16 @@ msgstr "Spróbuj ponownie"
 msgid "Recently Starred"
 msgstr "Ostatnio polubione"
 
-#: app/src/main_view.rs:1551 app/src/song_menu.rs:450
+#: app/src/main_view.rs:1551 app/src/song_menu.rs:452
 msgid "Title"
 msgstr "Tytuł"
 
-#: app/src/main_view.rs:1552 app/src/main_view.blp:463 app/src/song_menu.rs:451
+#: app/src/main_view.rs:1552 app/src/main_view.blp:463 app/src/song_menu.rs:453
 msgid "Artist"
 msgstr "Wykonawca"
 
-#: app/src/main_view.rs:1759 app/src/album_page.rs:1058
-#: app/src/now_playing.rs:294 app/src/mini_player.rs:103
+#: app/src/main_view.rs:1759 app/src/album_page.rs:1085
+#: app/src/now_playing.rs:296 app/src/mini_player.rs:103
 #: app/src/playlist_page.blp:85
 msgid "Play"
 msgstr "Odtwórz"
@@ -391,7 +391,7 @@ msgstr "Ulubione"
 msgid "Collections"
 msgstr "Kolekcje"
 
-#: app/src/main_view.blp:343 app/src/main_view.blp:349 app/src/song_menu.rs:384
+#: app/src/main_view.blp:343 app/src/main_view.blp:349 app/src/song_menu.rs:386
 msgid "Playlists"
 msgstr "Listy odtwarzania"
 
@@ -436,7 +436,7 @@ msgstr "Wyłączone"
 msgid "Queue"
 msgstr "Kolejka"
 
-#: app/src/main_view.blp:512 app/src/song_menu.rs:454
+#: app/src/main_view.blp:512 app/src/song_menu.rs:456
 msgid "Track"
 msgstr "Utwór"
 
@@ -531,7 +531,7 @@ msgid "Composer: {name}"
 msgstr "Kompozytor: {name}"
 
 #. Translators: {n} is a number of discs.
-#: app/src/album_page.rs:424
+#: app/src/album_page.rs:682
 #, rust-format
 msgid "{n} disc"
 msgid_plural "{n} discs"
@@ -540,36 +540,36 @@ msgstr[1] "{n} płyty"
 msgstr[2] "{n} płyt"
 
 #. Translators: tracks of one album differ in quality, e.g. "FLAC · up to 24 bit / 96 kHz".
-#: app/src/album_page.rs:710
+#: app/src/album_page.rs:737
 #, rust-format
 msgid "{format} · up to {quality}"
 msgstr "{format} · do {quality}"
 
 #. Translators: header above the tracks of one disc, e.g. "Disc 2".
-#: app/src/album_page.rs:852
+#: app/src/album_page.rs:879
 #, rust-format
 msgid "Disc {n}"
 msgstr "Płyta {n}"
 
-#: app/src/album_page.rs:1036
+#: app/src/album_page.rs:1063
 msgid "Radio"
 msgstr "Radio"
 
-#: app/src/album_page.rs:1059 app/src/now_playing.rs:289
+#: app/src/album_page.rs:1086 app/src/now_playing.rs:291
 #: app/src/mini_player.rs:99 app/src/continue_tile.rs:133
 msgid "Pause"
 msgstr "Wstrzymaj"
 
-#: app/src/album_page.rs:1060 app/src/continue_tile.rs:135
+#: app/src/album_page.rs:1087 app/src/continue_tile.rs:135
 msgid "Resume"
 msgstr "Wznów"
 
-#: app/src/album_page.rs:1078 app/src/favorites_header.blp:102
+#: app/src/album_page.rs:1105 app/src/favorites_header.blp:102
 #: app/src/playlist_page.blp:96
 msgid "Shuffle"
 msgstr "Odtwórz losowo"
 
-#: app/src/album_page.blp:67 app/src/song_menu.rs:453
+#: app/src/album_page.blp:67 app/src/song_menu.rs:455
 msgid "Album"
 msgstr "Album"
 
@@ -585,11 +585,11 @@ msgstr "Wyświetl więcej"
 msgid "Could not change favorites. Please try again."
 msgstr "Nie można zmienić ulubionych. Spróbuj ponownie."
 
-#: app/src/favorites.rs:262 app/src/queue_page.rs:641 app/src/song_menu.rs:251
+#: app/src/favorites.rs:262 app/src/queue_page.rs:641 app/src/song_menu.rs:253
 msgid "Remove from Favorites"
 msgstr "Usuń z ulubionych"
 
-#: app/src/favorites.rs:265 app/src/queue_page.rs:643 app/src/song_menu.rs:253
+#: app/src/favorites.rs:265 app/src/queue_page.rs:643 app/src/song_menu.rs:255
 msgid "Add to Favorites"
 msgstr "Dodaj do ulubionych"
 
@@ -765,7 +765,7 @@ msgid "Show Less"
 msgstr "Wyświetl mniej"
 
 #: app/src/now_playing.blp:37 app/src/queue_page.rs:648
-#: app/src/song_menu.rs:263
+#: app/src/song_menu.rs:265
 msgid "Go to Album"
 msgstr "Przejdź do albumu"
 
@@ -1034,7 +1034,7 @@ msgstr[2] "Z kolejki zostanie usuniętych {n} utworów."
 msgid "Clear Queue?"
 msgstr "Wyczyścić kolejkę?"
 
-#: app/src/queue_page.rs:398 app/src/song_menu.rs:339
+#: app/src/queue_page.rs:398 app/src/song_menu.rs:341
 msgid "New Playlist"
 msgstr "Nowa lista odtwarzania"
 
@@ -1069,19 +1069,19 @@ msgstr "Odtwórz jako następny"
 msgid "Remove from Queue"
 msgstr "Usuń z kolejki"
 
-#: app/src/queue_page.rs:637 app/src/song_menu.rs:247
+#: app/src/queue_page.rs:637 app/src/song_menu.rs:249
 msgid "Add to Playlist…"
 msgstr "Dodaj do listy odtwarzania…"
 
-#: app/src/queue_page.rs:649 app/src/song_menu.rs:265
+#: app/src/queue_page.rs:649 app/src/song_menu.rs:267
 msgid "Go to Artist"
 msgstr "Przejdź do wykonawcy"
 
-#: app/src/queue_page.rs:650 app/src/song_menu.rs:268 app/src/song_menu.rs:501
+#: app/src/queue_page.rs:650 app/src/song_menu.rs:270 app/src/song_menu.rs:503
 msgid "Song Information"
 msgstr "Informacje o utworze"
 
-#: app/src/queue_page.rs:653 app/src/song_menu.rs:258
+#: app/src/queue_page.rs:653 app/src/song_menu.rs:260
 msgid "Play Similar"
 msgstr "Odtwórz podobne"
 
@@ -1097,57 +1097,57 @@ msgstr "Zostanie odtworzony jako następny"
 msgid "Added to the queue"
 msgstr "Dodano na koniec kolejki"
 
-#: app/src/song_menu.rs:244
+#: app/src/song_menu.rs:246
 msgid "Play Next"
 msgstr "Dodaj jako następny"
 
-#: app/src/song_menu.rs:245
+#: app/src/song_menu.rs:247
 msgid "Add to Queue"
 msgstr "Dodaj na koniec kolejki"
 
-#: app/src/song_menu.rs:323
+#: app/src/song_menu.rs:325
 msgid "Add to Playlist"
 msgstr "Dodawanie do listy odtwarzania"
 
 #. Translators: {name} is the name of a playlist.
-#: app/src/song_menu.rs:370 app/src/song_menu.rs:422
+#: app/src/song_menu.rs:372 app/src/song_menu.rs:424
 #, rust-format
 msgid "Added to “{name}”"
 msgstr "Dodano do listy „{name}”"
 
-#: app/src/song_menu.rs:374 app/src/song_menu.rs:426
+#: app/src/song_menu.rs:376 app/src/song_menu.rs:428
 msgid "Could not add to the playlist"
 msgstr "Nie można dodać do listy odtwarzania"
 
-#: app/src/song_menu.rs:452
+#: app/src/song_menu.rs:454
 msgid "Composer"
 msgstr "Kompozytor"
 
-#: app/src/song_menu.rs:455
+#: app/src/song_menu.rs:457
 msgid "Disc"
 msgstr "Płyta"
 
-#: app/src/song_menu.rs:456
+#: app/src/song_menu.rs:458
 msgid "Duration"
 msgstr "Czas trwania"
 
-#: app/src/song_menu.rs:458
+#: app/src/song_menu.rs:460
 msgid "Format"
 msgstr "Format"
 
-#: app/src/song_menu.rs:463
+#: app/src/song_menu.rs:465
 msgid "Bit Depth"
 msgstr "Rozdzielczość"
 
-#: app/src/song_menu.rs:467
+#: app/src/song_menu.rs:469
 msgid "Sample Rate"
 msgstr "Częstotliwość próbkowania"
 
-#: app/src/song_menu.rs:471
+#: app/src/song_menu.rs:473
 msgid "Bit Rate"
 msgstr "Przepływność"
 
-#: app/src/song_menu.rs:518
+#: app/src/song_menu.rs:520
 msgid "No similar songs found"
 msgstr "Nie znaleziono podobnych utworów"
 

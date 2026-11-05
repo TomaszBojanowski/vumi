@@ -380,6 +380,8 @@ mod albums {
         assert_eq!(full.created.as_deref(), Some("2025-11-03T10:15:42.123Z"));
         assert_eq!(full.starred.as_deref(), Some("2026-01-15T08:00:00Z"));
         assert_eq!(full.cover_art.as_deref(), Some("al-album-1_65f2a1c4"));
+        assert_eq!(full.genre.as_deref(), Some("Indie"));
+        assert_eq!(full.record_label.as_deref(), Some("Harbour Records"));
         // Fields a server may leave out.
         let sparse = &albums[1];
         assert_eq!(sparse.name, "Field Recordings");
@@ -388,6 +390,8 @@ mod albums {
         assert!(sparse.year.is_none());
         assert!(sparse.starred.is_none());
         assert!(sparse.cover_art.is_none());
+        assert!(sparse.genre.is_none());
+        assert!(sparse.record_label.is_none());
         assert_eq!(sparse.song_count, Some(3));
     }
 

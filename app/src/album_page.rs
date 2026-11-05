@@ -411,23 +411,19 @@ impl AlbumPage {
         }
         self.mark_playing();
 
-        let count = songs.len() as u32;
         let seconds: u32 = songs.iter().filter_map(|s| s.duration).sum();
-
-        let mut parts = Vec::new();
-        if let Some(year) = year {
-            parts.push(year.to_string());
-        }
-        if multi_disc {
-            let n = discs.len() as u32;
-            // Translators: {n} is a number of discs.
-            parts.push(ngettext("{n} disc", "{n} discs", n).replace("{n}", &n.to_string()));
-        }
-        parts.push(format::tracks_text(count));
-        // Songs without a length (from some servers) add up to none.
-        if seconds > 0 {
-            parts.push(format::long_duration(seconds));
-        }
+        let parts = {
+            // The genre and the label as the library has them (offline too).
+            let album = imp.album.borrow();
+            info_parts(
+                year,
+                album.as_ref().and_then(|a| a.genre.as_deref()),
+                album.as_ref().and_then(|a| a.record_label.as_deref()),
+                if multi_disc { discs.len() as u32 } else { 1 },
+                songs.len() as u32,
+                seconds,
+            )
+        };
         imp.details.set_label(&info_line(&parts));
         self.show_quality(songs);
 
@@ -660,6 +656,37 @@ fn track_row(
 fn of_the_album(artist: &str, album_artist: Option<&str>) -> bool {
     let album = names_of(album_artist.unwrap_or(""));
     names_of(artist).iter().all(|name| album.contains(name))
+}
+
+/// The parts of the album's info line: the year, the genre, the record
+/// label, the discs (when more than one), the tracks and the length.
+fn info_parts(
+    year: Option<i32>,
+    genre: Option<&str>,
+    label: Option<&str>,
+    discs: u32,
+    tracks: u32,
+    seconds: u32,
+) -> Vec<String> {
+    let mut parts = Vec::new();
+    if let Some(year) = year {
+        parts.push(year.to_string());
+    }
+    for text in [genre, label].into_iter().flatten() {
+        if !text.trim().is_empty() {
+            parts.push(text.trim().to_owned());
+        }
+    }
+    if discs > 1 {
+        // Translators: {n} is a number of discs.
+        parts.push(ngettext("{n} disc", "{n} discs", discs).replace("{n}", &discs.to_string()));
+    }
+    parts.push(format::tracks_text(tracks));
+    // Songs without a length (from some servers) add up to none.
+    if seconds > 0 {
+        parts.push(format::long_duration(seconds));
+    }
+    parts
 }
 
 /// The album's info line, e.g. "1995 · Classique · Decca · 10 tracks · 58
@@ -1357,6 +1384,8 @@ mod tests {
             artist_id: Some("ar-1".into()),
             starred: None,
             cover_art: None,
+            genre: None,
+            record_label: None,
         };
         let local = local_album_of(&row, vec![song("1"), song("2")]).expect("tracks");
         assert_eq!(local.id, "al-1");
@@ -1392,6 +1421,19 @@ mod tests {
         assert!(!of_the_album("Adiemus • Miriam Stockley", album));
         assert!(of_the_album("The Beatles", Some("The Beatles")));
         assert!(!of_the_album("The Beatles", None));
+    }
+
+    #[test]
+    fn the_info_line_has_the_genre_and_the_label_when_the_library_has_them() {
+        // No translations in tests: the English texts.
+        let full = info_parts(Some(1965), Some("Rock"), Some("UMC"), 4, 68, 0);
+        assert_eq!(full, ["1965", "Rock", "UMC", "4 discs", "68 tracks"]);
+        let bare = info_parts(None, None, Some(" "), 1, 10, 0);
+        assert_eq!(bare, ["10 tracks"]);
+        assert_eq!(
+            info_parts(Some(1995), Some("Classique"), None, 1, 10, 3480).len(),
+            4
+        );
     }
 
     #[test]

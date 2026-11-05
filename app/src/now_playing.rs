@@ -156,6 +156,8 @@ impl NowPlaying {
                 created: None,
                 artist_id: None,
                 starred: None,
+                genre: None,
+                record_label: None,
             };
             if let Some(main) = bar
                 .ancestor(MainView::static_type())

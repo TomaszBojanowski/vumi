@@ -160,6 +160,28 @@ pub struct Album {
     pub artist_id: Option<String>,
     pub starred: Option<String>,
     pub cover_art: Option<String>,
+    /// The album's genre (the first, if it has several).
+    pub genre: Option<String>,
+    /// OpenSubsonic: the first of the album's record labels.
+    #[serde(rename = "recordLabels", default, deserialize_with = "first_label")]
+    pub record_label: Option<String>,
+}
+
+/// The first named label of "recordLabels": [{"name": "…"}, …].
+fn first_label<'de, D: serde::Deserializer<'de>>(
+    deserializer: D,
+) -> std::result::Result<Option<String>, D::Error> {
+    #[derive(Deserialize)]
+    struct Label {
+        #[serde(default)]
+        name: String,
+    }
+    let labels: Option<Vec<Label>> = Option::deserialize(deserializer)?;
+    Ok(labels
+        .unwrap_or_default()
+        .into_iter()
+        .map(|label| label.name)
+        .find(|name| !name.trim().is_empty()))
 }
 
 #[derive(Deserialize)]

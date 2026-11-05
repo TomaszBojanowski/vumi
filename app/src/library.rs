@@ -187,6 +187,20 @@ fn migrate(conn: &mut Connection) -> rusqlite::Result<()> {
         )?;
         tx.commit()?;
     }
+    if version < 9 {
+        // Version 9: the album's genre and record label (the album page's
+        // info line, offline too). The stored scan is forgotten, so the next
+        // sync is a full one and fills them in: while the server's scan is
+        // unchanged, a light sync writes no albums.
+        let tx = conn.transaction()?;
+        tx.execute_batch(
+            "ALTER TABLE albums ADD COLUMN genre TEXT;
+             ALTER TABLE albums ADD COLUMN record_label TEXT;
+             UPDATE sync_state SET last_scan = NULL;
+             PRAGMA user_version = 9;",
+        )?;
+        tx.commit()?;
+    }
     Ok(())
 }
 
@@ -346,7 +360,8 @@ fn fts_query(query: &str) -> Option<String> {
 pub(crate) fn load_albums(server: &str) -> rusqlite::Result<Vec<subsonic::Album>> {
     with_connection(|conn| {
         let mut stmt = conn.prepare_cached(
-            "SELECT id, name, artist, year, song_count, cover_art, created, artist_id, starred
+            "SELECT id, name, artist, year, song_count, cover_art, created, artist_id, starred,
+                    genre, record_label
              FROM albums WHERE server = ?1 ORDER BY position",
         )?;
         let rows = stmt.query_map(params![server], |row| {
@@ -360,6 +375,8 @@ pub(crate) fn load_albums(server: &str) -> rusqlite::Result<Vec<subsonic::Album>
                 created: row.get(6)?,
                 artist_id: row.get(7)?,
                 starred: row.get(8)?,
+                genre: row.get(9)?,
+                record_label: row.get(10)?,
             })
         })?;
         rows.collect::<rusqlite::Result<Vec<_>>>()
@@ -384,8 +401,8 @@ fn save_albums_with(
         let mut insert = tx.prepare(
             "INSERT INTO albums
                  (server, position, id, name, artist, year, song_count, cover_art, created,
-                  artist_id, starred)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
+                  artist_id, starred, genre, record_label)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)",
         )?;
         let mut index =
             tx.prepare("INSERT INTO albums_fts (server, id, text) VALUES (?1, ?2, ?3)")?;
@@ -401,7 +418,9 @@ fn save_albums_with(
                 a.cover_art,
                 a.created,
                 a.artist_id,
-                a.starred
+                a.starred,
+                a.genre,
+                a.record_label
             ])?;
             let text = fold(&format!("{} {}", a.name, a.artist.as_deref().unwrap_or("")));
             index.execute(params![server, a.id, text])?;
@@ -715,6 +734,8 @@ mod tests {
             artist_id: None,
             starred: None,
             cover_art: None,
+            genre: None,
+            record_label: None,
         })
     }
 
@@ -759,7 +780,7 @@ mod tests {
         assert_eq!(albums[0].created, None);
         with_connection(|conn| {
             let version: i64 = conn.query_row("PRAGMA user_version", [], |row| row.get(0))?;
-            assert_eq!(version, 8);
+            assert_eq!(version, 9);
             let mode: String = conn.query_row("PRAGMA journal_mode", [], |row| row.get(0))?;
             assert_eq!(mode, "wal");
             Ok(())
@@ -771,6 +792,57 @@ mod tests {
         let stats = stats(SERVER).unwrap();
         assert_eq!((stats.albums, stats.songs), (1, 1));
         assert!(stats.synced_at.is_some());
+    }
+
+    #[test]
+    fn version_9_adds_the_genre_and_the_label_and_the_next_sync_is_a_full_one() {
+        let temporary = Temporary::new("genre");
+        // A version 8 database, synced in full before.
+        let old = Connection::open(temporary.0.join("library.db")).unwrap();
+        old.execute_batch(
+            "CREATE TABLE albums (
+                 server TEXT NOT NULL, position INTEGER NOT NULL, id TEXT NOT NULL,
+                 name TEXT NOT NULL, artist TEXT, year INTEGER, song_count INTEGER,
+                 cover_art TEXT, created TEXT, artist_id TEXT, starred TEXT,
+                 PRIMARY KEY (server, id)
+             );
+             CREATE TABLE sync_state (
+                 server TEXT NOT NULL PRIMARY KEY, synced_at INTEGER NOT NULL, last_scan TEXT
+             );
+             INSERT INTO albums (server, position, id, name)
+                 VALUES ('user@http://server', 0, 'a', 'A');
+             INSERT INTO sync_state VALUES ('user@http://server', 1, '2026-10-31T21:26:55Z');
+             PRAGMA user_version = 8;",
+        )
+        .unwrap();
+        drop(old);
+
+        // The stored scan is gone: the server's scan no longer matches it, so
+        // the next sync writes every album, with its genre and label.
+        assert_eq!(last_scan(SERVER).unwrap(), None);
+        let status = subsonic::ScanStatus {
+            scanning: false,
+            last_scan: Some("2026-10-31T21:26:55Z".into()),
+        };
+        assert!(!library_unchanged(None, Some(&status)));
+        let albums = load_albums(SERVER).unwrap();
+        assert_eq!(albums[0].genre, None);
+        assert_eq!(albums[0].record_label, None);
+    }
+
+    #[test]
+    fn the_genre_and_the_label_are_stored_with_the_album() {
+        let _temporary = Temporary::new("label");
+        let mut stored = (*album("a", "A", "X", 1965)).clone();
+        stored.genre = Some("Rock".into());
+        stored.record_label = Some("UMC (Universal Music Catalogue)".into());
+        save_albums(SERVER, &[Arc::new(stored)]).unwrap();
+        let albums = load_albums(SERVER).unwrap();
+        assert_eq!(albums[0].genre.as_deref(), Some("Rock"));
+        assert_eq!(
+            albums[0].record_label.as_deref(),
+            Some("UMC (Universal Music Catalogue)")
+        );
     }
 
     #[test]

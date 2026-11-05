@@ -2302,6 +2302,8 @@ mod tests {
             artist_id: None,
             starred: None,
             cover_art: None,
+            genre: None,
+            record_label: None,
         })
     }
 

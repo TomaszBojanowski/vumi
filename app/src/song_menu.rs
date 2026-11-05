@@ -207,6 +207,8 @@ pub(crate) fn install_actions(row: &gtk::Widget, current: &Current) {
                 cover_art: song.cover_art.clone(),
                 artist_id: None,
                 starred: None,
+                genre: None,
+                record_label: None,
             };
             if let Some(main) = row
                 .ancestor(MainView::static_type())
