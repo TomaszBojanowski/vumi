@@ -4,7 +4,7 @@
 use adw::prelude::*;
 use gettextrs::gettext;
 use gtk::{gio, glib};
-use std::cell::Cell;
+use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 
 use crate::main_view::MainView;
@@ -46,24 +46,80 @@ pub(crate) fn menu_button(
     owner: &impl IsA<gtk::Widget>,
     current: impl Fn() -> Option<(subsonic::Song, Option<subsonic::Client>)> + 'static,
     go_to_album: bool,
-) -> gtk::MenuButton {
-    let button = gtk::MenuButton::builder()
+) -> gtk::Button {
+    let owner = owner.upcast_ref::<gtk::Widget>().downgrade();
+    let current: Current = Rc::new(current);
+    let made = Cell::new(false);
+    more_button(move || {
+        let owner = owner.upgrade()?;
+        if !made.replace(true) {
+            install_actions(&owner, &current);
+        }
+        Some(menu(go_to_album))
+    })
+}
+
+/// A ⋮ button that opens a menu: a button and its image, where a
+/// gtk::MenuButton is five widgets (it sits in every row of a list). `menu`
+/// gives the menu each time it is about to open, so an item can say what is
+/// true then; the popover is made on the first click. While the menu is
+/// open, the button looks pressed, as a menu button does.
+///
+/// The popover hangs on the widget the button sits in and points at the
+/// button: hung on the button itself, it would keep the button lit as if
+/// under the pointer while the pointer is in the menu (a menu button's
+/// popover is not inside its button either).
+pub(crate) fn more_button(menu: impl Fn() -> Option<gio::Menu> + 'static) -> gtk::Button {
+    let button = gtk::Button::builder()
         .icon_name("view-more-symbolic")
         .tooltip_text(gettext("More"))
         .valign(gtk::Align::Center)
         .css_classes(["flat", "circular"])
         .build();
-    let owner = owner.upcast_ref::<gtk::Widget>().downgrade();
-    let current: Current = Rc::new(current);
-    let made = Cell::new(false);
-    // Called each time the menu is about to open; only the first time counts.
-    button.set_create_popup_func(move |button| {
-        if made.replace(true) {
+    button.update_property(&[
+        gtk::accessible::Property::Label(&gettext("More")),
+        gtk::accessible::Property::HasPopup(true),
+    ]);
+    button.update_state(&[gtk::accessible::State::Expanded(Some(false))]);
+    let popover: Rc<RefCell<Option<gtk::PopoverMenu>>> = Rc::default();
+    let slot = popover.clone();
+    button.connect_clicked(move |button| {
+        let Some(model) = menu() else {
             return;
+        };
+        let Some(parent) = button.parent() else {
+            return;
+        };
+        let mut slot = slot.borrow_mut();
+        let popover = slot.get_or_insert_with(|| {
+            let popover = gtk::PopoverMenu::from_model(None::<&gio::MenuModel>);
+            popover.set_parent(&parent);
+            let button = button.downgrade();
+            popover.connect_closed(move |_| {
+                if let Some(button) = button.upgrade() {
+                    button.unset_state_flags(gtk::StateFlags::CHECKED);
+                    button.update_state(&[gtk::accessible::State::Expanded(Some(false))]);
+                }
+            });
+            popover
+        });
+        popover.set_menu_model(Some(&model));
+        if let Some(bounds) = button.compute_bounds(&parent) {
+            popover.set_pointing_to(Some(&gtk::gdk::Rectangle::new(
+                bounds.x() as i32,
+                bounds.y() as i32,
+                bounds.width() as i32,
+                bounds.height() as i32,
+            )));
         }
-        if let Some(owner) = owner.upgrade() {
-            install_actions(&owner, &current);
-            button.set_menu_model(Some(&menu(go_to_album)));
+        button.set_state_flags(gtk::StateFlags::CHECKED, false);
+        button.update_state(&[gtk::accessible::State::Expanded(Some(true))]);
+        popover.popup();
+    });
+    // The popover goes when the button does.
+    button.connect_destroy(move |_| {
+        if let Some(popover) = popover.borrow_mut().take() {
+            popover.unparent();
         }
     });
     button

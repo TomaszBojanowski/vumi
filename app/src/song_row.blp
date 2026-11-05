@@ -1,7 +1,9 @@
 using Gtk 4.0;
 
-// Built like the inside of an Adw.ActionRow (a box "header" with "prefixes",
-// "title" and "suffixes"), so the theme styles it the same way in any list.
+// Styled like the inside of an Adw.ActionRow (a box "header" with a box
+// "title"), so the theme draws it the same way in any list. The parts that
+// only some rows need are added in code: the bars of the playing song, a
+// note, the ⋮ button (song_row.rs).
 template $VumiSongRow: Box {
   valign: center;
 
@@ -10,13 +12,7 @@ template $VumiSongRow: Box {
     "song-row",
   ]
 
-  Box prefixes {
-    styles [
-      "prefixes",
-    ]
-  }
-
-  Box {
+  Box title_box {
     orientation: vertical;
     valign: center;
     hexpand: true;
@@ -50,27 +46,10 @@ template $VumiSongRow: Box {
     }
   }
 
-  Box suffixes {
+  Label duration {
     styles [
-      "suffixes",
+      "dim-label",
+      "numeric",
     ]
-
-    // A few words about the song in this list (when it was starred, say),
-    // set by the list; hidden while there are none.
-    Label note {
-      visible: false;
-      margin-end: 12;
-
-      styles [
-        "dim-label",
-      ]
-    }
-
-    Label duration {
-      styles [
-        "dim-label",
-        "numeric",
-      ]
-    }
   }
 }

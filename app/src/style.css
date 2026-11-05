@@ -295,6 +295,34 @@ row.playing label.title {
   background-color: var(--window-fg-color);
 }
 
+/* A song row has bars only while it plays (song_row.rs); the others keep
+   their room before the title, so all titles stay aligned: 13 px of bars
+   (three of 3 px, 2 px apart, eq_bars.rs), the 6 px after them and the 6 px
+   between the row's parts. */
+box.song-row > box.title:dir(ltr) {
+  margin-left: 25px;
+}
+
+box.song-row > box.title:dir(rtl) {
+  margin-right: 25px;
+}
+
+box.song-row > .eq:dir(ltr) {
+  margin-right: 6px;
+}
+
+box.song-row > .eq:dir(rtl) {
+  margin-left: 6px;
+}
+
+box.song-row > .eq + box.title:dir(ltr) {
+  margin-left: 0;
+}
+
+box.song-row > .eq + box.title:dir(rtl) {
+  margin-right: 0;
+}
+
 /* Album page actions: a big round Play/Pause and smaller round icon buttons. */
 /* Inverted neutral colours: white on dark, black on light. Fits any cover,
    unlike the system accent colour. */

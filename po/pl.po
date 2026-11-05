@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vumi\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-04 22:29+0100\n"
+"POT-Creation-Date: 2026-11-05 09:55+0100\n"
 "PO-Revision-Date: 2026-09-27 20:40+0200\n"
 "Last-Translator: Tomasz Bojanowski <tomasz@bojanowski.me>\n"
 "Language-Team: Polish\n"
@@ -172,116 +172,116 @@ msgstr ""
 "Subsonic, z biblioteką przechowywaną na komputerze, odtwarzaniem bez przerw "
 "oraz podobnymi utworami i radiem z AudioMuse-AI."
 
-#: app/src/main.rs:349
+#: app/src/main.rs:381
 msgid "Could not remove the password from the keyring"
 msgstr "Nie można usunąć hasła z bazy kluczy"
 
-#: app/src/main.rs:453
+#: app/src/main.rs:491
 msgid "Playback Stopped"
 msgstr "Odtwarzanie przerwane"
 
-#: app/src/main.rs:522
+#: app/src/main.rs:569
 msgid "Could not read the password from the keyring"
 msgstr "Nie można odczytać hasła z bazy kluczy"
 
-#: app/src/main.rs:527 app/src/main_view.rs:1765 app/src/login_page.rs:204
-#: app/src/album_page.rs:278 app/src/artist_page.rs:129
-#: app/src/song_menu.rs:430 app/src/playlist_page.rs:127
+#: app/src/main.rs:574 app/src/main_view.rs:1833 app/src/login_page.rs:204
+#: app/src/album_page.rs:278 app/src/artist_page.rs:163
+#: app/src/song_menu.rs:513 app/src/playlist_page.rs:127
 msgid "Something went wrong. Please try again."
 msgstr "Wystąpił nieoczekiwany błąd. Spróbuj ponownie."
 
-#: app/src/main.rs:557
+#: app/src/main.rs:604
 msgid "Wrong username or password."
 msgstr "Nieprawidłowa nazwa użytkownika lub hasło."
 
-#: app/src/main.rs:559
+#: app/src/main.rs:606
 msgid "Cannot reach the server. Check the address and your connection."
 msgstr ""
 "Nie uzyskano połączenia z serwerem. Sprawdź adres i połączenie sieciowe."
 
-#: app/src/main.rs:562
+#: app/src/main.rs:609
 msgid "Invalid server address. It should start with http:// or https://"
 msgstr ""
 "Nieprawidłowy adres serwera. Adres musi zaczynać się od http:// lub https://"
 
-#: app/src/main.rs:565
+#: app/src/main.rs:612
 msgid "The server answered, but it does not look like a Subsonic server."
 msgstr "Serwer odpowiedział, ale nie wygląda na serwer zgodny z Subsonic."
 
 #. Translators: {code} is the number of the error sent by the server.
-#: app/src/main.rs:570
+#: app/src/main.rs:617
 #, rust-format
 msgid "Server error (code {code})"
 msgstr "Błąd serwera (kod {code})"
 
 #. Translators: {message} is the error text sent by the server.
-#: app/src/main.rs:573
+#: app/src/main.rs:620
 #, rust-format
 msgid "Server error: {message}"
 msgstr "Błąd serwera: {message}"
 
-#: app/src/main.rs:582 app/src/player.rs:307 app/src/player.rs:383
-#: app/src/player.rs:1589 app/src/player.rs:1688
+#: app/src/main.rs:629 app/src/player.rs:340 app/src/player.rs:418
+#: app/src/player.rs:1768 app/src/player.rs:1867 app/src/player.rs:2010
 msgid "Cannot play without a connection to the server"
 msgstr "Nie można odtwarzać bez połączenia z serwerem"
 
-#: app/src/main.rs:638
+#: app/src/main.rs:685
 msgid "A music player for Navidrome and other Subsonic servers"
 msgstr "Odtwarzacz muzyki dla serwera Navidrome i innych serwerów Subsonic"
 
-#: app/src/main.rs:640
+#: app/src/main.rs:687
 msgid "translator-credits"
 msgstr "Tomasz Bojanowski <tomasz@bojanowski.me>"
 
-#: app/src/main.rs:646
+#: app/src/main.rs:693
 msgid "Buy Me a Coffee"
 msgstr "Postaw kawę"
 
-#: app/src/main.rs:650
+#: app/src/main.rs:697
 msgid "Built With"
 msgstr "Wykorzystane projekty"
 
-#: app/src/main.rs:680 app/src/preferences.blp:195
+#: app/src/main.rs:727 app/src/preferences.blp:195
 msgid "Playback"
 msgstr "Odtwarzanie"
 
-#: app/src/main.rs:682
+#: app/src/main.rs:729
 msgid "Play or Pause"
 msgstr "Odtworzenie lub wstrzymanie"
 
-#: app/src/main.rs:683
+#: app/src/main.rs:730
 msgid "Previous Track"
 msgstr "Poprzedni utwór"
 
-#: app/src/main.rs:684
+#: app/src/main.rs:731
 msgid "Next Track"
 msgstr "Następny utwór"
 
-#: app/src/main.rs:688 app/src/main_view.blp:146 app/src/preferences.blp:143
+#: app/src/main.rs:735 app/src/main_view.blp:146 app/src/preferences.blp:143
 msgid "Library"
 msgstr "Biblioteka"
 
-#: app/src/main.rs:690
+#: app/src/main.rs:737
 msgid "Search Library"
 msgstr "Wyszukiwanie w bibliotece"
 
-#: app/src/main.rs:691 app/src/main_view.blp:53 app/src/main_view.blp:521
+#: app/src/main.rs:738 app/src/main_view.blp:53 app/src/main_view.blp:521
 msgid "Sync Library"
 msgstr "Synchronizuj bibliotekę"
 
-#: app/src/main.rs:695 app/src/preferences.blp:13
+#: app/src/main.rs:742 app/src/preferences.blp:13
 msgid "General"
 msgstr "Ogólne"
 
-#: app/src/main.rs:697 app/src/main_view.blp:528
+#: app/src/main.rs:744 app/src/main_view.blp:528
 msgid "Preferences"
 msgstr "Preferencje"
 
-#: app/src/main.rs:698 app/src/main_view.blp:533
+#: app/src/main.rs:745 app/src/main_view.blp:533
 msgid "Keyboard Shortcuts"
 msgstr "Skróty klawiszowe"
 
-#: app/src/main.rs:699 app/src/main_view.blp:543
+#: app/src/main.rs:746 app/src/main_view.blp:543
 msgid "Quit"
 msgstr "Zakończ"
 
@@ -293,48 +293,48 @@ msgstr "Brak ulubionych"
 msgid "Star albums and songs to see them here."
 msgstr "Albumy i utwory oznaczone gwiazdką pojawią się tutaj."
 
-#: app/src/main_view.rs:471 app/src/main_view.rs:530
+#: app/src/main_view.rs:470 app/src/main_view.rs:535
 msgid "Connecting…"
 msgstr "Łączenie…"
 
 #. Translators: {server} is the server software (e.g. navidrome), {version} its version.
-#: app/src/main_view.rs:487
+#: app/src/main_view.rs:492
 #, rust-format
 msgid "Connected to {server} {version}"
 msgstr "Połączono z serwerem {server} {version}"
 
-#: app/src/main_view.rs:493 app/src/preferences.rs:222
+#: app/src/main_view.rs:498 app/src/preferences.rs:223
 msgid "Connected"
 msgstr "Połączono"
 
-#: app/src/main_view.rs:518
+#: app/src/main_view.rs:523
 msgid "Offline"
 msgstr "Brak połączenia"
 
 #. Translators: the banner on every page while the server cannot be reached.
-#: app/src/main_view.rs:544
+#: app/src/main_view.rs:549
 msgid "Offline — showing the library saved on this computer"
 msgstr ""
 "Brak połączenia – wyświetlana jest biblioteka zapisana na tym komputerze"
 
-#: app/src/main_view.rs:545 app/src/main_view.rs:549
+#: app/src/main_view.rs:550 app/src/main_view.rs:554
 msgid "Retry"
 msgstr "Spróbuj ponownie"
 
-#: app/src/main_view.rs:1482
+#: app/src/main_view.rs:1550
 msgid "Recently Starred"
 msgstr "Ostatnio polubione"
 
-#: app/src/main_view.rs:1483 app/src/song_menu.rs:357
+#: app/src/main_view.rs:1551 app/src/song_menu.rs:440
 msgid "Title"
 msgstr "Tytuł"
 
-#: app/src/main_view.rs:1484 app/src/main_view.blp:463 app/src/song_menu.rs:358
+#: app/src/main_view.rs:1552 app/src/main_view.blp:463 app/src/song_menu.rs:441
 msgid "Artist"
 msgstr "Wykonawca"
 
-#: app/src/main_view.rs:1691 app/src/album_page.rs:696
-#: app/src/album_page.rs:865 app/src/now_playing.rs:294
+#: app/src/main_view.rs:1759 app/src/album_page.rs:692
+#: app/src/album_page.rs:861 app/src/now_playing.rs:294
 #: app/src/mini_player.rs:103 app/src/playlist_page.blp:85
 msgid "Play"
 msgstr "Odtwórz"
@@ -391,7 +391,7 @@ msgstr "Ulubione"
 msgid "Collections"
 msgstr "Kolekcje"
 
-#: app/src/main_view.blp:343 app/src/main_view.blp:349 app/src/song_menu.rs:291
+#: app/src/main_view.blp:343 app/src/main_view.blp:349 app/src/song_menu.rs:374
 msgid "Playlists"
 msgstr "Listy odtwarzania"
 
@@ -403,7 +403,7 @@ msgstr "Brak list odtwarzania"
 msgid "Playlists from the server appear here"
 msgstr "Listy odtwarzania z serwera pojawią się tutaj"
 
-#: app/src/main_view.blp:457 app/src/queue_page.rs:403
+#: app/src/main_view.blp:457 app/src/queue_page.rs:395
 msgid "Name"
 msgstr "Nazwa"
 
@@ -436,7 +436,7 @@ msgstr "Wyłączone"
 msgid "Queue"
 msgstr "Kolejka"
 
-#: app/src/main_view.blp:512 app/src/song_menu.rs:361
+#: app/src/main_view.blp:512 app/src/song_menu.rs:444
 msgid "Track"
 msgstr "Utwór"
 
@@ -531,7 +531,7 @@ msgid "Composer: {name}"
 msgstr "Kompozytor: {name}"
 
 #. Translators: {n} is a number of discs.
-#: app/src/album_page.rs:424
+#: app/src/album_page.rs:420
 #, rust-format
 msgid "{n} disc"
 msgid_plural "{n} discs"
@@ -540,31 +540,31 @@ msgstr[1] "{n} płyty"
 msgstr[2] "{n} płyt"
 
 #. Translators: tracks of one album differ in quality, e.g. "FLAC · up to 24 bit / 96 kHz".
-#: app/src/album_page.rs:613
+#: app/src/album_page.rs:609
 #, rust-format
 msgid "{format} · up to {quality}"
 msgstr "{format} · do {quality}"
 
-#: app/src/album_page.rs:692 app/src/now_playing.rs:289
+#: app/src/album_page.rs:688 app/src/now_playing.rs:289
 #: app/src/mini_player.rs:99 app/src/continue_tile.rs:133
 msgid "Pause"
 msgstr "Wstrzymaj"
 
-#: app/src/album_page.rs:694 app/src/continue_tile.rs:135
+#: app/src/album_page.rs:690 app/src/continue_tile.rs:135
 msgid "Resume"
 msgstr "Wznów"
 
 #. Translators: header above the tracks of one disc, e.g. "Disc 2".
-#: app/src/album_page.rs:768
+#: app/src/album_page.rs:764
 #, rust-format
 msgid "Disc {n}"
 msgstr "Płyta {n}"
 
-#: app/src/album_page.rs:846
+#: app/src/album_page.rs:842
 msgid "Radio"
 msgstr "Radio"
 
-#: app/src/album_page.rs:872 app/src/favorites_header.blp:102
+#: app/src/album_page.rs:868 app/src/favorites_header.blp:102
 #: app/src/playlist_page.blp:96
 msgid "Shuffle"
 msgstr "Odtwórz losowo"
@@ -581,11 +581,11 @@ msgstr "Wyświetl więcej"
 msgid "Could not change favorites. Please try again."
 msgstr "Nie można zmienić ulubionych. Spróbuj ponownie."
 
-#: app/src/favorites.rs:262 app/src/queue_page.rs:649
+#: app/src/favorites.rs:262 app/src/queue_page.rs:641
 msgid "Remove from Favorites"
 msgstr "Usuń z ulubionych"
 
-#: app/src/favorites.rs:265 app/src/queue_page.rs:651
+#: app/src/favorites.rs:265 app/src/queue_page.rs:643
 msgid "Add to Favorites"
 msgstr "Dodaj do ulubionych"
 
@@ -678,11 +678,11 @@ msgstr "{kbps} kb/s"
 msgid "today"
 msgstr "dziś"
 
-#: app/src/dates.rs:28 app/src/preferences.rs:258
+#: app/src/dates.rs:28 app/src/preferences.rs:259
 msgid "yesterday"
 msgstr "wczoraj"
 
-#: app/src/dates.rs:30 app/src/preferences.rs:260
+#: app/src/dates.rs:30 app/src/preferences.rs:261
 #, rust-format
 msgid "{n} day ago"
 msgid_plural "{n} days ago"
@@ -760,8 +760,8 @@ msgstr "w grudniu"
 msgid "Show Less"
 msgstr "Wyświetl mniej"
 
-#: app/src/now_playing.blp:37 app/src/queue_page.rs:656
-#: app/src/song_menu.rs:170
+#: app/src/now_playing.blp:37 app/src/queue_page.rs:648
+#: app/src/song_menu.rs:253
 msgid "Go to Album"
 msgstr "Przejdź do albumu"
 
@@ -781,12 +781,12 @@ msgstr "Przejdź do następnego utworu"
 msgid "Volume"
 msgstr "Głośność"
 
-#: app/src/player.rs:358 app/src/player.rs:409 app/src/player.rs:564
-#: app/src/player.rs:1590
+#: app/src/player.rs:392 app/src/player.rs:446 app/src/player.rs:609
+#: app/src/player.rs:1769
 msgid "Could not play the track"
 msgstr "Nie można odtworzyć utworu"
 
-#: app/src/player.rs:587 app/src/player.rs:644
+#: app/src/player.rs:632 app/src/player.rs:689
 msgid "Could not start playback"
 msgstr "Nie można rozpocząć odtwarzania"
 
@@ -823,7 +823,7 @@ msgid "Account"
 msgstr "Konto"
 
 #: app/src/preferences.blp:117 app/src/preferences.blp:130
-#: app/src/preferences.rs:289
+#: app/src/preferences.rs:290
 msgid "Log Out"
 msgstr "Wyloguj"
 
@@ -895,7 +895,7 @@ msgstr "Dane lokalne"
 msgid "Cover Cache"
 msgstr "Pamięć podręczna okładek"
 
-#: app/src/preferences.blp:280 app/src/queue_page.rs:382
+#: app/src/preferences.blp:280 app/src/queue_page.rs:374
 msgid "Clear"
 msgstr "Wyczyść"
 
@@ -915,21 +915,21 @@ msgstr ""
 "Serwer widzi, co jest odtwarzane, i liczy odtworzenia; może je przekazać do "
 "Last.fm lub ListenBrainz"
 
-#: app/src/preferences.rs:203
+#: app/src/preferences.rs:204
 msgid "Checking the connection…"
 msgstr "Sprawdzanie połączenia…"
 
 #. Translators: {server} is the server software (e.g. Navidrome), {version} its version.
-#: app/src/preferences.rs:209
+#: app/src/preferences.rs:210
 #, rust-format
 msgid "Connected · {server} {version}"
 msgstr "Połączono · {server} {version}"
 
-#: app/src/preferences.rs:244
+#: app/src/preferences.rs:245
 msgid "just now"
 msgstr "przed chwilą"
 
-#: app/src/preferences.rs:248
+#: app/src/preferences.rs:249
 #, rust-format
 msgid "{n} minute ago"
 msgid_plural "{n} minutes ago"
@@ -937,7 +937,7 @@ msgstr[0] "{n} minutę temu"
 msgstr[1] "{n} minuty temu"
 msgstr[2] "{n} minut temu"
 
-#: app/src/preferences.rs:252
+#: app/src/preferences.rs:253
 #, rust-format
 msgid "{n} hour ago"
 msgid_plural "{n} hours ago"
@@ -945,11 +945,11 @@ msgstr[0] "{n} godzinę temu"
 msgstr[1] "{n} godziny temu"
 msgstr[2] "{n} godzin temu"
 
-#: app/src/preferences.rs:282
+#: app/src/preferences.rs:283
 msgid "Log Out?"
 msgstr "Wylogować?"
 
-#: app/src/preferences.rs:284
+#: app/src/preferences.rs:285
 msgid ""
 "Playback stops and the saved password is removed. The library downloaded "
 "from this server stays on this device."
@@ -957,12 +957,12 @@ msgstr ""
 "Odtwarzanie zostanie zatrzymane, a zapisane hasło usunięte. Biblioteka "
 "pobrana z tego serwera pozostanie na tym urządzeniu."
 
-#: app/src/preferences.rs:288 app/src/queue_page.rs:382
-#: app/src/queue_page.rs:408
+#: app/src/preferences.rs:289 app/src/queue_page.rs:374
+#: app/src/queue_page.rs:400
 msgid "Cancel"
 msgstr "Anuluj"
 
-#: app/src/preferences.rs:362
+#: app/src/preferences.rs:363
 #, rust-format
 msgid "{n} artist"
 msgid_plural "{n} artists"
@@ -970,21 +970,21 @@ msgstr[0] "{n} wykonawca"
 msgstr[1] "{n} wykonawców"
 msgstr[2] "{n} wykonawców"
 
-#: app/src/preferences.rs:377
+#: app/src/preferences.rs:378
 msgid "Syncing the library…"
 msgstr "Synchronizowanie biblioteki…"
 
 #. Translators: {time} is how long ago, e.g. "5 minutes ago", "yesterday", "never".
-#: app/src/preferences.rs:380
+#: app/src/preferences.rs:381
 #, rust-format
 msgid "Last sync: {time}"
 msgstr "Ostatnia synchronizacja: {time}"
 
-#: app/src/preferences.rs:384
+#: app/src/preferences.rs:385
 msgid "never"
 msgstr "nigdy"
 
-#: app/src/preferences.rs:417
+#: app/src/preferences.rs:418
 msgid "Could not clear the cover cache"
 msgstr "Nie można wyczyścić pamięci podręcznej okładek"
 
@@ -1017,12 +1017,8 @@ msgstr "Kolejka jest pusta"
 msgid "Play an album, a song or the radio"
 msgstr "Utwory pojawią się tu po odtworzeniu albumu, utworu lub radia"
 
-#: app/src/queue_page.rs:232 app/src/song_menu.rs:51
-msgid "More"
-msgstr "Więcej"
-
 #. Translators: {n} is a number of tracks.
-#: app/src/queue_page.rs:376
+#: app/src/queue_page.rs:368
 #, rust-format
 msgid "{n} track will be removed from the queue."
 msgid_plural "{n} tracks will be removed from the queue."
@@ -1030,124 +1026,128 @@ msgstr[0] "Z kolejki zostanie usunięty {n} utwór."
 msgstr[1] "Z kolejki zostaną usunięte {n} utwory."
 msgstr[2] "Z kolejki zostanie usuniętych {n} utworów."
 
-#: app/src/queue_page.rs:381
+#: app/src/queue_page.rs:373
 msgid "Clear Queue?"
 msgstr "Wyczyścić kolejkę?"
 
-#: app/src/queue_page.rs:406 app/src/song_menu.rs:246
+#: app/src/queue_page.rs:398 app/src/song_menu.rs:329
 msgid "New Playlist"
 msgstr "Nowa lista odtwarzania"
 
-#: app/src/queue_page.rs:408
+#: app/src/queue_page.rs:400
 msgid "Save"
 msgstr "Zapisz"
 
 #. Translators: {name} is the name of a playlist.
-#: app/src/queue_page.rs:441
+#: app/src/queue_page.rs:433
 #, rust-format
 msgid "Saved as “{name}”"
 msgstr "Zapisano listę odtwarzania „{name}”"
 
-#: app/src/queue_page.rs:451
+#: app/src/queue_page.rs:443
 msgid "Could not save the playlist"
 msgstr "Nie można zapisać listy odtwarzania"
 
 #. Translators: {time} is a short duration, e.g. "12 min" or "1 h 5 min".
-#: app/src/queue_page.rs:482
+#: app/src/queue_page.rs:474
 #, rust-format
 msgid "{time} left"
 msgstr "zostało {time}"
 
 #. Translators: in the queue, moves the track to right after the current
 #. one (elsewhere "Play Next" adds a track to the queue).
-#: app/src/queue_page.rs:639
+#: app/src/queue_page.rs:631
 msgctxt "queue"
 msgid "Play Next"
 msgstr "Odtwórz jako następny"
 
-#: app/src/queue_page.rs:641
+#: app/src/queue_page.rs:633
 msgid "Remove from Queue"
 msgstr "Usuń z kolejki"
 
-#: app/src/queue_page.rs:645 app/src/song_menu.rs:160
+#: app/src/queue_page.rs:637 app/src/song_menu.rs:243
 msgid "Add to Playlist…"
 msgstr "Dodaj do listy odtwarzania…"
 
-#: app/src/queue_page.rs:657 app/src/song_menu.rs:172
+#: app/src/queue_page.rs:649 app/src/song_menu.rs:255
 msgid "Go to Artist"
 msgstr "Przejdź do wykonawcy"
 
-#: app/src/queue_page.rs:658 app/src/song_menu.rs:175 app/src/song_menu.rs:408
+#: app/src/queue_page.rs:650 app/src/song_menu.rs:258 app/src/song_menu.rs:491
 msgid "Song Information"
 msgstr "Informacje o utworze"
 
-#: app/src/queue_page.rs:661 app/src/song_menu.rs:165
+#: app/src/queue_page.rs:653 app/src/song_menu.rs:248
 msgid "Play Similar"
 msgstr "Odtwórz podobne"
 
-#: app/src/song_menu.rs:96
+#: app/src/song_menu.rs:75 app/src/song_menu.rs:80
+msgid "More"
+msgstr "Więcej"
+
+#: app/src/song_menu.rs:157
 msgid "Will play next"
 msgstr "Zostanie odtworzony jako następny"
 
-#: app/src/song_menu.rs:103
+#: app/src/song_menu.rs:168
 msgid "Added to the queue"
 msgstr "Dodano na koniec kolejki"
 
-#: app/src/song_menu.rs:157
+#: app/src/song_menu.rs:240
 msgid "Play Next"
 msgstr "Dodaj jako następny"
 
-#: app/src/song_menu.rs:158
+#: app/src/song_menu.rs:241
 msgid "Add to Queue"
 msgstr "Dodaj na koniec kolejki"
 
-#: app/src/song_menu.rs:230
+#: app/src/song_menu.rs:313
 msgid "Add to Playlist"
 msgstr "Dodawanie do listy odtwarzania"
 
 #. Translators: {name} is the name of a playlist.
-#: app/src/song_menu.rs:277 app/src/song_menu.rs:329
+#: app/src/song_menu.rs:360 app/src/song_menu.rs:412
 #, rust-format
 msgid "Added to “{name}”"
 msgstr "Dodano do listy „{name}”"
 
-#: app/src/song_menu.rs:281 app/src/song_menu.rs:333
+#: app/src/song_menu.rs:364 app/src/song_menu.rs:416
 msgid "Could not add to the playlist"
 msgstr "Nie można dodać do listy odtwarzania"
 
-#: app/src/song_menu.rs:359
+#: app/src/song_menu.rs:442
 msgid "Composer"
 msgstr "Kompozytor"
 
-#: app/src/song_menu.rs:360
+#: app/src/song_menu.rs:443
 msgid "Album"
 msgstr "Album"
 
-#: app/src/song_menu.rs:362
+#: app/src/song_menu.rs:445
 msgid "Disc"
 msgstr "Płyta"
 
-#: app/src/song_menu.rs:363
+#: app/src/song_menu.rs:446
 msgid "Duration"
 msgstr "Czas trwania"
 
-#: app/src/song_menu.rs:365
+#: app/src/song_menu.rs:448
 msgid "Format"
 msgstr "Format"
 
-#: app/src/song_menu.rs:370
+#: app/src/song_menu.rs:453
 msgid "Bit Depth"
 msgstr "Rozdzielczość"
 
-#: app/src/song_menu.rs:374
+#: app/src/song_menu.rs:457
 msgid "Sample Rate"
 msgstr "Częstotliwość próbkowania"
 
-#: app/src/song_menu.rs:378
+#: app/src/song_menu.rs:461
 msgid "Bit Rate"
 msgstr "Przepływność"
 
-#: app/src/song_menu.rs:425
+#: app/src/song_menu.rs:508
 msgid "No similar songs found"
 msgstr "Nie znaleziono podobnych utworów"
 

@@ -227,26 +227,18 @@ impl QueuePage {
         // click (as in song_menu.rs): most rows are never clicked there. The
         // menu itself is put together at every click: one of its items says
         // whether the track is a favourite now.
-        let button = gtk::MenuButton::builder()
-            .icon_name("view-more-symbolic")
-            .tooltip_text(gettext("More"))
-            .valign(gtk::Align::Center)
-            .css_classes(["flat", "circular"])
-            .build();
         let item_weak = item.downgrade();
         let row_weak = row.downgrade();
         let made = Cell::new(false);
-        button.set_create_popup_func(move |button| {
-            let Some(row) = row_weak.upgrade() else {
-                return;
-            };
+        let button = crate::song_menu::more_button(move || {
+            let row = row_weak.upgrade()?;
             if !made.replace(true) {
                 install_actions(&row, &item_weak);
             }
             let starred = row.song().is_some_and(|song| {
                 favorites::is_starred(&Favorite::Song(song.id.clone()), song.starred.is_some())
             });
-            button.set_menu_model(Some(&menu(starred)));
+            Some(menu(starred))
         });
         row.add_suffix(&button);
 

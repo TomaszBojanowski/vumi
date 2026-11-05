@@ -4,11 +4,15 @@
 //! view's row, not the row itself, and carries the look of the row
 //! (style.css). A list view reuses its rows while scrolling, so set_song() is
 //! called many times on the same row.
+//!
+//! A row holds only what it shows: the bars exist in the playing row alone,
+//! the note only in lists that have notes (style.css keeps the room of the
+//! bars before every title, so the titles stay aligned).
 
 use adw::subclass::prelude::*;
 use gtk::glib;
 use gtk::prelude::*;
-use std::cell::{OnceCell, RefCell};
+use std::cell::RefCell;
 
 use crate::eq_bars::{EqBars, Mode};
 
@@ -19,20 +23,17 @@ mod imp {
     #[template(file = "src/song_row.blp")]
     pub struct SongRow {
         #[template_child]
-        pub prefixes: gtk::TemplateChild<gtk::Box>,
+        pub title_box: gtk::TemplateChild<gtk::Box>,
         #[template_child]
         pub title: gtk::TemplateChild<gtk::Label>,
         #[template_child]
         pub subtitle: gtk::TemplateChild<gtk::Label>,
         #[template_child]
-        pub suffixes: gtk::TemplateChild<gtk::Box>,
-        #[template_child]
-        pub note: gtk::TemplateChild<gtk::Label>,
-        #[template_child]
         pub duration: gtk::TemplateChild<gtk::Label>,
-        /// The bars before the title, see-through unless the song plays, so
-        /// the titles stay aligned either way.
-        pub bars: OnceCell<EqBars>,
+        /// The bars before the title, while the song is the current one.
+        pub bars: RefCell<Option<EqBars>>,
+        /// A few words before the length, made when a list first gives some.
+        pub note: RefCell<Option<gtk::Label>>,
         /// The song the row shows now.
         pub song: RefCell<Option<subsonic::Song>>,
     }
@@ -53,15 +54,7 @@ mod imp {
         }
     }
 
-    impl ObjectImpl for SongRow {
-        fn constructed(&self) {
-            self.parent_constructed();
-            let bars = EqBars::new();
-            bars.set_opacity(0.0);
-            self.prefixes.append(&bars);
-            let _ = self.bars.set(bars);
-        }
-    }
+    impl ObjectImpl for SongRow {}
     impl WidgetImpl for SongRow {}
     impl BoxImpl for SongRow {}
 }
@@ -105,7 +98,19 @@ impl SongRow {
     /// A few words before the length (empty: none). The row is reused, so
     /// the list sets this for every song it shows.
     pub(crate) fn set_note(&self, note: &str) {
-        let label = &self.imp().note;
+        let imp = self.imp();
+        let mut slot = imp.note.borrow_mut();
+        if slot.is_none() && note.is_empty() {
+            return;
+        }
+        let label = slot.get_or_insert_with(|| {
+            let label = gtk::Label::builder()
+                .margin_end(12)
+                .css_classes(["dim-label"])
+                .build();
+            label.insert_after(self, Some(&*imp.title_box));
+            label
+        });
         label.set_label(note);
         label.set_visible(!note.is_empty());
     }
@@ -136,21 +141,23 @@ impl SongRow {
 
     /// Puts `widget` at the end of the row, after the length.
     pub(crate) fn add_suffix(&self, widget: &impl IsA<gtk::Widget>) {
-        self.imp().suffixes.append(widget);
+        self.append(widget);
     }
 
     /// Bars and the highlight while the song is the current one; the bars
-    /// rest while the player is paused.
+    /// rest while the player is paused. Only the current row has bars: they
+    /// are made when it becomes the current one and go when it stops being it.
     pub(crate) fn set_playing(&self, playing: bool, paused: bool) {
-        if let Some(bars) = self.imp().bars.get() {
-            bars.set_opacity(if playing { 1.0 } else { 0.0 });
-            bars.set_mode(if paused {
-                Mode::Paused
-            } else if playing {
-                Mode::Moving
-            } else {
-                Mode::Still
+        let mut bars = self.imp().bars.borrow_mut();
+        if playing {
+            let bars = bars.get_or_insert_with(|| {
+                let bars = EqBars::new();
+                self.prepend(&bars);
+                bars
             });
+            bars.set_mode(if paused { Mode::Paused } else { Mode::Moving });
+        } else if let Some(bars) = bars.take() {
+            self.remove(&bars);
         }
         if playing {
             self.add_css_class("playing");
