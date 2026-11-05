@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vumi\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-05 10:21+0100\n"
+"POT-Creation-Date: 2026-11-05 19:49+0100\n"
 "PO-Revision-Date: 2026-09-27 20:40+0200\n"
 "Last-Translator: Tomasz Bojanowski <tomasz@bojanowski.me>\n"
 "Language-Team: Polish\n"
@@ -185,7 +185,7 @@ msgid "Could not read the password from the keyring"
 msgstr "Nie można odczytać hasła z bazy kluczy"
 
 #: app/src/main.rs:574 app/src/main_view.rs:1833 app/src/login_page.rs:204
-#: app/src/album_page.rs:278 app/src/artist_page.rs:163
+#: app/src/album_page.rs:281 app/src/artist_page.rs:163
 #: app/src/song_menu.rs:523 app/src/playlist_page.rs:127
 msgid "Something went wrong. Please try again."
 msgstr "Wystąpił nieoczekiwany błąd. Spróbuj ponownie."
@@ -333,9 +333,9 @@ msgstr "Tytuł"
 msgid "Artist"
 msgstr "Wykonawca"
 
-#: app/src/main_view.rs:1759 app/src/album_page.rs:747
-#: app/src/album_page.rs:957 app/src/now_playing.rs:294
-#: app/src/mini_player.rs:103 app/src/playlist_page.blp:85
+#: app/src/main_view.rs:1759 app/src/album_page.rs:1058
+#: app/src/now_playing.rs:294 app/src/mini_player.rs:103
+#: app/src/playlist_page.blp:85
 msgid "Play"
 msgstr "Odtwórz"
 
@@ -520,18 +520,18 @@ msgstr "Każdy szczegół brzmienia"
 msgid "Original quality streaming and gapless playback."
 msgstr "Strumieniowanie w oryginalnej jakości i odtwarzanie bez przerw."
 
-#: app/src/album_page.rs:182
+#: app/src/album_page.rs:185
 msgid "Connect to the server to see the tracks."
 msgstr "Lista utworów będzie dostępna po połączeniu z serwerem."
 
 #. Translators: {name} is the composer of (most of) the album's tracks.
-#: app/src/album_page.rs:360
+#: app/src/album_page.rs:364
 #, rust-format
 msgid "Composer: {name}"
 msgstr "Kompozytor: {name}"
 
 #. Translators: {n} is a number of discs.
-#: app/src/album_page.rs:420
+#: app/src/album_page.rs:424
 #, rust-format
 msgid "{n} disc"
 msgid_plural "{n} discs"
@@ -540,40 +540,44 @@ msgstr[1] "{n} płyty"
 msgstr[2] "{n} płyt"
 
 #. Translators: tracks of one album differ in quality, e.g. "FLAC · up to 24 bit / 96 kHz".
-#: app/src/album_page.rs:673
+#: app/src/album_page.rs:710
 #, rust-format
 msgid "{format} · up to {quality}"
 msgstr "{format} · do {quality}"
 
-#: app/src/album_page.rs:743 app/src/now_playing.rs:289
-#: app/src/mini_player.rs:99 app/src/continue_tile.rs:133
-msgid "Pause"
-msgstr "Wstrzymaj"
-
-#: app/src/album_page.rs:745 app/src/continue_tile.rs:135
-msgid "Resume"
-msgstr "Wznów"
-
 #. Translators: header above the tracks of one disc, e.g. "Disc 2".
-#: app/src/album_page.rs:817
+#: app/src/album_page.rs:852
 #, rust-format
 msgid "Disc {n}"
 msgstr "Płyta {n}"
 
-#: app/src/album_page.rs:938
+#: app/src/album_page.rs:1036
 msgid "Radio"
 msgstr "Radio"
 
-#: app/src/album_page.rs:964 app/src/favorites_header.blp:102
+#: app/src/album_page.rs:1059 app/src/now_playing.rs:289
+#: app/src/mini_player.rs:99 app/src/continue_tile.rs:133
+msgid "Pause"
+msgstr "Wstrzymaj"
+
+#: app/src/album_page.rs:1060 app/src/continue_tile.rs:135
+msgid "Resume"
+msgstr "Wznów"
+
+#: app/src/album_page.rs:1078 app/src/favorites_header.blp:102
 #: app/src/playlist_page.blp:96
 msgid "Shuffle"
 msgstr "Odtwórz losowo"
 
-#: app/src/album_page.blp:176 app/src/artist_page.blp:59
+#: app/src/album_page.blp:67 app/src/song_menu.rs:453
+msgid "Album"
+msgstr "Album"
+
+#: app/src/album_page.blp:196 app/src/artist_page.blp:59
 msgid "About"
 msgstr "Informacje"
 
-#: app/src/album_page.blp:192 app/src/about.rs:102 app/src/artist_page.blp:75
+#: app/src/album_page.blp:212 app/src/about.rs:102 app/src/artist_page.blp:75
 msgid "Show More"
 msgstr "Wyświetl więcej"
 
@@ -1118,10 +1122,6 @@ msgstr "Nie można dodać do listy odtwarzania"
 #: app/src/song_menu.rs:452
 msgid "Composer"
 msgstr "Kompozytor"
-
-#: app/src/song_menu.rs:453
-msgid "Album"
-msgstr "Album"
 
 #: app/src/song_menu.rs:455
 msgid "Disc"

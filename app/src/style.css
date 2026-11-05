@@ -3,19 +3,6 @@
   box-shadow: 0 6px 20px alpha(black, 0.35);
 }
 
-/* Track rows on album pages: no card around the list and no lines between
-   the rows, only the hover highlight and the playing row. */
-.flat-tracks list.boxed-list {
-  background: none;
-  box-shadow: none;
-  border: none;
-}
-
-.flat-tracks list.boxed-list > row {
-  border: none;
-  border-radius: 8px;
-}
-
 /* Song lists in a list view (search, Favorites, playlists): the rows are
    drawn as one boxed list, as Adwaita draws "list.boxed-list". A list view has
    no such style, and the card cannot be the list itself: that is the part
@@ -110,7 +97,8 @@ listview.song-list.queue-list > row > box.song-row.last {
   margin-bottom: 12px;
 }
 
-/* The song that is playing: as "row.playing" below, on an album page. */
+/* The song that is playing: a slightly lighter row and a bold title in the
+   normal text colour. */
 listview.song-list > row > box.song-row.playing {
   background-color: color-mix(in srgb, var(--window-fg-color) 7%, var(--card-bg-color));
 }
@@ -274,17 +262,40 @@ button.artists-letter {
   box-shadow: inset 0 1px var(--headerbar-shade-color);
 }
 
-/* The track that is playing on an album page: a slightly lighter row and a
-   bold title in the normal text colour, like the neutral Play button.
-   label.title only: ".title" alone would also match the box around the
-   title and the artist, and colour both. */
-row.playing {
-  background-color: color-mix(in srgb, var(--window-fg-color) 7%, var(--card-bg-color));
+/* The track that is playing on an album page: its bars and a bold title in
+   the accent colour. label.title only: ".title" alone would also match the
+   box around the title and the artist, and colour both. */
+row.track.playing label.title {
+  color: var(--accent-color);
+  font-weight: bold;
 }
 
-row.playing label.title {
-  color: var(--window-fg-color);
-  font-weight: bold;
+row.track.playing .eq-bar {
+  background-color: var(--accent-color);
+}
+
+/* The star of a track: seen when the track is a favourite, under the
+   pointer and with the keyboard focus in its row. Its room stays, so nothing
+   moves; album_page.rs lets it take clicks only where it shows. */
+row.track .track-star:not(:checked) {
+  opacity: 0;
+}
+
+row.track:hover .track-star,
+row.track:focus-within .track-star {
+  opacity: 1;
+}
+
+/* Play on an album page: a pill with its name, of the size of Play Songs
+   on Favorites. */
+button.album-pill {
+  min-height: 40px;
+  padding: 0 24px 0 20px;
+}
+
+/* About, on a card under the tracks. */
+.album-about {
+  padding: 16px 18px;
 }
 
 /* The bars on the playing track; eq_bars.rs moves them. */

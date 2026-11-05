@@ -62,6 +62,17 @@ template $VumiAlbumPage: Adw.NavigationPage {
                 spacing: 6;
                 valign: center;
 
+                // What the page is, small above the title.
+                Label kind {
+                  label: _("Album");
+                  xalign: 0;
+
+                  styles [
+                    "caption-heading",
+                    "dim-label",
+                  ]
+                }
+
                 Label title {
                   xalign: 0;
                   wrap: true;
@@ -98,9 +109,12 @@ template $VumiAlbumPage: Adw.NavigationPage {
                   visible: false;
                 }
 
+                // Year · genre · label · tracks · length: it breaks only
+                // after a "·" (album_page.rs: info_line).
                 Label details {
                   xalign: 0;
                   wrap: true;
+                  wrap-mode: word_char;
 
                   styles [
                     "dim-label",
@@ -166,11 +180,17 @@ template $VumiAlbumPage: Adw.NavigationPage {
               }
             }
 
-            // "About", under the tracks: hidden until the server has a description.
+            // "About", on a card under the tracks: hidden until the server
+            // has a description.
             Box about {
               orientation: vertical;
               spacing: 6;
               visible: false;
+
+              styles [
+                "card",
+                "album-about",
+              ]
 
               Label {
                 label: _("About");
@@ -192,10 +212,6 @@ template $VumiAlbumPage: Adw.NavigationPage {
                 label: _("Show More");
                 halign: start;
                 visible: false;
-
-                styles [
-                  "flat",
-                ]
               }
             }
 
@@ -212,10 +228,13 @@ template $VumiAlbumPage: Adw.NavigationPage {
         header.orientation: vertical;
         cover_frame.halign: center;
         info.halign: center;
+        kind.xalign: 0.5;
         title.xalign: 0.5;
         title.justify: center;
         artist.xalign: 0.5;
         artist.justify: center;
+        composer.xalign: 0.5;
+        composer.justify: center;
         details.xalign: 0.5;
         details.justify: center;
         quality.halign: center;

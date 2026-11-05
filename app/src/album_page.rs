@@ -82,8 +82,11 @@ mod imp {
         pub artist_linked: Cell<bool>,
         /// Bumped by every show_tracks; older row batches stop.
         pub row_generation: Cell<u32>,
-        /// The round Play button, which becomes Pause / Resume for this album.
-        pub play_button: RefCell<Option<gtk::Button>>,
+        /// The icon and the names of the Play pill, which becomes Pause /
+        /// Resume for this album.
+        pub play: RefCell<Option<(gtk::Image, gtk::Stack)>>,
+        /// The track row under the mouse pointer: its star takes clicks.
+        pub hovered: RefCell<Option<gtk::Widget>>,
     }
 
     #[glib::object_subclass]
@@ -300,6 +303,7 @@ impl AlbumPage {
         if !imp.tracks_shown.replace(true) {
             self.build_actions(&album.id);
             self.install_track_action();
+            self.follow_pointer();
             // Mark the playing track whenever the player changes; the page stops
             // listening when it is closed.
             let page = self.downgrade();
@@ -424,7 +428,7 @@ impl AlbumPage {
         if seconds > 0 {
             parts.push(format::long_duration(seconds));
         }
-        imp.details.set_label(&parts.join(" · "));
+        imp.details.set_label(&info_line(&parts));
         self.show_quality(songs);
 
         // The list fades in only when it arrives while the page is on screen; the
@@ -471,6 +475,10 @@ pub(crate) struct TrackRow {
     number: gtk::Label,
     track: String,
     bars: Option<crate::eq_bars::EqBars>,
+    /// Seen when the track is a favourite, under the pointer and with the
+    /// keyboard focus in the row (style.css); it takes clicks only then
+    /// (see AlbumPage::follow_pointer).
+    star: gtk::ToggleButton,
 }
 
 impl TrackRow {
@@ -514,7 +522,10 @@ fn track_row(
     index: usize,
     queue: &Rc<[subsonic::Song]>,
 ) -> TrackRow {
-    let row = adw::PreferencesRow::builder().activatable(true).build();
+    let row = adw::PreferencesRow::builder()
+        .activatable(true)
+        .css_classes(["track"])
+        .build();
     row.set_action_name(Some("album.play-track"));
     row.set_action_target_value(Some(&(index as u32).to_variant()));
     let header = gtk::Box::builder()
@@ -554,7 +565,11 @@ fn track_row(
 
     // Markup for the composer in italics: the artist is escaped.
     let mut subtitle: Vec<String> = Vec::new();
-    if let Some(artist) = song.artist.as_deref().filter(|a| Some(*a) != album_artist) {
+    if let Some(artist) = song
+        .artist
+        .as_deref()
+        .filter(|artist| !of_the_album(artist, album_artist))
+    {
         subtitle.push(glib::markup_escape_text(artist).to_string());
     }
     if let Some(composer) = song.composer.as_deref().filter(|c| !c.trim().is_empty()) {
@@ -599,11 +614,14 @@ fn track_row(
         header.append(&duration);
     }
 
-    header.append(&star_button(
+    let star = star_button(
         song.starred.is_some(),
         client.cloned(),
         Favorite::Song(song.id.clone()),
-    ));
+    );
+    star.add_css_class("track-star");
+    star.set_can_target(star.is_active());
+    header.append(&star);
 
     // The ⋮ menu, last in the row: after the time and the star. The list is
     // shared, not copied; the song is taken from it when the menu is used.
@@ -633,7 +651,26 @@ fn track_row(
         number,
         track,
         bars: None,
+        star,
     }
+}
+
+/// True when `artist` (one name or several) is the album's artist or among
+/// its artists: the row then names no artist under its title.
+fn of_the_album(artist: &str, album_artist: Option<&str>) -> bool {
+    let album = names_of(album_artist.unwrap_or(""));
+    names_of(artist).iter().all(|name| album.contains(name))
+}
+
+/// The album's info line, e.g. "1995 · Classique · Decca · 10 tracks · 58
+/// minutes": the parts are joined with no-break spaces inside them and
+/// before each "·", so a narrow window breaks the line only after a "·".
+fn info_line(parts: &[String]) -> String {
+    parts
+        .iter()
+        .map(|part| part.replace(' ', "\u{a0}"))
+        .collect::<Vec<_>>()
+        .join("\u{a0}· ")
 }
 
 /// E.g. "FLAC · 24 bit / 96 kHz" or "MP3 · 320 kbps", plus whether it is hi-res.
@@ -732,22 +769,22 @@ impl AlbumPage {
             track.set_playing(playing, mode);
         }
 
-        // The round Play button follows too: Pause while this album plays.
+        // The Play pill follows too: Pause while this album plays.
         let imp = self.imp();
-        if let Some(button) = imp.play_button.borrow().as_ref() {
+        if let Some((icon, names)) = imp.play.borrow().as_ref() {
             let album_id = imp.album_id.borrow();
             let album_playing = player
                 .current()
                 .is_some_and(|s| s.album_id.as_deref() == Some(album_id.as_str()));
-            let (icon, tooltip) = if album_playing && player.is_playing() {
-                ("media-playback-pause-symbolic", gettext("Pause"))
+            let (image, name) = if album_playing && player.is_playing() {
+                ("media-playback-pause-symbolic", "pause")
             } else if album_playing && player.is_paused() {
-                ("media-playback-start-symbolic", gettext("Resume"))
+                ("media-playback-start-symbolic", "resume")
             } else {
-                ("media-playback-start-symbolic", gettext("Play"))
+                ("media-playback-start-symbolic", "play")
             };
-            button.set_icon_name(icon);
-            button.set_tooltip_text(Some(&tooltip));
+            icon.set_icon_name(Some(image));
+            names.set_visible_child_name(name);
         }
     }
 }
@@ -808,10 +845,8 @@ impl AlbumPage {
             let disc = song.disc_number.unwrap_or(1);
             let same_disc = builder.group.borrow().as_ref().map(|(d, _)| *d) == Some(disc);
             if !same_disc {
+                // The tracks of a disc on a card (the group's boxed list).
                 let group = adw::PreferencesGroup::new();
-                // Rows without the card frame (style.css): lighter under the
-                // large header.
-                group.add_css_class("flat-tracks");
                 if builder.multi_disc {
                     // Translators: header above the tracks of one disc, e.g. "Disc 2".
                     group.set_title(&gettext("Disc {n}").replace("{n}", &disc.to_string()));
@@ -832,6 +867,7 @@ impl AlbumPage {
                     &builder.queue,
                 );
                 group.add(&track.row);
+                self.star_follows_pointer(&track);
                 imp.rows.borrow_mut().push(track);
             }
         }
@@ -900,6 +936,68 @@ impl AlbumPage {
         self.insert_action_group("album", Some(&actions));
     }
 
+    /// The star of the track row under the mouse pointer takes clicks; the
+    /// hidden stars of the other rows do not. A touch has no pointer that
+    /// shows the star first, so there a tap on a hidden star plays the track
+    /// (the ⋮ menu stars it).
+    fn follow_pointer(&self) {
+        let motion = gtk::EventControllerMotion::new();
+        let page = self.downgrade();
+        motion.connect_motion(move |motion, x, y| {
+            let Some(page) = page.upgrade() else {
+                return;
+            };
+            let touch = motion
+                .current_event_device()
+                .is_some_and(|device| device.source() == gtk::gdk::InputSource::Touchscreen);
+            let row = if touch {
+                None
+            } else {
+                page.imp()
+                    .tracks
+                    .pick(x, y, gtk::PickFlags::DEFAULT)
+                    .and_then(|widget| widget.ancestor(adw::PreferencesRow::static_type()))
+            };
+            page.set_hovered(row);
+        });
+        let page = self.downgrade();
+        motion.connect_leave(move |_| {
+            if let Some(page) = page.upgrade() {
+                page.set_hovered(None);
+            }
+        });
+        self.imp().tracks.add_controller(motion);
+    }
+
+    /// `row` is now the track row under the pointer (None: no row).
+    fn set_hovered(&self, row: Option<gtk::Widget>) {
+        let imp = self.imp();
+        let old = imp.hovered.replace(row.clone());
+        if old == row {
+            return;
+        }
+        for track in imp.rows.borrow().iter() {
+            let widget = track.row.upcast_ref::<gtk::Widget>();
+            let now = row.as_ref() == Some(widget);
+            if now || old.as_ref() == Some(widget) {
+                track.star.set_can_target(now || track.star.is_active());
+            }
+        }
+    }
+
+    /// A star changed elsewhere (another page, the menu, the server) keeps
+    /// taking clicks only where it shows.
+    fn star_follows_pointer(&self, track: &TrackRow) {
+        let page = self.downgrade();
+        let row = track.row.clone().upcast::<gtk::Widget>().downgrade();
+        track.star.connect_toggled(move |star| {
+            let hovered = page
+                .upgrade()
+                .is_some_and(|page| page.imp().hovered.borrow().as_ref() == row.upgrade().as_ref());
+            star.set_can_target(star.is_active() || hovered);
+        });
+    }
+
     /// Plays the album from the track at `index`; the playing track pauses or
     /// resumes instead of starting again.
     fn play_track(&self, index: usize) {
@@ -952,13 +1050,29 @@ impl AlbumPage {
                 }
             });
         }
-        let play_button = gtk::Button::builder()
-            .icon_name("media-playback-start-symbolic")
-            .tooltip_text(gettext("Play"))
-            .valign(gtk::Align::Center)
-            .css_classes(["circular", "album-play"])
+        // Play as a pill with its name; the names share one width, so the
+        // pill keeps its size when it becomes Pause or Resume.
+        let play_icon = gtk::Image::from_icon_name("media-playback-start-symbolic");
+        let play_names = gtk::Stack::new();
+        for (name, text) in [
+            ("play", gettext("Play")),
+            ("pause", gettext("Pause")),
+            ("resume", gettext("Resume")),
+        ] {
+            play_names.add_named(&gtk::Label::new(Some(&text)), Some(name));
+        }
+        let play_content = gtk::Box::builder()
+            .spacing(8)
+            .halign(gtk::Align::Center)
             .build();
-        imp.play_button.replace(Some(play_button.clone()));
+        play_content.append(&play_icon);
+        play_content.append(&play_names);
+        let play_button = gtk::Button::builder()
+            .child(&play_content)
+            .valign(gtk::Align::Center)
+            .css_classes(["pill", "suggested-action", "album-pill"])
+            .build();
+        imp.play.replace(Some((play_icon, play_names)));
         let shuffle_button = gtk::Button::builder()
             .icon_name("media-playlist-shuffle-symbolic")
             .tooltip_text(gettext("Shuffle"))
@@ -1266,6 +1380,34 @@ mod tests {
         let mut renamed = song("2");
         renamed.album = Some("Album (Remastered)".into());
         assert!(!same_album(&local, &album(vec![song("1"), renamed])));
+    }
+
+    #[test]
+    fn a_track_names_its_artist_only_when_not_one_of_the_albums() {
+        let album = Some("Adiemus • Karl Jenkins • London Philharmonic Orchestra");
+        assert!(of_the_album("Adiemus", album));
+        assert!(of_the_album("Karl Jenkins • Adiemus", album));
+        assert!(of_the_album("", album));
+        assert!(!of_the_album("Miriam Stockley", album));
+        assert!(!of_the_album("Adiemus • Miriam Stockley", album));
+        assert!(of_the_album("The Beatles", Some("The Beatles")));
+        assert!(!of_the_album("The Beatles", None));
+    }
+
+    #[test]
+    fn the_info_line_breaks_only_after_a_dot() {
+        let parts = [
+            "1965".to_string(),
+            "UMC (Universal Music Catalogue)".to_string(),
+            "68 tracks".to_string(),
+        ];
+        assert_eq!(
+            info_line(&parts),
+            "1965\u{a0}· UMC\u{a0}(Universal\u{a0}Music\u{a0}Catalogue)\u{a0}· 68\u{a0}tracks"
+        );
+        // The only ordinary spaces follow the dots.
+        assert_eq!(info_line(&parts).matches(' ').count(), 2);
+        assert_eq!(info_line(&parts[..1]), "1965");
     }
 
     #[test]
