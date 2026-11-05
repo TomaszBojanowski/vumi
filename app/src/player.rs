@@ -69,6 +69,9 @@ pub(crate) struct Player {
     /// A stream has failed and the server is being asked whether it is still
     /// there (stream_failed); what the user is told waits for the answer.
     checking: Cell<bool>,
+    /// Stopped because the server could not be reached (server_gone): the
+    /// track waits for the connection, Play goes on once it is back.
+    waits_for_server: Cell<bool>,
     /// The queue as it was before the user started another track, kept until
     /// that track plays: if the server turns out to be gone, it comes back.
     undo: RefCell<Option<Undo>>,
@@ -226,6 +229,7 @@ impl Player {
                 command: Cell::new(0),
                 pending_seek: Cell::new(None),
                 checking: Cell::new(false),
+                waits_for_server: Cell::new(false),
                 undo: RefCell::new(None),
                 jumped_from: Cell::new(None),
                 next_uri,
@@ -285,6 +289,13 @@ impl Player {
     }
 
     fn set_state(&self, state: State) {
+        self.change_state(state, false);
+    }
+
+    /// set_state; `waits_for_server` (server_gone) is known to the listeners
+    /// along with the new state.
+    fn change_state(&self, state: State, waits_for_server: bool) {
+        self.waits_for_server.set(waits_for_server);
         let old = self.state.replace(state);
         let report = match (&old, &*self.state.borrow()) {
             (State::Playing, State::Paused) => Some("paused"),
@@ -401,7 +412,8 @@ impl Player {
                 state = undo.state;
             }
         }
-        self.set_state(state);
+        let waits = matches!(state, State::Failed(_));
+        self.change_state(state, waits);
         if let Some(handler) = self.error_handler.borrow().as_ref() {
             handler(&message);
         }
@@ -440,6 +452,12 @@ impl Player {
     /// still fail, and the queue before it come back.
     pub(crate) fn is_starting(&self) -> bool {
         self.undo.borrow().is_some()
+    }
+
+    /// True when playback stopped because the server could not be reached:
+    /// once it is back, Play goes on (nothing else is wrong).
+    pub(crate) fn waits_for_server(&self) -> bool {
+        self.waits_for_server.get()
     }
 
     /// True while a failed stream waits for the server's answer: the error

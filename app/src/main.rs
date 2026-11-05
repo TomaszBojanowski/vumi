@@ -257,7 +257,9 @@ fn build_ui(app: &adw::Application) {
 
     // Playback errors appear in the window, not only in the terminal. The same
     // message again while it is still there (a slider dragged offline, in
-    // several jumps) does not queue up behind it.
+    // several jumps) does not queue up behind it. With the window hidden
+    // (playing in the background, media keys) a toast would never be seen: a
+    // notification says it instead.
     let toasts_weak = toasts.downgrade();
     let last: std::cell::RefCell<Option<(String, glib::WeakRef<adw::Toast>)>> =
         std::cell::RefCell::default();
@@ -265,6 +267,14 @@ fn build_ui(app: &adw::Application) {
         let Some(toasts) = toasts_weak.upgrade() else {
             return;
         };
+        let window = toasts.root().and_downcast::<gtk::Window>();
+        if let Some(window) = window.filter(|window| !window.is_visible()) {
+            if let Some(app) = window.application() {
+                let notification = gtk::gio::Notification::new(message);
+                app.send_notification(Some("playback-error"), &notification);
+            }
+            return;
+        }
         let shown = last
             .borrow()
             .as_ref()
@@ -459,7 +469,9 @@ fn build_ui(app: &adw::Application) {
     // Hidden, and the music has stopped (end of the queue, Stop from Shell,
     // an error): nothing is left to do, so the app quits. Pausing does not
     // count. An error is shown as a notification first: the window's toast
-    // would never be seen.
+    // would never be seen. Stopped because the server went away is not the
+    // end: the app stays, and Play (media keys, GNOME Shell) goes on once the
+    // connection is back.
     {
         let window_weak = window.downgrade();
         let app_weak = app.downgrade();
@@ -470,7 +482,11 @@ fn build_ui(app: &adw::Application) {
             // A failed stream waits for the server's answer: the message
             // (and so the notification) comes with it.
             let player = crate::player::get();
-            if !window.is_visible() && !player.is_active() && !player.is_checking() {
+            if !window.is_visible()
+                && !player.is_active()
+                && !player.is_checking()
+                && !player.waits_for_server()
+            {
                 if let Some(message) = player.failure() {
                     let notification = gtk::gio::Notification::new(&gettext("Playback Stopped"));
                     notification.set_body(Some(&message));
