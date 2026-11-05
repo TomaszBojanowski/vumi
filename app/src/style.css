@@ -89,6 +89,14 @@ listview.song-list.queue-list > row {
   margin-right: 12px;
 }
 
+/* While the queue slides in beside the content, steady_bin.rs fills the
+   room left for it with a pane of its look from the first frame (its
+   background and the line at its edge); the queue's own moving edge draws no
+   second line meanwhile (main_view.rs: setup_queue). */
+.sidebar-pane.end.queue-opening {
+  box-shadow: none;
+}
+
 listview.song-list.queue-list > row > box.song-row.first {
   margin-top: 12px;
 }

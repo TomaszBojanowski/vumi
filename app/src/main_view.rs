@@ -2268,17 +2268,63 @@ impl MainView {
     /// On a narrow window it hides, as it would cover the page; widening
     /// brings it back if it was open before, or was opened meanwhile.
     fn setup_queue(&self) {
-        let was_open = Cell::new(false);
-        self.imp()
-            .queue_split
-            .connect_collapsed_notify(move |split| {
+        let split = self.imp().queue_split.get();
+        // The content beside the queue is laid out once per slide, at the
+        // width the slide will leave it (steady_bin.rs).
+        if let Some(content) = split.content() {
+            let bin = crate::steady_bin::SteadyBin::default();
+            split.set_content(None::<&gtk::Widget>);
+            bin.set_child(&content);
+            split.set_content(Some(&bin));
+            split.connect_show_sidebar_notify(move |split| {
+                // Over the content (narrow windows) it keeps its width anyway.
                 if split.is_collapsed() {
-                    was_open.set(split.shows_sidebar());
-                    split.set_show_sidebar(false);
-                } else {
-                    split.set_show_sidebar(was_open.get() || split.shows_sidebar());
+                    return;
                 }
+                let total = split.width();
+                let opening = split.shows_sidebar();
+                let target = if opening {
+                    let unit = split.sidebar_width_unit();
+                    let settings = split.settings();
+                    let own_minimum = split
+                        .sidebar()
+                        .map_or(0, |queue| queue.measure(gtk::Orientation::Horizontal, -1).0);
+                    total
+                        - crate::steady_bin::queue_width(
+                            total,
+                            split.sidebar_width_fraction(),
+                            unit.to_px(split.min_sidebar_width(), Some(&settings)),
+                            unit.to_px(split.max_sidebar_width(), Some(&settings)),
+                            own_minimum,
+                        )
+                } else {
+                    total
+                };
+                // The queue's edge draws no line while it slides into the room
+                // already made for it (style.css). The class goes on the
+                // split view's pane around the queue, not on the split view:
+                // there it would restyle the whole content (40 ms a frame).
+                let pane = split.sidebar().and_then(|queue| queue.parent());
+                if let Some(pane) = pane.as_ref().filter(|_| opening) {
+                    pane.add_css_class("queue-opening");
+                }
+                let pane = pane.map(|pane| pane.downgrade());
+                bin.hold(target, opening, move || {
+                    if let Some(pane) = pane.and_then(|pane| pane.upgrade()) {
+                        pane.remove_css_class("queue-opening");
+                    }
+                });
             });
+        }
+        let was_open = Cell::new(false);
+        split.connect_collapsed_notify(move |split| {
+            if split.is_collapsed() {
+                was_open.set(split.shows_sidebar());
+                split.set_show_sidebar(false);
+            } else {
+                split.set_show_sidebar(was_open.get() || split.shows_sidebar());
+            }
+        });
     }
 }
 
