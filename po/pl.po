@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vumi\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-06 18:21+0100\n"
+"POT-Creation-Date: 2026-11-06 18:39+0100\n"
 "PO-Revision-Date: 2026-09-27 20:40+0200\n"
 "Last-Translator: Tomasz Bojanowski <tomasz@bojanowski.me>\n"
 "Language-Team: Polish\n"
@@ -184,7 +184,7 @@ msgstr "Odtwarzanie przerwane"
 msgid "Could not read the password from the keyring"
 msgstr "Nie można odczytać hasła z bazy kluczy"
 
-#: app/src/main.rs:577 app/src/main_view.rs:1848 app/src/login_page.rs:204
+#: app/src/main.rs:577 app/src/main_view.rs:1857 app/src/login_page.rs:204
 #: app/src/album_page.rs:282 app/src/artist_page.rs:163
 #: app/src/song_menu.rs:525 app/src/playlist_page.rs:127
 msgid "Something went wrong. Please try again."
@@ -321,20 +321,20 @@ msgstr ""
 msgid "Retry"
 msgstr "Spróbuj ponownie"
 
-#: app/src/main_view.rs:1550
+#: app/src/main_view.rs:1559
 msgid "Recently Starred"
 msgstr "Ostatnio polubione"
 
-#: app/src/main_view.rs:1551 app/src/song_menu.rs:452
+#: app/src/main_view.rs:1560 app/src/song_menu.rs:452
 msgid "Title"
 msgstr "Tytuł"
 
-#: app/src/main_view.rs:1552 app/src/main_view.blp:463 app/src/song_menu.rs:453
+#: app/src/main_view.rs:1561 app/src/main_view.blp:463 app/src/song_menu.rs:453
 msgid "Artist"
 msgstr "Wykonawca"
 
-#: app/src/main_view.rs:1766 app/src/album_page.rs:1107
-#: app/src/now_playing.rs:296 app/src/mini_player.rs:103
+#: app/src/main_view.rs:1775 app/src/album_page.rs:1107
+#: app/src/now_playing.rs:321 app/src/mini_player.rs:129
 #: app/src/playlist_page.blp:95
 msgid "Play"
 msgstr "Odtwórz"
@@ -555,8 +555,8 @@ msgstr "Płyta {n}"
 msgid "Radio"
 msgstr "Radio"
 
-#: app/src/album_page.rs:1108 app/src/now_playing.rs:291
-#: app/src/mini_player.rs:99 app/src/continue_tile.rs:133
+#: app/src/album_page.rs:1108 app/src/now_playing.rs:316
+#: app/src/mini_player.rs:125 app/src/continue_tile.rs:133
 msgid "Pause"
 msgstr "Wstrzymaj"
 
@@ -687,23 +687,37 @@ msgstr "{kbps} kb/s"
 
 #. Translators: said by a screen reader after a song's name, "Song,
 #. Artist, 2:18, playing"; an adjective for the song.
-#: app/src/a11y.rs:26
+#: app/src/a11y.rs:28
 msgctxt "song state"
 msgid "playing"
 msgstr "odtwarzany"
 
 #. Translators: as "playing", for the current song while paused.
-#: app/src/a11y.rs:28
+#: app/src/a11y.rs:30
 msgctxt "song state"
 msgid "paused"
 msgstr "wstrzymany"
 
 #. Translators: said by a screen reader after a song's name when it is a
 #. favourite; an adjective for the song.
-#: app/src/a11y.rs:33
+#: app/src/a11y.rs:35
 msgctxt "song state"
 msgid "favorite"
 msgstr "ulubiony"
+
+#. Translators: a screen reader's text for the position slider of the
+#. player, e.g. "1:23 of 2:18".
+#: app/src/a11y.rs:48
+#, rust-format
+msgid "{position} of {duration}"
+msgstr "{position} z {duration}"
+
+#. Translators: a screen reader's text for the volume slider, {n} a whole
+#. number from 0 to 100, e.g. "40%".
+#: app/src/a11y.rs:59
+#, no-c-format, rust-format
+msgid "{n}%"
+msgstr "{n}%"
 
 #: app/src/dates.rs:27
 msgid "today"
@@ -811,6 +825,10 @@ msgstr "Przejdź do następnego utworu"
 #: app/src/now_playing.blp:222 app/src/now_playing.blp:237
 msgid "Volume"
 msgstr "Głośność"
+
+#: app/src/mini_player.rs:103
+msgid "Show Player"
+msgstr "Wyświetl odtwarzacz"
 
 #: app/src/player.rs:392 app/src/player.rs:446 app/src/player.rs:609
 #: app/src/player.rs:1769

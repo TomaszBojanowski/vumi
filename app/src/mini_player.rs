@@ -20,6 +20,8 @@ mod imp {
         #[template_child]
         pub bar: gtk::TemplateChild<gtk::Box>,
         #[template_child]
+        pub text: gtk::TemplateChild<gtk::Box>,
+        #[template_child]
         pub cover: gtk::TemplateChild<gtk::Picture>,
         #[template_child]
         pub title: gtk::TemplateChild<gtk::Label>,
@@ -74,11 +76,31 @@ impl MiniPlayer {
         mini
     }
 
-    /// Runs `f` when the bar is clicked (the play/pause button keeps its own click).
+    /// Runs `f` when the bar is clicked (the play/pause button keeps its own
+    /// click), and when Enter or Space is pressed on its text, which takes the
+    /// keyboard focus and is a button to a screen reader ("Show Player").
     pub(crate) fn connect_open(&self, f: impl Fn() + 'static) {
+        let f = std::rc::Rc::new(f);
         let click = gtk::GestureClick::new();
-        click.connect_released(move |_, _, _, _| f());
+        let on_click = f.clone();
+        click.connect_released(move |_, _, _, _| on_click());
         self.imp().bar.add_controller(click);
+        let keys = gtk::EventControllerKey::new();
+        keys.connect_key_pressed(move |_, key, _, _| {
+            use gtk::gdk::Key;
+            if matches!(
+                key,
+                Key::Return | Key::KP_Enter | Key::ISO_Enter | Key::space | Key::KP_Space
+            ) {
+                f();
+                glib::Propagation::Stop
+            } else {
+                glib::Propagation::Proceed
+            }
+        });
+        let text = self.imp().text.get();
+        text.add_controller(keys);
+        text.update_property(&[gtk::accessible::Property::Label(&gettext("Show Player"))]);
     }
 
     fn update(&self) {
@@ -92,6 +114,10 @@ impl MiniPlayer {
         imp.revealer.set_reveal_child(true);
         imp.title.set_label(&song.title);
         imp.artist.set_label(song.artist.as_deref().unwrap_or(""));
+        imp.text
+            .update_property(&[gtk::accessible::Property::Description(&crate::a11y::join(
+                [song.title.as_str(), song.artist.as_deref().unwrap_or("")],
+            ))]);
 
         if player.is_playing() {
             imp.play_pause

@@ -179,6 +179,11 @@ impl NowPlaying {
             if let Some(id) = bar.imp().seek_pending.take() {
                 id.remove();
             }
+            // A screen reader hears the new place at once (arrow keys too).
+            let progress = &bar.imp().progress;
+            progress.update_property(&[gtk::accessible::Property::ValueText(
+                &crate::a11y::position(value.max(0.0) as u64, progress.adjustment().upper() as u64),
+            )]);
             let bar_weak = bar.downgrade();
             let id = glib::timeout_add_local_once(Duration::from_millis(150), move || {
                 if let Some(bar) = bar_weak.upgrade() {
@@ -243,12 +248,27 @@ impl NowPlaying {
         imp.album.set_visible(!compact);
     }
 
+    /// Whether the queue is shown: a screen reader hears the queue button as
+    /// expanded or collapsed.
+    pub(crate) fn set_queue_shown(&self, shown: bool) {
+        self.imp()
+            .queue_button
+            .update_state(&[gtk::accessible::State::Expanded(Some(shown))]);
+    }
+
     /// The slider and the icon of the volume button.
     fn show_volume(&self, volume: f64) {
         let imp = self.imp();
         if (imp.volume_scale.value() - volume).abs() > 1e-4 {
             imp.volume_scale.set_value(volume);
         }
+        // "40%", not the slider's 0.4.
+        imp.volume_scale
+            .update_property(
+                &[gtk::accessible::Property::ValueText(&crate::a11y::percent(
+                    volume,
+                ))],
+            );
         imp.volume_button.set_icon_name(match volume {
             v if v <= 0.0 => "audio-volume-muted-symbolic",
             v if v < 0.34 => "audio-volume-low-symbolic",
@@ -269,6 +289,11 @@ impl NowPlaying {
         imp.title.set_label(&song.title);
         imp.artist.set_label(song.artist.as_deref().unwrap_or(""));
         imp.album.set_label(song.album.as_deref().unwrap_or(""));
+        // The cover button is "Go to Album"; a screen reader also hears the song.
+        imp.cover_button
+            .update_property(&[gtk::accessible::Property::Description(&crate::a11y::join(
+                [song.title.as_str(), song.artist.as_deref().unwrap_or("")],
+            ))]);
 
         // A star for the song, made anew only when the song changes: a rebuild
         // while it waits for the server would lose that wait.
@@ -392,5 +417,10 @@ impl NowPlaying {
         let duration = imp.progress.adjustment().upper() as u64;
         imp.elapsed.set_label(&format::clock(position as u64));
         imp.total.set_label(&format::clock(duration));
+        // "1:23 of 2:18", not a number of seconds.
+        imp.progress
+            .update_property(&[gtk::accessible::Property::ValueText(
+                &crate::a11y::position(position as u64, duration),
+            )]);
     }
 }

@@ -938,6 +938,15 @@ impl MainView {
     pub(crate) fn set_now_playing(&self, card: &crate::now_playing::NowPlaying) {
         let imp = self.imp();
         imp.player_slot.set_child(Some(card));
+        // Its queue button says whether the queue is shown.
+        let split = imp.queue_split.get();
+        card.set_queue_shown(split.shows_sidebar());
+        let weak = card.downgrade();
+        split.connect_show_sidebar_notify(move |split| {
+            if let Some(card) = weak.upgrade() {
+                card.set_queue_shown(split.shows_sidebar());
+            }
+        });
         let low = imp.low_window.get();
         let applied = imp.sidebar_bin.current_breakpoint().as_ref() == Some(&low);
         card.set_compact(applied);

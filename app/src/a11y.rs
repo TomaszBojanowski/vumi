@@ -6,7 +6,9 @@
 //! " • " (between artists, from the server) or " · " (between details) is read
 //! as a word or not at all.
 
-use gettextrs::pgettext;
+use gettextrs::{gettext, pgettext};
+
+use crate::format;
 
 /// Whether a song is the player's current one, and how.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -36,6 +38,25 @@ pub(crate) fn song(shown: &str, now: Now, favorite: bool) -> String {
             .into_iter()
             .flatten(),
     )
+}
+
+/// The position slider's value as a reader says it, "1:23 of 2:18"
+/// (seconds).
+pub(crate) fn position(seconds: u64, duration: u64) -> String {
+    // Translators: a screen reader's text for the position slider of the
+    // player, e.g. "1:23 of 2:18".
+    gettext("{position} of {duration}")
+        .replace("{position}", &format::clock(seconds))
+        .replace("{duration}", &format::clock(duration))
+}
+
+/// The volume slider's value (0 to 1) as a reader says it, "40%".
+pub(crate) fn percent(value: f64) -> String {
+    let n = (value.clamp(0.0, 1.0) * 100.0).round() as u32;
+    // Translators: a screen reader's text for the volume slider, {n} a whole
+    // number from 0 to 100, e.g. "40%".
+    // xgettext:no-c-format
+    gettext("{n}%").replace("{n}", &n.to_string())
 }
 
 /// `text` with the screen's separators as commas.
@@ -87,6 +108,16 @@ mod tests {
             "Água de Beber, Astrud Gilberto, 2:18, paused"
         );
         assert_eq!(song("City Sleep", Now::Not, true), "City Sleep, favorite");
+    }
+
+    #[test]
+    fn the_sliders_say_times_and_percents() {
+        assert_eq!(position(83, 138), "1:23 of 2:18");
+        assert_eq!(position(0, 3725), "0:00 of 62:05");
+        assert_eq!(percent(0.4), "40%");
+        assert_eq!(percent(1.0), "100%");
+        assert_eq!(percent(-0.2), "0%");
+        assert_eq!(percent(0.666), "67%");
     }
 
     #[test]
