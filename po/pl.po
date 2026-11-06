@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vumi\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-06 18:39+0100\n"
+"POT-Creation-Date: 2026-11-06 18:48+0100\n"
 "PO-Revision-Date: 2026-09-27 20:40+0200\n"
 "Last-Translator: Tomasz Bojanowski <tomasz@bojanowski.me>\n"
 "Language-Team: Polish\n"
@@ -241,7 +241,7 @@ msgstr "Postaw kawę"
 msgid "Built With"
 msgstr "Wykorzystane projekty"
 
-#: app/src/main.rs:730 app/src/preferences.blp:195
+#: app/src/main.rs:730 app/src/preferences.blp:203
 msgid "Playback"
 msgstr "Odtwarzanie"
 
@@ -257,7 +257,8 @@ msgstr "Poprzedni utwór"
 msgid "Next Track"
 msgstr "Następny utwór"
 
-#: app/src/main.rs:738 app/src/main_view.blp:146 app/src/preferences.blp:143
+#: app/src/main.rs:738 app/src/main_view.blp:146 app/src/preferences.blp:146
+#: app/src/preferences.blp:157
 msgid "Library"
 msgstr "Biblioteka"
 
@@ -333,7 +334,7 @@ msgstr "Tytuł"
 msgid "Artist"
 msgstr "Wykonawca"
 
-#: app/src/main_view.rs:1775 app/src/album_page.rs:1107
+#: app/src/main_view.rs:1775 app/src/album_page.rs:1110
 #: app/src/now_playing.rs:321 app/src/mini_player.rs:129
 #: app/src/playlist_page.blp:95
 msgid "Play"
@@ -364,7 +365,7 @@ msgid "Show Sidebar"
 msgstr "Wyświetl panel boczny"
 
 #: app/src/main_view.blp:143 app/src/main_view.blp:151
-#: app/src/main_view.blp:178 app/src/artist_page.blp:86
+#: app/src/main_view.blp:178 app/src/artist_page.blp:89
 #: app/src/results_view.blp:28
 msgid "Albums"
 msgstr "Albumy"
@@ -419,7 +420,7 @@ msgstr "Rok (od najstarszych)"
 msgid "Recently Added"
 msgstr "Ostatnio dodane"
 
-#: app/src/main_view.blp:492 app/src/preferences.blp:198
+#: app/src/main_view.blp:492 app/src/preferences.blp:206
 msgid "Endless Radio"
 msgstr "Radio bez końca"
 
@@ -427,7 +428,7 @@ msgstr "Radio bez końca"
 msgid "Repeat"
 msgstr "Powtarzanie"
 
-#: app/src/main_view.blp:500 app/src/preferences.blp:257
+#: app/src/main_view.blp:500 app/src/preferences.blp:265
 msgid "Off"
 msgstr "Wyłączone"
 
@@ -551,20 +552,24 @@ msgstr "{format} · do {quality}"
 msgid "Disc {n}"
 msgstr "Płyta {n}"
 
-#: app/src/album_page.rs:1085
+#: app/src/album_page.rs:1087 app/src/start_page.blp:148
+msgid "Play Similar Songs"
+msgstr "Odtwórz podobne utwory"
+
+#: app/src/album_page.rs:1091
 msgid "Radio"
 msgstr "Radio"
 
-#: app/src/album_page.rs:1108 app/src/now_playing.rs:316
+#: app/src/album_page.rs:1111 app/src/now_playing.rs:316
 #: app/src/mini_player.rs:125 app/src/continue_tile.rs:133
 msgid "Pause"
 msgstr "Wstrzymaj"
 
-#: app/src/album_page.rs:1109 app/src/continue_tile.rs:135
+#: app/src/album_page.rs:1112 app/src/continue_tile.rs:135
 msgid "Resume"
 msgstr "Wznów"
 
-#: app/src/album_page.rs:1129 app/src/favorites_header.blp:103
+#: app/src/album_page.rs:1132 app/src/favorites_header.blp:103
 #: app/src/playlist_page.blp:101
 msgid "Shuffle"
 msgstr "Odtwórz losowo"
@@ -573,11 +578,11 @@ msgstr "Odtwórz losowo"
 msgid "Album"
 msgstr "Album"
 
-#: app/src/album_page.blp:196 app/src/artist_page.blp:59
+#: app/src/album_page.blp:196 app/src/artist_page.blp:62
 msgid "About"
 msgstr "Informacje"
 
-#: app/src/album_page.blp:212 app/src/about.rs:102 app/src/artist_page.blp:75
+#: app/src/album_page.blp:212 app/src/about.rs:102 app/src/artist_page.blp:78
 msgid "Show More"
 msgstr "Wyświetl więcej"
 
@@ -843,10 +848,6 @@ msgstr "Nie można rozpocząć odtwarzania"
 msgid "Recently Played"
 msgstr "Ostatnio słuchane"
 
-#: app/src/start_page.blp:148
-msgid "Play Similar Songs"
-msgstr "Odtwórz podobne utwory"
-
 #: app/src/start_page.blp:183
 msgid "Syncing the Library"
 msgstr "Synchronizowanie biblioteki"
@@ -871,92 +872,92 @@ msgstr "Wyszukiwanie"
 msgid "Account"
 msgstr "Konto"
 
-#: app/src/preferences.blp:117 app/src/preferences.blp:130
+#: app/src/preferences.blp:120 app/src/preferences.blp:133
 #: app/src/preferences.rs:290
 msgid "Log Out"
 msgstr "Wyloguj"
 
-#: app/src/preferences.blp:149
+#: app/src/preferences.blp:152
 msgid "Sync Now"
 msgstr "Synchronizuj teraz"
 
-#: app/src/preferences.blp:160
+#: app/src/preferences.blp:168
 msgid "Appearance"
 msgstr "Wygląd"
 
-#: app/src/preferences.blp:164
+#: app/src/preferences.blp:172
 msgid "Style"
 msgstr "Styl"
 
-#: app/src/preferences.blp:175
+#: app/src/preferences.blp:183
 msgid "Follow System"
 msgstr "Systemowy"
 
-#: app/src/preferences.blp:179
+#: app/src/preferences.blp:187
 msgid "Light"
 msgstr "Jasny"
 
-#: app/src/preferences.blp:183
+#: app/src/preferences.blp:191
 msgid "Dark"
 msgstr "Ciemny"
 
-#: app/src/preferences.blp:189
+#: app/src/preferences.blp:197
 msgid "Cover Colors"
 msgstr "Kolory okładki"
 
-#: app/src/preferences.blp:190
+#: app/src/preferences.blp:198
 msgid "Tint the album page and the player with the color of the cover"
 msgstr "Barwienie strony albumu i odtwarzacza kolorem okładki"
 
-#: app/src/preferences.blp:199
+#: app/src/preferences.blp:207
 msgid "When the queue ends, keep playing songs similar to the last one"
 msgstr "Po zakończeniu kolejki odtwarzanie utworów podobnych do ostatniego"
 
-#: app/src/preferences.blp:203
+#: app/src/preferences.blp:211
 msgid "Play After the Window Is Closed"
 msgstr "Odtwarzanie po zamknięciu okna"
 
-#: app/src/preferences.blp:204
+#: app/src/preferences.blp:212
 msgid "The music goes on; the controls stay in the system menu"
 msgstr "Muzyka gra dalej, a sterowanie pozostaje w menu systemowym"
 
-#: app/src/preferences.blp:211 app/src/preferences.blp:227
+#: app/src/preferences.blp:219 app/src/preferences.blp:235
 msgid "Volume Normalization"
 msgstr "Wyrównywanie głośności"
 
-#: app/src/preferences.blp:238
+#: app/src/preferences.blp:246
 msgid "From ReplayGain tags; off keeps the signal unchanged"
 msgstr "Na podstawie tagów ReplayGain; wyłączone nie zmienia sygnału"
 
-#: app/src/preferences.blp:261
+#: app/src/preferences.blp:269
 msgid "Per Track"
 msgstr "Dla utworu"
 
-#: app/src/preferences.blp:265
+#: app/src/preferences.blp:273
 msgid "Per Album"
 msgstr "Dla albumu"
 
-#: app/src/preferences.blp:273
+#: app/src/preferences.blp:281
 msgid "Local Data"
 msgstr "Dane lokalne"
 
-#: app/src/preferences.blp:276
+#: app/src/preferences.blp:284 app/src/preferences.blp:293
 msgid "Cover Cache"
 msgstr "Pamięć podręczna okładek"
 
-#: app/src/preferences.blp:280 app/src/queue_page.rs:375
+#: app/src/preferences.blp:288 app/src/queue_page.rs:375
 msgid "Clear"
 msgstr "Wyczyść"
 
-#: app/src/preferences.blp:287
+#: app/src/preferences.blp:300
 msgid "Privacy"
 msgstr "Prywatność"
 
-#: app/src/preferences.blp:290
+#: app/src/preferences.blp:303
 msgid "Share Listening Activity"
 msgstr "Wysyłanie odsłuchów na serwer"
 
-#: app/src/preferences.blp:291
+#: app/src/preferences.blp:304
 msgid ""
 "The server sees what is playing and counts plays; it may pass them on to "
 "Last.fm or ListenBrainz"

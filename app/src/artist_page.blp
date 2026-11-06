@@ -28,9 +28,12 @@ template $VumiArtistPage: Adw.NavigationPage {
             halign: center;
 
             // Initials until the photo arrives, or for good if there is none.
+            // Decoration: the name below is the page's title. (AdwAvatar
+            // would also say "Avatar of …", untranslated.)
             Adw.Avatar avatar {
               size: 160;
               show-initials: true;
+              accessible-role: presentation;
             }
 
             Label name {

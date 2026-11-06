@@ -37,10 +37,13 @@ template $VumiPreferences: Adw.PreferencesDialog {
             Box {
               spacing: 12;
 
+              // Decoration: the row says the user's name. (AdwAvatar would
+              // also say "Avatar of …", untranslated.)
               Adw.Avatar avatar {
                 size: 44;
                 show-initials: true;
                 valign: center;
+                accessible-role: presentation;
               }
 
               Box {
@@ -148,6 +151,11 @@ template $VumiPreferences: Adw.PreferencesDialog {
           icon-name: "view-refresh-symbolic";
           tooltip-text: _("Sync Now");
           valign: center;
+
+          // A screen reader hears the button alone: the row's title with it.
+          accessibility {
+            description: _("Library");
+          }
 
           styles [
             "circular",
@@ -279,6 +287,11 @@ template $VumiPreferences: Adw.PreferencesDialog {
         Button clear_covers {
           label: _("Clear");
           valign: center;
+
+          // A screen reader hears the button alone: the row's title with it.
+          accessibility {
+            description: _("Cover Cache");
+          }
         }
       }
     }

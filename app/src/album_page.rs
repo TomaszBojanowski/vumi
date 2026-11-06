@@ -1080,12 +1080,15 @@ impl AlbumPage {
     fn build_actions(&self, album_id: &str) {
         let imp = self.imp();
         // Radio: a random song of this album, then songs that sound like it.
+        // Its name stays "Radio"; the tooltip, which a screen reader hears
+        // after the name, says what it does.
         let radio_button = gtk::Button::builder()
             .icon_name("vumi-radio-symbolic")
-            .tooltip_text(gettext("Radio"))
+            .tooltip_text(gettext("Play Similar Songs"))
             .valign(gtk::Align::Center)
             .css_classes(["circular", "flat", "album-action"])
             .build();
+        radio_button.update_property(&[gtk::accessible::Property::Label(&gettext("Radio"))]);
         {
             let page = self.downgrade();
             radio_button.connect_clicked(move |button| {
