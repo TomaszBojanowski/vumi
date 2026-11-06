@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vumi\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-05 20:59+0100\n"
+"POT-Creation-Date: 2026-11-06 00:59+0100\n"
 "PO-Revision-Date: 2026-09-27 20:40+0200\n"
 "Last-Translator: Tomasz Bojanowski <tomasz@bojanowski.me>\n"
 "Language-Team: Polish\n"
@@ -172,116 +172,116 @@ msgstr ""
 "Subsonic, z biblioteką przechowywaną na komputerze, odtwarzaniem bez przerw "
 "oraz podobnymi utworami i radiem z AudioMuse-AI."
 
-#: app/src/main.rs:381
+#: app/src/main.rs:383
 msgid "Could not remove the password from the keyring"
 msgstr "Nie można usunąć hasła z bazy kluczy"
 
-#: app/src/main.rs:491
+#: app/src/main.rs:493
 msgid "Playback Stopped"
 msgstr "Odtwarzanie przerwane"
 
-#: app/src/main.rs:569
+#: app/src/main.rs:571
 msgid "Could not read the password from the keyring"
 msgstr "Nie można odczytać hasła z bazy kluczy"
 
-#: app/src/main.rs:574 app/src/main_view.rs:1833 app/src/login_page.rs:204
+#: app/src/main.rs:576 app/src/main_view.rs:1833 app/src/login_page.rs:204
 #: app/src/album_page.rs:281 app/src/artist_page.rs:163
 #: app/src/song_menu.rs:525 app/src/playlist_page.rs:127
 msgid "Something went wrong. Please try again."
 msgstr "Wystąpił nieoczekiwany błąd. Spróbuj ponownie."
 
-#: app/src/main.rs:604
+#: app/src/main.rs:606
 msgid "Wrong username or password."
 msgstr "Nieprawidłowa nazwa użytkownika lub hasło."
 
-#: app/src/main.rs:606
+#: app/src/main.rs:608
 msgid "Cannot reach the server. Check the address and your connection."
 msgstr ""
 "Nie uzyskano połączenia z serwerem. Sprawdź adres i połączenie sieciowe."
 
-#: app/src/main.rs:609
+#: app/src/main.rs:611
 msgid "Invalid server address. It should start with http:// or https://"
 msgstr ""
 "Nieprawidłowy adres serwera. Adres musi zaczynać się od http:// lub https://"
 
-#: app/src/main.rs:612
+#: app/src/main.rs:614
 msgid "The server answered, but it does not look like a Subsonic server."
 msgstr "Serwer odpowiedział, ale nie wygląda na serwer zgodny z Subsonic."
 
 #. Translators: {code} is the number of the error sent by the server.
-#: app/src/main.rs:617
+#: app/src/main.rs:619
 #, rust-format
 msgid "Server error (code {code})"
 msgstr "Błąd serwera (kod {code})"
 
 #. Translators: {message} is the error text sent by the server.
-#: app/src/main.rs:620
+#: app/src/main.rs:622
 #, rust-format
 msgid "Server error: {message}"
 msgstr "Błąd serwera: {message}"
 
-#: app/src/main.rs:629 app/src/player.rs:340 app/src/player.rs:418
+#: app/src/main.rs:631 app/src/player.rs:340 app/src/player.rs:418
 #: app/src/player.rs:1768 app/src/player.rs:1867 app/src/player.rs:2010
 msgid "Cannot play without a connection to the server"
 msgstr "Nie można odtwarzać bez połączenia z serwerem"
 
-#: app/src/main.rs:685
+#: app/src/main.rs:687
 msgid "A music player for Navidrome and other Subsonic servers"
 msgstr "Odtwarzacz muzyki dla serwera Navidrome i innych serwerów Subsonic"
 
-#: app/src/main.rs:687
+#: app/src/main.rs:689
 msgid "translator-credits"
 msgstr "Tomasz Bojanowski <tomasz@bojanowski.me>"
 
-#: app/src/main.rs:693
+#: app/src/main.rs:695
 msgid "Buy Me a Coffee"
 msgstr "Postaw kawę"
 
-#: app/src/main.rs:697
+#: app/src/main.rs:699
 msgid "Built With"
 msgstr "Wykorzystane projekty"
 
-#: app/src/main.rs:727 app/src/preferences.blp:195
+#: app/src/main.rs:729 app/src/preferences.blp:195
 msgid "Playback"
 msgstr "Odtwarzanie"
 
-#: app/src/main.rs:729
+#: app/src/main.rs:731
 msgid "Play or Pause"
 msgstr "Odtworzenie lub wstrzymanie"
 
-#: app/src/main.rs:730
+#: app/src/main.rs:732
 msgid "Previous Track"
 msgstr "Poprzedni utwór"
 
-#: app/src/main.rs:731
+#: app/src/main.rs:733
 msgid "Next Track"
 msgstr "Następny utwór"
 
-#: app/src/main.rs:735 app/src/main_view.blp:146 app/src/preferences.blp:143
+#: app/src/main.rs:737 app/src/main_view.blp:146 app/src/preferences.blp:143
 msgid "Library"
 msgstr "Biblioteka"
 
-#: app/src/main.rs:737
+#: app/src/main.rs:739
 msgid "Search Library"
 msgstr "Wyszukiwanie w bibliotece"
 
-#: app/src/main.rs:738 app/src/main_view.blp:53 app/src/main_view.blp:521
+#: app/src/main.rs:740 app/src/main_view.blp:53 app/src/main_view.blp:521
 msgid "Sync Library"
 msgstr "Synchronizuj bibliotekę"
 
-#: app/src/main.rs:742 app/src/preferences.blp:13
+#: app/src/main.rs:744 app/src/preferences.blp:13
 msgid "General"
 msgstr "Ogólne"
 
-#: app/src/main.rs:744 app/src/main_view.blp:528
+#: app/src/main.rs:746 app/src/main_view.blp:528
 msgid "Preferences"
 msgstr "Preferencje"
 
-#: app/src/main.rs:745 app/src/main_view.blp:533
+#: app/src/main.rs:747 app/src/main_view.blp:533
 msgid "Keyboard Shortcuts"
 msgstr "Skróty klawiszowe"
 
-#: app/src/main.rs:746 app/src/main_view.blp:543
+#: app/src/main.rs:748 app/src/main_view.blp:543
 msgid "Quit"
 msgstr "Zakończ"
 

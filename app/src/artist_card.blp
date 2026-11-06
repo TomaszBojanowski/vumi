@@ -1,5 +1,4 @@
 using Gtk 4.0;
-using Adw 1;
 
 template $VumiArtistCard: Box {
   orientation: vertical;
@@ -9,89 +8,39 @@ template $VumiArtistCard: Box {
   margin-start: 12;
   margin-end: 12;
 
-  Overlay {
-    // The initials show until the picture is there, and for artists without one.
-    child: Adw.Avatar avatar {
-      size: 120;
-      show-initials: true;
-    };
-
-    // On the first card of a letter only: where that letter begins.
-    [overlay]
-    Label letter {
-      halign: start;
-      valign: start;
-      visible: false;
-
-      styles [
-        "title-3",
-      ]
-    }
+  // The picture, or the initials for artists without one (artist_avatar.rs).
+  // The first card of a letter also shows the letter over it (made in code).
+  Overlay overlay {
+    child: $VumiArtistAvatar avatar {};
   }
 
-  // Both boxes share the one cell. The invisible one always takes the room
-  // of a two-line name, so every card, and with it every row, is as tall.
-  Grid {
-    Box {
-      orientation: vertical;
-      spacing: 6;
-      opacity: 0;
-      accessible-role: presentation;
+  // The name and the number of albums. The box is always as tall as with a
+  // two-line name (set in code), so every card, and with it every row, is as
+  // tall.
+  Box names {
+    orientation: vertical;
+    spacing: 6;
+    valign: start;
+    hexpand: true;
 
-      layout {
-        column: 0;
-        row: 0;
-      }
+    Label name {
+      justify: center;
+      wrap: true;
+      wrap-mode: word_char;
+      lines: 2;
+      ellipsize: end;
+      max-width-chars: 16;
 
-      Label {
-        label: "\n";
-        accessible-role: presentation;
-
-        styles [
-          "heading",
-        ]
-      }
-
-      Label {
-        label: " ";
-        accessible-role: presentation;
-
-        styles [
-          "caption",
-        ]
-      }
+      styles [
+        "heading",
+      ]
     }
 
-    Box {
-      orientation: vertical;
-      spacing: 6;
-      valign: start;
-      hexpand: true;
-
-      layout {
-        column: 0;
-        row: 0;
-      }
-
-      Label name {
-        justify: center;
-        wrap: true;
-        wrap-mode: word_char;
-        lines: 2;
-        ellipsize: end;
-        max-width-chars: 16;
-
-        styles [
-          "heading",
-        ]
-      }
-
-      Label albums {
-        styles [
-          "caption",
-          "dim-label",
-        ]
-      }
+    Label albums {
+      styles [
+        "caption",
+        "dim-label",
+      ]
     }
   }
 }

@@ -1,6 +1,7 @@
 mod about;
 mod album_card;
 mod album_page;
+mod artist_avatar;
 mod artist_card;
 mod artist_page;
 mod background;
