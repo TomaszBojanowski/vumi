@@ -584,6 +584,7 @@ impl Player {
                 && index == self.queue.borrow().len()
                 && self.client.borrow().is_some()
                 && endless_radio()
+                && crate::similar::available()
             {
                 self.extend_with_similar();
                 return;
@@ -1350,9 +1351,10 @@ fn endless_radio() -> bool {
 
 impl Player {
     /// Endless radio: asks the server for songs that sound like the last one
-    /// (AudioMuse-AI through Navidrome), adds those not in the queue yet and
-    /// plays on. Stops if there are none. If something else was started while
-    /// waiting, the answer is dropped.
+    /// (as the server finds them: AudioMuse-AI, Last.fm and the like), adds
+    /// those not in the queue yet and plays on, however few. Stops if there are
+    /// none, and says so: a silent stop would look like a fault. If something
+    /// else was started while waiting, the answer is dropped.
     fn extend_with_similar(&self) {
         let queue = self.queue.borrow().clone();
         let command = self.command.get();
@@ -1376,11 +1378,15 @@ impl Player {
 
             let known: std::collections::HashSet<&str> =
                 queue.iter().map(|s| s.id.as_str()).collect();
+            let mut answered = false;
             let new: Vec<subsonic::Song> = match result {
-                Ok(Ok(songs)) => songs
-                    .into_iter()
-                    .filter(|s| !known.contains(s.id.as_str()))
-                    .collect(),
+                Ok(Ok(songs)) => {
+                    answered = true;
+                    songs
+                        .into_iter()
+                        .filter(|s| !known.contains(s.id.as_str()))
+                        .collect()
+                }
                 Ok(Err(e)) => {
                     // Not a playback error: the queue ends as when nothing is
                     // found, but the window says why.
@@ -1395,6 +1401,9 @@ impl Player {
             if new.is_empty() {
                 let _ = player.playbin.set_state(gst::State::Null);
                 player.set_state(State::Ended);
+                if answered && let Some(handler) = player.error_handler.borrow().as_ref() {
+                    handler(&gettext("Endless radio stopped: no more similar songs"));
+                }
                 return;
             }
 

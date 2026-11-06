@@ -101,6 +101,17 @@ mod imp {
             settings
                 .bind("endless-radio", &*self.endless_radio, "active")
                 .build();
+            // Endless Radio while the server gives no similar songs
+            // (similar.rs): off, insensitive, the reason under its title.
+            let dialog = self.obj().downgrade();
+            self.obj().show_similar(crate::similar::available());
+            crate::similar::watch(move |available| {
+                let Some(dialog) = dialog.upgrade() else {
+                    return false;
+                };
+                dialog.show_similar(available);
+                true
+            });
             settings
                 .bind("background-playback", &*self.background_playback, "active")
                 .build();
@@ -131,6 +142,29 @@ glib::wrapper! {
 }
 
 impl Preferences {
+    /// Endless Radio as the server allows: while it gives no similar songs the
+    /// switch shows off, cannot be changed and says why; the setting itself
+    /// stays as it was (unbound meanwhile), and shows again once it gives them.
+    fn show_similar(&self, available: bool) {
+        let row = &*self.imp().endless_radio;
+        if available {
+            if !row.is_sensitive() {
+                crate::settings()
+                    .bind("endless-radio", row, "active")
+                    .build();
+                row.set_sensitive(true);
+                row.set_subtitle(&gettext(
+                    "When the queue ends, keep playing songs similar to the last one",
+                ));
+            }
+        } else {
+            gtk::gio::Settings::unbind(row, "active");
+            row.set_active(false);
+            row.set_sensitive(false);
+            row.set_subtitle(&gettext("This server doesn't provide similar songs"));
+        }
+    }
+
     pub(crate) fn new(main: &MainView) -> Self {
         let dialog: Self = glib::Object::new();
         dialog.setup_connection(main);

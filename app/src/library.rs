@@ -579,6 +579,36 @@ pub(crate) fn random_songs_of_year(
     })
 }
 
+/// Songs to ask the server about (similar.rs): `first` if the library has
+/// it, then others at random, `count` in all.
+pub(crate) fn probe_songs(
+    server: &str,
+    first: Option<&str>,
+    count: usize,
+) -> rusqlite::Result<Vec<String>> {
+    with_connection(|conn| {
+        let mut ids = Vec::new();
+        if let Some(first) = first {
+            let mut stmt =
+                conn.prepare_cached("SELECT 1 FROM songs WHERE server = ?1 AND id = ?2")?;
+            if stmt.exists(params![server, first])? {
+                ids.push(first.to_owned());
+            }
+        }
+        let mut stmt = conn.prepare_cached(
+            "SELECT id FROM songs WHERE server = ?1 AND id != ?2 ORDER BY random() LIMIT ?3",
+        )?;
+        let rows = stmt.query_map(params![server, first.unwrap_or(""), count as i64], |row| {
+            row.get::<_, String>(0)
+        })?;
+        for id in rows {
+            ids.push(id?);
+        }
+        ids.truncate(count);
+        Ok(ids)
+    })
+}
+
 /// The songs of one album, in the album's order.
 const ALBUM_SONGS: &str = "SELECT id, title, artist, track, disc_number, album, album_id, duration,
         suffix, bit_rate, cover_art, bit_depth, sampling_rate, starred, artist_id,
@@ -905,6 +935,31 @@ mod tests {
             found,
             [("b", vec!["b1"]), ("none", vec![]), ("a", vec!["a1", "a2"])]
         );
+    }
+
+    #[test]
+    fn songs_to_probe_start_with_the_one_asked_for_when_the_library_has_it() {
+        let _temporary = Temporary::new("probe");
+        save_songs(
+            SERVER,
+            &[
+                song("s1", "One", "a", 1, 1),
+                song("s2", "Two", "a", 1, 2),
+                song("s3", "Three", "a", 1, 3),
+            ],
+        )
+        .unwrap();
+        let found = probe_songs(SERVER, Some("s2"), 3).unwrap();
+        assert_eq!(found[0], "s2");
+        assert_eq!(found.len(), 3);
+        let mut sorted = found.clone();
+        sorted.sort();
+        assert_eq!(sorted, ["s1", "s2", "s3"]);
+        // A song the library does not have is left out.
+        let found = probe_songs(SERVER, Some("gone"), 2).unwrap();
+        assert!(found.iter().all(|id| id != "gone"));
+        assert_eq!(found.len(), 2);
+        assert_eq!(probe_songs("another server", None, 3).unwrap().len(), 0);
     }
 
     #[test]

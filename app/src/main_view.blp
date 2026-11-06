@@ -491,6 +491,8 @@ menu main_menu {
     item {
       label: _("Endless Radio");
       action: "app.endless-radio";
+      // Disabled while the server gives no similar songs (similar.rs).
+      hidden-when: "action-disabled";
     }
 
     submenu {

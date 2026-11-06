@@ -650,9 +650,12 @@ fn menu(starred: bool) -> gio::Menu {
     navigation.append(Some(&gettext("Go to Artist")), Some("song.go-to-artist"));
     navigation.append(Some(&gettext("Song Information")), Some("song.info"));
     menu.append_section(None, &navigation);
-    let radio = gio::Menu::new();
-    radio.append(Some(&gettext("Play Similar")), Some("song.play-similar"));
-    menu.append_section(None, &radio);
+    // Not while the server gives no similar songs (similar.rs).
+    if crate::similar::available() {
+        let radio = gio::Menu::new();
+        radio.append(Some(&gettext("Play Similar")), Some("song.play-similar"));
+        menu.append_section(None, &radio);
+    }
     menu
 }
 

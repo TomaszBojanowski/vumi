@@ -1089,6 +1089,17 @@ impl AlbumPage {
             .css_classes(["circular", "flat", "album-action"])
             .build();
         radio_button.update_property(&[gtk::accessible::Property::Label(&gettext("Radio"))]);
+        // Hidden while the server gives no similar songs (similar.rs); back
+        // when a sync finds it gives them again.
+        radio_button.set_visible(crate::similar::available());
+        let radio_weak = radio_button.downgrade();
+        crate::similar::watch(move |available| {
+            let Some(button) = radio_weak.upgrade() else {
+                return false;
+            };
+            button.set_visible(available);
+            true
+        });
         {
             let page = self.downgrade();
             radio_button.connect_clicked(move |button| {
@@ -1342,8 +1353,9 @@ pub(crate) fn open(
 
 impl AlbumPage {
     /// Radio: a random song of this album, then about 50 songs that sound like
-    /// it (AudioMuse-AI through Navidrome). A short note in the window if the
-    /// server finds none, e.g. when the album has not been analysed yet.
+    /// it, as the server finds them (similar.rs). A short note in the window if
+    /// the server finds none, e.g. when the album has not been analysed yet, or
+    /// too few for a radio.
     fn start_radio(&self, client: subsonic::Client, button: &gtk::Button) {
         let Some(queue) = self.imp().queue.borrow().clone() else {
             return;

@@ -1263,6 +1263,7 @@ impl MainView {
                             // After the songs, not alongside them: a busy server
                             // answers one big request at a time more reliably.
                             view.sync_artists();
+                            view.check_similar();
                         }
                     }
                     Ok(Err(e)) => eprintln!("Could not save songs: {e}"),
@@ -2125,7 +2126,31 @@ impl MainView {
             }
             view.sync_playlists();
             view.sync_artists();
+            view.check_similar();
             view.set_syncing(false);
+        });
+    }
+
+    /// After a sync: whether the server gives similar songs (similar.rs),
+    /// asked with the song that played last, if the library has it, and
+    /// songs of the library at random.
+    pub(crate) fn check_similar(&self) {
+        let Some(client) = self.imp().client.borrow().clone() else {
+            return;
+        };
+        let server = client.server_key();
+        let last = crate::resume::history()
+            .into_iter()
+            .next()
+            .map(|played| played.song_id);
+        glib::spawn_future_local(async move {
+            let seeds = runtime()
+                .spawn_blocking(move || library::probe_songs(&server, last.as_deref(), 3))
+                .await
+                .ok()
+                .and_then(Result::ok)
+                .unwrap_or_default();
+            crate::similar::check(client, seeds);
         });
     }
 

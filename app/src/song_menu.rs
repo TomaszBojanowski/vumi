@@ -256,9 +256,12 @@ fn menu(go_to_album: bool, starred: bool) -> gio::Menu {
     };
     queue.append(Some(&favorite), Some("song.favorite"));
     menu.append_section(None, &queue);
-    let radio = gio::Menu::new();
-    radio.append(Some(&gettext("Play Similar")), Some("song.play-similar"));
-    menu.append_section(None, &radio);
+    // Not while the server gives no similar songs (similar.rs).
+    if crate::similar::available() {
+        let radio = gio::Menu::new();
+        radio.append(Some(&gettext("Play Similar")), Some("song.play-similar"));
+        menu.append_section(None, &radio);
+    }
     let navigation = gio::Menu::new();
     // On the album's own page, going to the album would lead nowhere.
     if go_to_album {
@@ -277,11 +280,11 @@ fn play_similar(row: &gtk::Widget, song: subsonic::Song, client: subsonic::Clien
     play_radio(row, client, song, || {});
 }
 
-/// Radio from `seed`: the song, then about 50 songs that sound like it
-/// (AudioMuse-AI through Navidrome), as a list of songs. `done` runs once the
-/// answer is there; a note near `widget` says why nothing plays (none found,
-/// or the request failed). An answer that comes after something else was
-/// started is dropped.
+/// Radio from `seed`: the song, then about 50 songs that sound like it (as
+/// the server finds them: AudioMuse-AI, Last.fm and the like), as a list of
+/// songs. `done` runs once the answer is there; a note near `widget` says why
+/// nothing plays (none found, too few for a radio, or the request failed). An
+/// answer that comes after something else was started is dropped.
 pub(crate) fn play_radio(
     widget: &impl IsA<gtk::Widget>,
     client: subsonic::Client,
@@ -301,7 +304,7 @@ pub(crate) fn play_radio(
         if !player::get().is_current(command) {
             return;
         }
-        let Some(similar) = similar_found(widget.upgrade().as_ref(), result) else {
+        let Some(similar) = similar_found(widget.upgrade().as_ref(), &seed.id, result) else {
             return;
         };
         let seed_id = seed.id.clone();
@@ -508,16 +511,21 @@ fn show_info(parent: &gtk::Widget, song: &subsonic::Song) {
     dialog.present(Some(parent));
 }
 
-/// The songs a request for similar songs found, or None after a note in the
-/// window near `widget`: why the request failed, or that the server found
-/// none (an album not analysed yet, say).
+/// The songs a request for songs similar to `seed` found, enough for a radio
+/// (similar.rs), or None after a note in the window near `widget`: why the
+/// request failed, that the server found none (an album not analysed yet,
+/// say), or too few for a radio.
 pub(crate) fn similar_found(
     widget: Option<&impl IsA<gtk::Widget>>,
+    seed: &str,
     result: Result<Result<Vec<subsonic::Song>, subsonic::Error>, tokio::task::JoinError>,
 ) -> Option<Vec<subsonic::Song>> {
     let note = match result {
-        Ok(Ok(songs)) if !songs.is_empty() => return Some(songs),
-        Ok(Ok(_)) => gettext("No similar songs found"),
+        Ok(Ok(songs)) => match crate::similar::radio(seed, &songs) {
+            crate::similar::Radio::Play => return Some(songs),
+            crate::similar::Radio::TooFew => gettext("Not enough similar songs to start radio"),
+            crate::similar::Radio::NoneFound => gettext("No similar songs found"),
+        },
         Ok(Err(e)) => {
             eprintln!("Could not fetch similar songs: {e}");
             crate::error_message(&e)

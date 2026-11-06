@@ -492,19 +492,47 @@ impl StartPage {
             ));
         }
 
-        // The radio button next to "Similar to …" plays all the similar songs.
+        // The radio button next to "Similar to …" plays all the similar songs,
+        // if there are enough for a radio (similar.rs); a note says if not.
         {
             let page = self.downgrade();
-            self.imp().similar_radio.connect_clicked(move |_| {
+            self.imp().similar_radio.connect_clicked(move |button| {
                 let Some(page) = page.upgrade() else {
                     return;
                 };
                 let imp = page.imp();
                 let songs = imp.similar.borrow().clone();
                 let client = imp.client.borrow().clone();
-                if let (Some(songs), Some(client)) = (songs, client) {
-                    crate::player::get().play(client, songs, 0, crate::player::QueueOf::Songs);
+                let (Some(songs), Some(client)) = (songs, client) else {
+                    return;
+                };
+                let seed = imp.similar_seed.borrow().clone();
+                match crate::similar::radio(&seed, &songs) {
+                    crate::similar::Radio::Play => {
+                        crate::player::get().play(client, songs, 0, crate::player::QueueOf::Songs)
+                    }
+                    crate::similar::Radio::TooFew => {
+                        crate::toast(button, &gettext("Not enough similar songs to start radio"))
+                    }
+                    crate::similar::Radio::NoneFound => {
+                        crate::toast(button, &gettext("No similar songs found"))
+                    }
                 }
+            });
+        }
+        // The shelf goes while the server gives no similar songs, and comes
+        // back when a sync finds it gives them again (similar.rs).
+        {
+            let page = self.downgrade();
+            crate::similar::watch(move |available| {
+                let Some(page) = page.upgrade() else {
+                    return false;
+                };
+                page.clear_similar();
+                if available {
+                    page.follow_player();
+                }
+                true
             });
         }
 
@@ -542,7 +570,7 @@ impl StartPage {
     /// what played last. Only while the page is on screen: each new song
     /// costs the server a search for similar ones.
     fn follow_player(&self) {
-        if !self.is_mapped() {
+        if !self.is_mapped() || !crate::similar::available() {
             return;
         }
         let client = self.imp().client.borrow().clone();
@@ -666,7 +694,13 @@ impl StartPage {
         let heading = gettext("Similar to “{title}”");
         imp.similar_title
             .set_label(&heading.replace("{title}", title));
-        fill_shelf(&imp.similar_row, &imp.similar_ids, &shelf, Some(client));
+        // Too few albums make no shelf (similar.rs).
+        let shelf: &[&Arc<subsonic::Album>] = if crate::similar::shelf_shows(shelf.len()) {
+            &shelf
+        } else {
+            &[]
+        };
+        fill_shelf(&imp.similar_row, &imp.similar_ids, shelf, Some(client));
         imp.similar_shelf.set_visible(!shelf.is_empty());
         let songs: Rc<[subsonic::Song]> = songs.into();
         imp.similar.replace(Some(songs));

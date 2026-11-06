@@ -34,6 +34,7 @@ mod resume;
 mod search_page;
 mod secrets;
 mod shelf;
+mod similar;
 mod song_menu;
 mod song_row;
 mod start_page;
@@ -235,8 +236,41 @@ fn build_ui(app: &adw::Application) {
     // Media controls in GNOME Shell, on the lock screen and on media keys.
     mpris::start(app);
 
-    // "Endless Radio" in the main menu, kept in GSettings.
-    app.add_action(&crate::settings().create_action("endless-radio"));
+    // "Endless Radio" in the main menu, kept in GSettings. Not GSettings' own
+    // action: that one cannot be disabled, and the item is hidden while the
+    // server gives no similar songs (similar.rs; hidden-when in main_view.blp).
+    {
+        let settings = crate::settings();
+        let action = gtk::gio::SimpleAction::new_stateful(
+            "endless-radio",
+            None,
+            &settings.boolean("endless-radio").to_variant(),
+        );
+        action.connect_change_state(|action, value| {
+            if let Some(value) = value {
+                let _ =
+                    crate::settings().set_boolean("endless-radio", value.get().unwrap_or(false));
+                action.set_state(value);
+            }
+        });
+        // Changed elsewhere (Preferences): the menu's check follows.
+        let weak = action.downgrade();
+        settings.connect_changed(Some("endless-radio"), move |settings, key| {
+            if let Some(action) = weak.upgrade() {
+                action.set_state(&settings.boolean(key).to_variant());
+            }
+        });
+        action.set_enabled(crate::similar::available());
+        let weak = action.downgrade();
+        crate::similar::watch(move |available| {
+            let Some(action) = weak.upgrade() else {
+                return false;
+            };
+            action.set_enabled(available);
+            true
+        });
+        app.add_action(&action);
+    }
     app.add_action(&crate::settings().create_action("repeat"));
 
     // Style (Preferences): follow the system, or always light or dark.
