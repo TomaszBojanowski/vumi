@@ -9,6 +9,7 @@ use std::cell::{Cell, RefCell};
 use std::collections::BTreeSet;
 use std::rc::Rc;
 
+use crate::a11y::{self, Now};
 use crate::eq_bars::Mode;
 use crate::favorites::{Favorite, star_button};
 use crate::{about, covers, error_message, format, player, runtime, tint};
@@ -475,6 +476,11 @@ pub(crate) struct TrackRow {
     /// keyboard focus in the row (style.css); it takes clicks only then
     /// (see AlbumPage::follow_pointer).
     star: gtk::ToggleButton,
+    /// What the row shows, as a screen reader hears it ("Água de Beber,
+    /// Astrud Gilberto, 2:18"); "playing" or "paused" go after it. The
+    /// labels are hidden from the reader: Orca reads a row's name and then
+    /// what is inside it. "favorite" is left out: the row's star says it.
+    spoken: String,
 }
 
 impl TrackRow {
@@ -502,6 +508,19 @@ impl TrackRow {
             }
             self.row.remove_css_class("playing");
         }
+        let now = match (playing, mode) {
+            (false, _) => Now::Not,
+            (true, Mode::Moving) => Now::Playing,
+            (true, _) => Now::Paused,
+        };
+        // Through Widget: adw's rows do not carry gtk's Accessible in their type.
+        self.row
+            .upcast_ref::<gtk::Widget>()
+            .update_property(&[gtk::accessible::Property::Label(&a11y::song(
+                &self.spoken,
+                now,
+                false,
+            ))]);
     }
 }
 
@@ -536,6 +555,7 @@ fn track_row(
         .width_chars(3)
         .xalign(1.0)
         .css_classes(["dim-label", "numeric"])
+        .accessible_role(gtk::AccessibleRole::Presentation)
         .build();
     let slot = gtk::Overlay::builder()
         .child(&number)
@@ -556,17 +576,21 @@ fn track_row(
         .wrap_mode(gtk::pango::WrapMode::WordChar)
         .xalign(0.0)
         .css_classes(["title"])
+        .accessible_role(gtk::AccessibleRole::Presentation)
         .build();
     title_box.append(&title);
 
-    // Markup for the composer in italics: the artist is escaped.
+    // Markup for the composer in italics: the artist is escaped. The same
+    // as plain text for the screen reader's name of the row.
     let mut subtitle: Vec<String> = Vec::new();
+    let mut spoken: Vec<String> = vec![song.title.clone()];
     if let Some(artist) = song
         .artist
         .as_deref()
         .filter(|artist| !of_the_album(artist, album_artist))
     {
         subtitle.push(glib::markup_escape_text(artist).to_string());
+        spoken.push(artist.to_owned());
     }
     if let Some(composer) = song.composer.as_deref().filter(|c| !c.trim().is_empty()) {
         // Left out when it is the header's composer, or when the composers
@@ -581,9 +605,9 @@ fn track_row(
                 "<i>{}</i>",
                 glib::markup_escape_text(&short_names(composer))
             ));
+            spoken.push(short_names(composer));
         }
     }
-    let mut described_by = Vec::new();
     if !subtitle.is_empty() {
         // One line: a long list of performers must not make a row taller
         // than the others.
@@ -596,18 +620,21 @@ fn track_row(
             .ellipsize(gtk::pango::EllipsizeMode::End)
             .xalign(0.0)
             .css_classes(["subtitle"])
+            .accessible_role(gtk::AccessibleRole::Presentation)
             .build();
         title_box.append(&line);
-        described_by.push(line.upcast::<gtk::Widget>());
     }
     header.append(&title_box);
 
     if let Some(d) = song.duration {
+        let clock = format::clock(d.into());
         let duration = gtk::Label::builder()
-            .label(format::clock(d.into()))
+            .label(clock.as_str())
             .css_classes(["dim-label", "numeric"])
+            .accessible_role(gtk::AccessibleRole::Presentation)
             .build();
         header.append(&duration);
+        spoken.push(clock);
     }
 
     let star = star_button(
@@ -630,15 +657,9 @@ fn track_row(
     ));
 
     row.set_child(Some(&header));
-    // Read as an Adw.ActionRow is: the title, the line below it as the
-    // description.
-    let accessible = row.upcast_ref::<gtk::Widget>();
-    accessible.update_relation(&[gtk::accessible::Relation::LabelledBy(&[title.upcast_ref()])]);
-    if !described_by.is_empty() {
-        let described_by: Vec<&gtk::Accessible> =
-            described_by.iter().map(|w| w.upcast_ref()).collect();
-        accessible.update_relation(&[gtk::accessible::Relation::DescribedBy(&described_by)]);
-    }
+    let spoken = a11y::join(spoken.iter().map(String::as_str));
+    row.upcast_ref::<gtk::Widget>()
+        .update_property(&[gtk::accessible::Property::Label(&spoken)]);
 
     TrackRow {
         song_id: song.id.clone(),
@@ -648,6 +669,7 @@ fn track_row(
         track,
         bars: None,
         star,
+        spoken,
     }
 }
 

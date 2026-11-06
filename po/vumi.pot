@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vumi\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-06 18:15+0100\n"
+"POT-Creation-Date: 2026-11-06 18:21+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -153,7 +153,7 @@ msgid "Could not read the password from the keyring"
 msgstr ""
 
 #: app/src/main.rs:577 app/src/main_view.rs:1848 app/src/login_page.rs:204
-#: app/src/album_page.rs:281 app/src/artist_page.rs:163
+#: app/src/album_page.rs:282 app/src/artist_page.rs:163
 #: app/src/song_menu.rs:525 app/src/playlist_page.rs:127
 msgid "Something went wrong. Please try again."
 msgstr ""
@@ -298,7 +298,7 @@ msgstr ""
 msgid "Artist"
 msgstr ""
 
-#: app/src/main_view.rs:1766 app/src/album_page.rs:1085
+#: app/src/main_view.rs:1766 app/src/album_page.rs:1107
 #: app/src/now_playing.rs:296 app/src/mini_player.rs:103
 #: app/src/playlist_page.blp:95
 msgid "Play"
@@ -368,7 +368,7 @@ msgstr ""
 msgid "Playlists from the server appear here"
 msgstr ""
 
-#: app/src/main_view.blp:457 app/src/queue_page.rs:395
+#: app/src/main_view.blp:457 app/src/queue_page.rs:396
 msgid "Name"
 msgstr ""
 
@@ -482,18 +482,18 @@ msgstr ""
 msgid "Original quality streaming and gapless playback."
 msgstr ""
 
-#: app/src/album_page.rs:185
+#: app/src/album_page.rs:186
 msgid "Connect to the server to see the tracks."
 msgstr ""
 
 #. Translators: {name} is the composer of (most of) the album's tracks.
-#: app/src/album_page.rs:364
+#: app/src/album_page.rs:365
 #, rust-format
 msgid "Composer: {name}"
 msgstr ""
 
 #. Translators: {n} is a number of discs.
-#: app/src/album_page.rs:682
+#: app/src/album_page.rs:704
 #, rust-format
 msgid "{n} disc"
 msgid_plural "{n} discs"
@@ -501,31 +501,31 @@ msgstr[0] ""
 msgstr[1] ""
 
 #. Translators: tracks of one album differ in quality, e.g. "FLAC · up to 24 bit / 96 kHz".
-#: app/src/album_page.rs:737
+#: app/src/album_page.rs:759
 #, rust-format
 msgid "{format} · up to {quality}"
 msgstr ""
 
 #. Translators: header above the tracks of one disc, e.g. "Disc 2".
-#: app/src/album_page.rs:879
+#: app/src/album_page.rs:901
 #, rust-format
 msgid "Disc {n}"
 msgstr ""
 
-#: app/src/album_page.rs:1063
+#: app/src/album_page.rs:1085
 msgid "Radio"
 msgstr ""
 
-#: app/src/album_page.rs:1086 app/src/now_playing.rs:291
+#: app/src/album_page.rs:1108 app/src/now_playing.rs:291
 #: app/src/mini_player.rs:99 app/src/continue_tile.rs:133
 msgid "Pause"
 msgstr ""
 
-#: app/src/album_page.rs:1087 app/src/continue_tile.rs:135
+#: app/src/album_page.rs:1109 app/src/continue_tile.rs:135
 msgid "Resume"
 msgstr ""
 
-#: app/src/album_page.rs:1107 app/src/favorites_header.blp:103
+#: app/src/album_page.rs:1129 app/src/favorites_header.blp:103
 #: app/src/playlist_page.blp:101
 msgid "Shuffle"
 msgstr ""
@@ -542,16 +542,23 @@ msgstr ""
 msgid "Show More"
 msgstr ""
 
-#: app/src/favorites.rs:198 app/src/favorites.rs:241
-msgid "Could not change favorites. Please try again."
+#. Translators: a screen reader's name for the star button of a song
+#. or an album, said with its state (pressed or not).
+#: app/src/favorites.rs:160
+msgctxt "star button"
+msgid "Favorite"
 msgstr ""
 
-#: app/src/favorites.rs:262 app/src/queue_page.rs:641 app/src/song_menu.rs:253
+#: app/src/favorites.rs:165 app/src/queue_page.rs:642 app/src/song_menu.rs:253
 msgid "Remove from Favorites"
 msgstr ""
 
-#: app/src/favorites.rs:265 app/src/queue_page.rs:643 app/src/song_menu.rs:255
+#: app/src/favorites.rs:167 app/src/queue_page.rs:644 app/src/song_menu.rs:255
 msgid "Add to Favorites"
+msgstr ""
+
+#: app/src/favorites.rs:245 app/src/favorites.rs:288
+msgid "Could not change favorites. Please try again."
 msgstr ""
 
 #: app/src/favorites_header.blp:54
@@ -634,6 +641,26 @@ msgstr ""
 #: app/src/format.rs:104
 #, rust-format
 msgid "{kbps} kbps"
+msgstr ""
+
+#. Translators: said by a screen reader after a song's name, "Song,
+#. Artist, 2:18, playing"; an adjective for the song.
+#: app/src/a11y.rs:26
+msgctxt "song state"
+msgid "playing"
+msgstr ""
+
+#. Translators: as "playing", for the current song while paused.
+#: app/src/a11y.rs:28
+msgctxt "song state"
+msgid "paused"
+msgstr ""
+
+#. Translators: said by a screen reader after a song's name when it is a
+#. favourite; an adjective for the song.
+#: app/src/a11y.rs:33
+msgctxt "song state"
+msgid "favorite"
 msgstr ""
 
 #: app/src/dates.rs:27
@@ -720,7 +747,7 @@ msgstr ""
 msgid "Show Less"
 msgstr ""
 
-#: app/src/now_playing.blp:37 app/src/queue_page.rs:648
+#: app/src/now_playing.blp:37 app/src/queue_page.rs:649
 #: app/src/song_menu.rs:265
 msgid "Go to Album"
 msgstr ""
@@ -855,7 +882,7 @@ msgstr ""
 msgid "Cover Cache"
 msgstr ""
 
-#: app/src/preferences.blp:280 app/src/queue_page.rs:374
+#: app/src/preferences.blp:280 app/src/queue_page.rs:375
 msgid "Clear"
 msgstr ""
 
@@ -911,8 +938,8 @@ msgid ""
 "from this server stays on this device."
 msgstr ""
 
-#: app/src/preferences.rs:289 app/src/queue_page.rs:374
-#: app/src/queue_page.rs:400
+#: app/src/preferences.rs:289 app/src/queue_page.rs:375
+#: app/src/queue_page.rs:401
 msgid "Cancel"
 msgstr ""
 
@@ -971,65 +998,65 @@ msgid "Play an album, a song or the radio"
 msgstr ""
 
 #. Translators: {n} is a number of tracks.
-#: app/src/queue_page.rs:368
+#: app/src/queue_page.rs:369
 #, rust-format
 msgid "{n} track will be removed from the queue."
 msgid_plural "{n} tracks will be removed from the queue."
 msgstr[0] ""
 msgstr[1] ""
 
-#: app/src/queue_page.rs:373
+#: app/src/queue_page.rs:374
 msgid "Clear Queue?"
 msgstr ""
 
-#: app/src/queue_page.rs:398 app/src/song_menu.rs:341
+#: app/src/queue_page.rs:399 app/src/song_menu.rs:341
 msgid "New Playlist"
 msgstr ""
 
-#: app/src/queue_page.rs:400
+#: app/src/queue_page.rs:401
 msgid "Save"
 msgstr ""
 
 #. Translators: {name} is the name of a playlist.
-#: app/src/queue_page.rs:433
+#: app/src/queue_page.rs:434
 #, rust-format
 msgid "Saved as “{name}”"
 msgstr ""
 
-#: app/src/queue_page.rs:443
+#: app/src/queue_page.rs:444
 msgid "Could not save the playlist"
 msgstr ""
 
 #. Translators: {time} is a short duration, e.g. "12 min" or "1 h 5 min".
-#: app/src/queue_page.rs:474
+#: app/src/queue_page.rs:475
 #, rust-format
 msgid "{time} left"
 msgstr ""
 
 #. Translators: in the queue, moves the track to right after the current
 #. one (elsewhere "Play Next" adds a track to the queue).
-#: app/src/queue_page.rs:631
+#: app/src/queue_page.rs:632
 msgctxt "queue"
 msgid "Play Next"
 msgstr ""
 
-#: app/src/queue_page.rs:633
+#: app/src/queue_page.rs:634
 msgid "Remove from Queue"
 msgstr ""
 
-#: app/src/queue_page.rs:637 app/src/song_menu.rs:249
+#: app/src/queue_page.rs:638 app/src/song_menu.rs:249
 msgid "Add to Playlist…"
 msgstr ""
 
-#: app/src/queue_page.rs:649 app/src/song_menu.rs:267
+#: app/src/queue_page.rs:650 app/src/song_menu.rs:267
 msgid "Go to Artist"
 msgstr ""
 
-#: app/src/queue_page.rs:650 app/src/song_menu.rs:270 app/src/song_menu.rs:503
+#: app/src/queue_page.rs:651 app/src/song_menu.rs:270 app/src/song_menu.rs:503
 msgid "Song Information"
 msgstr ""
 
-#: app/src/queue_page.rs:653 app/src/song_menu.rs:260
+#: app/src/queue_page.rs:654 app/src/song_menu.rs:260
 msgid "Play Similar"
 msgstr ""
 

@@ -12,9 +12,11 @@
 use adw::subclass::prelude::*;
 use gtk::glib;
 use gtk::prelude::*;
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 
+use crate::a11y::Now;
 use crate::eq_bars::{EqBars, Mode};
+use crate::favorites::Favorite;
 
 mod imp {
     use super::*;
@@ -36,6 +38,10 @@ mod imp {
         pub note: RefCell<Option<gtk::Label>>,
         /// The song the row shows now.
         pub song: RefCell<Option<subsonic::Song>>,
+        /// The list item showing the row: a screen reader hears its name.
+        pub(crate) item: RefCell<Option<glib::WeakRef<gtk::ListItem>>>,
+        /// Whether the song is the player's current one.
+        pub(crate) now: Cell<Now>,
     }
 
     #[glib::object_subclass]
@@ -54,7 +60,25 @@ mod imp {
         }
     }
 
-    impl ObjectImpl for SongRow {}
+    impl ObjectImpl for SongRow {
+        fn constructed(&self) {
+            self.parent_constructed();
+            // A star changed elsewhere (a menu, a sync): the name follows.
+            let row = self.obj().downgrade();
+            crate::favorites::watch(move |key, _| {
+                let Some(row) = row.upgrade() else {
+                    return false;
+                };
+                if row
+                    .song()
+                    .is_some_and(|song| Favorite::Song(song.id).key() == key)
+                {
+                    row.speak();
+                }
+                true
+            });
+        }
+    }
     impl WidgetImpl for SongRow {}
     impl BoxImpl for SongRow {}
 }
@@ -63,16 +87,6 @@ glib::wrapper! {
     pub struct SongRow(ObjectSubclass<imp::SongRow>)
         @extends gtk::Box, gtk::Widget,
         @implements gtk::Accessible, gtk::Buildable, gtk::ConstraintTarget, gtk::Orientable;
-}
-
-/// What a screen reader says for the list item of `song`: "title, artist".
-/// The row is only the item's content, and its menu button would be read
-/// along with the text, so each list sets this on the item itself.
-pub(crate) fn accessible_label(song: &subsonic::Song) -> String {
-    match song.artist.as_deref().filter(|artist| !artist.is_empty()) {
-        Some(artist) => format!("{}, {}", song.title, artist),
-        None => song.title.clone(),
-    }
 }
 
 impl SongRow {
@@ -93,6 +107,67 @@ impl SongRow {
             None => imp.duration.set_label(""),
         }
         imp.duration.set_visible(song.duration.is_some());
+        self.speak();
+    }
+
+    /// The list item that shows the row: a screen reader hears its name,
+    /// made from what the row shows (speak()). Lists set it once the row is
+    /// in an item.
+    pub(crate) fn set_list_item(&self, item: &gtk::ListItem) {
+        self.imp().item.replace(Some(item.downgrade()));
+        self.speak();
+    }
+
+    /// The full title on hover, for lists whose titles are cut to one line.
+    /// Given when asked for: tooltip-text would be read out as the item's
+    /// description, the title a second time.
+    pub(crate) fn show_title_on_hover(&self) {
+        self.set_has_tooltip(true);
+        self.connect_query_tooltip(|row, _, _, _, tooltip| {
+            let title = row.imp().title.label();
+            tooltip.set_text(Some(&title));
+            !title.is_empty()
+        });
+    }
+
+    /// The name a screen reader hears for the row: all it shows, in order
+    /// ("City Sleep, Boerd, 4:12"), then "playing" or "paused" for the
+    /// current song and "favorite" for a starred one (no star on these rows).
+    fn speak(&self) {
+        let imp = self.imp();
+        let Some(item) = imp.item.borrow().as_ref().and_then(|item| item.upgrade()) else {
+            return;
+        };
+        // The item may show another row by now.
+        if item.child().as_ref() != Some(self.upcast_ref()) {
+            return;
+        }
+        let Some(song) = imp.song.borrow().clone() else {
+            item.set_accessible_label("");
+            return;
+        };
+        let title = imp.title.label();
+        let subtitle = imp.subtitle.label();
+        let note = imp
+            .note
+            .borrow()
+            .as_ref()
+            .filter(|note| note.is_visible())
+            .map(|note| note.label());
+        let duration = imp.duration.label();
+        let shown = [
+            Some(title.as_str()),
+            imp.subtitle.is_visible().then_some(subtitle.as_str()),
+            note.as_deref(),
+            Some(duration.as_str()),
+        ];
+        let favorite =
+            crate::favorites::is_starred(&Favorite::Song(song.id.clone()), song.starred.is_some());
+        item.set_accessible_label(&crate::a11y::song(
+            &crate::a11y::join(shown.into_iter().flatten()),
+            imp.now.get(),
+            favorite,
+        ));
     }
 
     /// A few words before the length (empty: none). The row is reused, so
@@ -107,12 +182,16 @@ impl SongRow {
             let label = gtk::Label::builder()
                 .margin_end(12)
                 .css_classes(["dim-label"])
+                // In the item's name (speak()).
+                .accessible_role(gtk::AccessibleRole::Presentation)
                 .build();
             label.insert_after(self, Some(&*imp.title_box));
             label
         });
         label.set_label(note);
         label.set_visible(!note.is_empty());
+        drop(slot);
+        self.speak();
     }
 
     /// How many lines the title may take before it is cut short with an
@@ -164,5 +243,12 @@ impl SongRow {
         } else {
             self.remove_css_class("playing");
         }
+        drop(bars);
+        self.imp().now.set(match (playing, paused) {
+            (false, _) => Now::Not,
+            (true, false) => Now::Playing,
+            (true, true) => Now::Paused,
+        });
+        self.speak();
     }
 }

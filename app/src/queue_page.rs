@@ -172,6 +172,10 @@ impl QueuePage {
                 .borrow_mut()
                 .push((row.downgrade(), item.downgrade()));
             item.set_child(Some(&row));
+            // A screen reader hears the item's name, which the row makes.
+            row.set_list_item(item);
+            // One line each, the full title on hover: rows stay even.
+            row.show_title_on_hover();
         });
         let page = self.downgrade();
         factory.connect_bind(move |_, item| {
@@ -186,9 +190,6 @@ impl QueuePage {
             };
             let song = object.borrow::<subsonic::Song>();
             row.set_song(&song, song.artist.as_deref().unwrap_or(""));
-            // One line each, the full title in the tooltip: rows stay even.
-            row.set_tooltip_text(Some(&song.title));
-            item.set_accessible_label(&crate::song_row::accessible_label(&song));
             page.place_row(&row, item);
         });
         factory.connect_unbind(|_, item| {

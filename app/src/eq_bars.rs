@@ -103,6 +103,11 @@ mod imp {
         const NAME: &'static str = "VumiEqBars";
         type Type = super::EqBars;
         type ParentType = gtk::Widget;
+
+        fn class_init(klass: &mut Self::Class) {
+            // A picture of "playing": the row's name says it in words.
+            klass.set_accessible_role(gtk::AccessibleRole::Presentation);
+        }
     }
 
     impl ObjectImpl for EqBars {

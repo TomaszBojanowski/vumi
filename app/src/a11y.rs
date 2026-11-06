@@ -6,6 +6,38 @@
 //! " • " (between artists, from the server) or " · " (between details) is read
 //! as a word or not at all.
 
+use gettextrs::pgettext;
+
+/// Whether a song is the player's current one, and how.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub(crate) enum Now {
+    #[default]
+    Not,
+    Playing,
+    Paused,
+}
+
+/// A song row's name: `shown` (all the row shows, joined) and the states that
+/// hold, "Água de Beber, Astrud Gilberto, 2:18, playing, favorite".
+pub(crate) fn song(shown: &str, now: Now, favorite: bool) -> String {
+    let now = match now {
+        // Translators: said by a screen reader after a song's name, "Song,
+        // Artist, 2:18, playing"; an adjective for the song.
+        Now::Playing => Some(pgettext("song state", "playing")),
+        // Translators: as "playing", for the current song while paused.
+        Now::Paused => Some(pgettext("song state", "paused")),
+        Now::Not => None,
+    };
+    // Translators: said by a screen reader after a song's name when it is a
+    // favourite; an adjective for the song.
+    let favorite = favorite.then(|| pgettext("song state", "favorite"));
+    join(
+        [Some(shown), now.as_deref(), favorite.as_deref()]
+            .into_iter()
+            .flatten(),
+    )
+}
+
 /// `text` with the screen's separators as commas.
 pub(crate) fn spoken(text: &str) -> String {
     text.replace(" • ", ", ").replace(" · ", ", ")
@@ -37,6 +69,24 @@ mod tests {
     fn empty_parts_are_left_out() {
         assert_eq!(join(["Night Songs", ""]), "Night Songs");
         assert_eq!(join(["", " ", "Calm Indie"]), "Calm Indie");
+    }
+
+    #[test]
+    fn a_song_says_what_it_shows_then_its_states() {
+        let shown = join(["Água de Beber", "Astrud Gilberto", "2:18"]);
+        assert_eq!(
+            song(&shown, Now::Not, false),
+            "Água de Beber, Astrud Gilberto, 2:18"
+        );
+        assert_eq!(
+            song(&shown, Now::Playing, true),
+            "Água de Beber, Astrud Gilberto, 2:18, playing, favorite"
+        );
+        assert_eq!(
+            song(&shown, Now::Paused, false),
+            "Água de Beber, Astrud Gilberto, 2:18, paused"
+        );
+        assert_eq!(song("City Sleep", Now::Not, true), "City Sleep, favorite");
     }
 
     #[test]

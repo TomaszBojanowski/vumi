@@ -2,7 +2,7 @@
 //! before it can be changed again; if the server refuses, it flips back and
 //! the window shows a short message.
 
-use gettextrs::gettext;
+use gettextrs::{gettext, pgettext};
 use gtk::glib;
 use gtk::prelude::*;
 use std::cell::{Cell, RefCell};
@@ -24,7 +24,7 @@ impl Favorite {
         }
     }
 
-    fn key(&self) -> String {
+    pub(crate) fn key(&self) -> String {
         match self {
             Favorite::Song(id) => format!("song:{id}"),
             Favorite::Album(id) => format!("album:{id}"),
@@ -41,6 +41,34 @@ thread_local! {
     static KNOWN: RefCell<Known> = Default::default();
     /// Set while buttons are flipped to match: those flips are not sent.
     static SYNCING: Cell<bool> = const { Cell::new(false) };
+    /// Who wants to hear of a changed star (watch()).
+    static WATCHERS: RefCell<Vec<Watcher>> = const { RefCell::new(Vec::new()) };
+}
+
+/// Hears of a changed star ("song:id", starred); false: no longer wanted.
+type Watcher = Box<dyn Fn(&str, bool) -> bool>;
+
+/// `watcher` hears of every star that changes from now on, as the buttons do
+/// (a confirmed change, a sync settling), until it returns false: rows without
+/// a star button of their own, which say "favorite" to a screen reader.
+pub(crate) fn watch(watcher: impl Fn(&str, bool) -> bool + 'static) {
+    WATCHERS.with(|watchers| watchers.borrow_mut().push(Box::new(watcher)));
+}
+
+/// Tells the watchers; those that answer false go.
+fn tell_watchers(key: &str, starred: bool) {
+    // Taken out while they run, so one may add another.
+    let watchers = WATCHERS.with(|watchers| std::mem::take(&mut *watchers.borrow_mut()));
+    let kept: Vec<Watcher> = watchers
+        .into_iter()
+        .filter(|watcher| watcher(key, starred))
+        .collect();
+    WATCHERS.with(|watchers| {
+        let mut watchers = watchers.borrow_mut();
+        let added = std::mem::take(&mut *watchers);
+        *watchers = kept;
+        watchers.extend(added);
+    });
 }
 
 /// A change the server has confirmed: remembered, and every other star for the
@@ -48,6 +76,7 @@ thread_local! {
 fn share(key: &str, starred: bool) {
     KNOWN.with(|known| known.borrow_mut().record(key, starred));
     flip_buttons(key, starred);
+    tell_watchers(key, starred);
 }
 
 /// The number of the last star changed in this session; a sync takes it when
@@ -77,6 +106,7 @@ pub(crate) fn settle(
     });
     for (key, starred) in changed {
         flip_buttons(&key, starred);
+        tell_watchers(&key, starred);
     }
 }
 
@@ -121,6 +151,23 @@ pub(crate) fn star_button(
         .sensitive(client.is_some())
         .css_classes(["flat", "circular", "star-button"])
         .build();
+    // A screen reader hears "Favorite" with the button's state, pressed or
+    // not; the tooltip tells what a click does. It is given when asked for:
+    // tooltip-text would be read out after the name as well.
+    button.update_property(&[gtk::accessible::Property::Label(
+        // Translators: a screen reader's name for the star button of a song
+        // or an album, said with its state (pressed or not).
+        &pgettext("star button", "Favorite"),
+    )]);
+    button.set_has_tooltip(true);
+    button.connect_query_tooltip(|button, _, _, _, tooltip| {
+        tooltip.set_text(Some(&if button.is_active() {
+            gettext("Remove from Favorites")
+        } else {
+            gettext("Add to Favorites")
+        }));
+        true
+    });
     update_icon(&button);
     BUTTONS.with(|buttons| {
         let mut buttons = buttons.borrow_mut();
@@ -257,13 +304,11 @@ pub(crate) fn set(
 }
 
 fn update_icon(button: &gtk::ToggleButton) {
-    if button.is_active() {
-        button.set_icon_name("starred-symbolic");
-        button.set_tooltip_text(Some(&gettext("Remove from Favorites")));
+    button.set_icon_name(if button.is_active() {
+        "starred-symbolic"
     } else {
-        button.set_icon_name("non-starred-symbolic");
-        button.set_tooltip_text(Some(&gettext("Add to Favorites")));
-    }
+        "non-starred-symbolic"
+    });
 }
 
 /// The stars changed in this session, by item ("song:id", "album:id"), each

@@ -307,7 +307,8 @@ impl ResultsView {
         item.set_activatable(true);
         item.set_selectable(false);
         item.set_focusable(true);
-        item.set_accessible_label(&crate::song_row::accessible_label(song));
+        // A screen reader hears the item's name, which the row makes.
+        row.set_list_item(item);
 
         let subtitle = [song.artist.as_deref(), song.album.as_deref()]
             .into_iter()

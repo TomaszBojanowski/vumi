@@ -3,7 +3,9 @@ using Gtk 4.0;
 // Styled like the inside of an Adw.ActionRow (a box "header" with a box
 // "title"), so the theme draws it the same way in any list. The parts that
 // only some rows need are added in code: the bars of the playing song, a
-// note, the ⋮ button (song_row.rs).
+// note, the ⋮ button (song_row.rs). A screen reader hears the list item's
+// name (all the row shows, song_row.rs), so the labels are hidden from it:
+// Orca reads a row's name and then what is inside it.
 template $VumiSongRow: Box {
   valign: center;
 
@@ -25,6 +27,7 @@ template $VumiSongRow: Box {
       xalign: 0;
       wrap: true;
       wrap-mode: word_char;
+      accessible-role: presentation;
 
       styles [
         "title",
@@ -39,6 +42,7 @@ template $VumiSongRow: Box {
       wrap-mode: word_char;
       lines: 1;
       ellipsize: end;
+      accessible-role: presentation;
 
       styles [
         "subtitle",
@@ -47,6 +51,8 @@ template $VumiSongRow: Box {
   }
 
   Label duration {
+    accessible-role: presentation;
+
     styles [
       "dim-label",
       "numeric",
