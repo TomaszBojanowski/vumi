@@ -37,6 +37,9 @@ mod imp {
             // The template uses it.
             crate::cover_image::Square::static_type();
             klass.bind_template();
+            // A group with a name ("19, Adele"): the grid's cell, a shelf's
+            // button, whatever holds the card, is read by that name.
+            klass.set_accessible_role(gtk::AccessibleRole::Group);
         }
 
         fn instance_init(obj: &glib::subclass::InitializingObject<Self>) {
@@ -44,7 +47,22 @@ mod imp {
         }
     }
 
-    impl ObjectImpl for AlbumCard {}
+    impl ObjectImpl for AlbumCard {
+        fn constructed(&self) {
+            self.parent_constructed();
+            // The whole title on hover, for one cut short. Given when asked
+            // for, not as tooltip-text: GTK reads tooltip-text out as the
+            // description of the cell or button around the card, the title a
+            // second time.
+            let card = self.obj();
+            card.set_has_tooltip(true);
+            card.connect_query_tooltip(|card, _, _, _, tooltip| {
+                let title = card.imp().title.label();
+                tooltip.set_text(Some(&title));
+                !title.is_empty()
+            });
+        }
+    }
     impl WidgetImpl for AlbumCard {}
     impl BoxImpl for AlbumCard {}
 }
@@ -70,8 +88,12 @@ impl AlbumCard {
     pub(crate) fn set_album(&self, album: &subsonic::Album, client: Option<subsonic::Client>) {
         let imp = self.imp();
         imp.title.set_label(&album.name);
-        imp.artist.set_label(album.artist.as_deref().unwrap_or(""));
-        self.set_tooltip_text(Some(&album.name));
+        let artist = album.artist.as_deref().unwrap_or("");
+        imp.artist.set_label(artist);
+        self.update_property(&[gtk::accessible::Property::Label(&crate::a11y::join([
+            album.name.as_str(),
+            artist,
+        ]))]);
 
         // The same album came back to this card and its cover is on screen: keep it.
         let same = imp.cover_id.borrow().as_deref() == album.cover_art.as_deref();

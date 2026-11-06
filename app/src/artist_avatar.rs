@@ -12,6 +12,9 @@
 //!
 //! The label of the initials is made only for an artist without a picture,
 //! the image only for one with a picture.
+//!
+//! A screen reader does not see it: it only decorates the card, whose name
+//! says the artist (no "Avatar of …", AdwAvatar's words).
 
 use adw::subclass::prelude::*;
 use gtk::prelude::*;
@@ -54,7 +57,7 @@ mod imp {
         fn class_init(klass: &mut Self::Class) {
             // libadwaita's style for avatars (round, bold, the colours).
             klass.set_css_name("avatar");
-            klass.set_accessible_role(gtk::AccessibleRole::Img);
+            klass.set_accessible_role(gtk::AccessibleRole::Presentation);
             klass.set_layout_manager_type::<gtk::BinLayout>();
         }
     }
@@ -100,10 +103,7 @@ impl Default for ArtistAvatar {
 }
 
 impl ArtistAvatar {
-    /// The artist's name: the colour, the initials and what a screen reader
-    /// says ("Avatar of …", AdwAvatar's words, translated as AdwAvatar has
-    /// them: GLib's dgettext, which leaves them in English where the app
-    /// itself has no translation).
+    /// The artist's name: the colour and the initials.
     pub(crate) fn set_text(&self, text: &str) {
         let imp = self.imp();
         if *imp.text.borrow() == text && imp.color.get() != 0 {
@@ -117,12 +117,6 @@ impl ArtistAvatar {
             }
             self.add_css_class(&format!("color{color}"));
             imp.color.set(color);
-        }
-        if text.is_empty() {
-            self.reset_property(gtk::AccessibleProperty::Label);
-        } else {
-            let label = glib::dgettext(Some("libadwaita"), "Avatar of %s").replace("%s", text);
-            self.update_property(&[gtk::accessible::Property::Label(&label)]);
         }
         self.update_visibility();
     }

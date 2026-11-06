@@ -41,6 +41,12 @@ mod imp {
         const NAME: &'static str = "VumiCoverImage";
         type Type = super::CoverImage;
         type ParentType = gtk::Widget;
+
+        fn class_init(klass: &mut Self::Class) {
+            // Covers only decorate: the tile, card or page beside them names
+            // the album or playlist.
+            klass.set_accessible_role(gtk::AccessibleRole::Presentation);
+        }
     }
 
     impl ObjectImpl for CoverImage {}

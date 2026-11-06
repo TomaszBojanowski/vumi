@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vumi\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-06 00:59+0100\n"
+"POT-Creation-Date: 2026-11-06 18:15+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -140,114 +140,114 @@ msgid ""
 "and radio from AudioMuse-AI."
 msgstr ""
 
-#: app/src/main.rs:383
+#: app/src/main.rs:384
 msgid "Could not remove the password from the keyring"
 msgstr ""
 
-#: app/src/main.rs:493
+#: app/src/main.rs:494
 msgid "Playback Stopped"
 msgstr ""
 
-#: app/src/main.rs:571
+#: app/src/main.rs:572
 msgid "Could not read the password from the keyring"
 msgstr ""
 
-#: app/src/main.rs:576 app/src/main_view.rs:1833 app/src/login_page.rs:204
+#: app/src/main.rs:577 app/src/main_view.rs:1848 app/src/login_page.rs:204
 #: app/src/album_page.rs:281 app/src/artist_page.rs:163
 #: app/src/song_menu.rs:525 app/src/playlist_page.rs:127
 msgid "Something went wrong. Please try again."
 msgstr ""
 
-#: app/src/main.rs:606
+#: app/src/main.rs:607
 msgid "Wrong username or password."
 msgstr ""
 
-#: app/src/main.rs:608
+#: app/src/main.rs:609
 msgid "Cannot reach the server. Check the address and your connection."
 msgstr ""
 
-#: app/src/main.rs:611
+#: app/src/main.rs:612
 msgid "Invalid server address. It should start with http:// or https://"
 msgstr ""
 
-#: app/src/main.rs:614
+#: app/src/main.rs:615
 msgid "The server answered, but it does not look like a Subsonic server."
 msgstr ""
 
 #. Translators: {code} is the number of the error sent by the server.
-#: app/src/main.rs:619
+#: app/src/main.rs:620
 #, rust-format
 msgid "Server error (code {code})"
 msgstr ""
 
 #. Translators: {message} is the error text sent by the server.
-#: app/src/main.rs:622
+#: app/src/main.rs:623
 #, rust-format
 msgid "Server error: {message}"
 msgstr ""
 
-#: app/src/main.rs:631 app/src/player.rs:340 app/src/player.rs:418
+#: app/src/main.rs:632 app/src/player.rs:340 app/src/player.rs:418
 #: app/src/player.rs:1768 app/src/player.rs:1867 app/src/player.rs:2010
 msgid "Cannot play without a connection to the server"
 msgstr ""
 
-#: app/src/main.rs:687
+#: app/src/main.rs:688
 msgid "A music player for Navidrome and other Subsonic servers"
 msgstr ""
 
-#: app/src/main.rs:689
+#: app/src/main.rs:690
 msgid "translator-credits"
 msgstr ""
 
-#: app/src/main.rs:695
+#: app/src/main.rs:696
 msgid "Buy Me a Coffee"
 msgstr ""
 
-#: app/src/main.rs:699
+#: app/src/main.rs:700
 msgid "Built With"
 msgstr ""
 
-#: app/src/main.rs:729 app/src/preferences.blp:195
+#: app/src/main.rs:730 app/src/preferences.blp:195
 msgid "Playback"
 msgstr ""
 
-#: app/src/main.rs:731
+#: app/src/main.rs:732
 msgid "Play or Pause"
 msgstr ""
 
-#: app/src/main.rs:732
+#: app/src/main.rs:733
 msgid "Previous Track"
 msgstr ""
 
-#: app/src/main.rs:733
+#: app/src/main.rs:734
 msgid "Next Track"
 msgstr ""
 
-#: app/src/main.rs:737 app/src/main_view.blp:146 app/src/preferences.blp:143
+#: app/src/main.rs:738 app/src/main_view.blp:146 app/src/preferences.blp:143
 msgid "Library"
 msgstr ""
 
-#: app/src/main.rs:739
+#: app/src/main.rs:740
 msgid "Search Library"
 msgstr ""
 
-#: app/src/main.rs:740 app/src/main_view.blp:53 app/src/main_view.blp:521
+#: app/src/main.rs:741 app/src/main_view.blp:53 app/src/main_view.blp:521
 msgid "Sync Library"
 msgstr ""
 
-#: app/src/main.rs:744 app/src/preferences.blp:13
+#: app/src/main.rs:745 app/src/preferences.blp:13
 msgid "General"
 msgstr ""
 
-#: app/src/main.rs:746 app/src/main_view.blp:528
+#: app/src/main.rs:747 app/src/main_view.blp:528
 msgid "Preferences"
 msgstr ""
 
-#: app/src/main.rs:747 app/src/main_view.blp:533
+#: app/src/main.rs:748 app/src/main_view.blp:533
 msgid "Keyboard Shortcuts"
 msgstr ""
 
-#: app/src/main.rs:748 app/src/main_view.blp:543
+#: app/src/main.rs:749 app/src/main_view.blp:543
 msgid "Quit"
 msgstr ""
 
@@ -298,7 +298,7 @@ msgstr ""
 msgid "Artist"
 msgstr ""
 
-#: app/src/main_view.rs:1759 app/src/album_page.rs:1085
+#: app/src/main_view.rs:1766 app/src/album_page.rs:1085
 #: app/src/now_playing.rs:296 app/src/mini_player.rs:103
 #: app/src/playlist_page.blp:95
 msgid "Play"
@@ -1128,7 +1128,7 @@ msgstr ""
 msgid "Similar to “{title}”"
 msgstr ""
 
-#: app/src/continue_tile.blp:67
+#: app/src/continue_tile.blp:69
 msgid "Now Playing"
 msgstr ""
 

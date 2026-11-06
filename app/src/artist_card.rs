@@ -50,6 +50,9 @@ mod imp {
             // The template uses it.
             ArtistAvatar::static_type();
             klass.bind_template();
+            // A group with a name ("Adele, 5 albums"): the grid's cell is read
+            // by that name; the avatar and the letter only decorate.
+            klass.set_accessible_role(gtk::AccessibleRole::Group);
         }
 
         fn instance_init(obj: &glib::subclass::InitializingObject<Self>) {
@@ -111,7 +114,12 @@ impl ArtistCard {
         self.set_letter(letter);
         imp.avatar.set_text(name);
         imp.name.set_label(name);
-        imp.albums.set_label(&crate::format::albums_text(albums));
+        let count = crate::format::albums_text(albums);
+        imp.albums.set_label(&count);
+        self.update_property(&[gtk::accessible::Property::Label(&crate::a11y::join([
+            name,
+            count.as_str(),
+        ]))]);
         self.fit_names();
 
         imp.avatar.set_picture(None);
@@ -149,10 +157,12 @@ impl ArtistCard {
             .letter
             .borrow_mut()
             .get_or_insert_with(|| {
+                // A mark for the eye; the letter bar says the letters.
                 let label = gtk::Label::builder()
                     .halign(gtk::Align::Start)
                     .valign(gtk::Align::Start)
                     .css_classes(["title-3"])
+                    .accessible_role(gtk::AccessibleRole::Presentation)
                     .build();
                 imp.overlay.add_overlay(&label);
                 label

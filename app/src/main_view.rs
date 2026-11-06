@@ -1703,6 +1703,7 @@ impl MainView {
                     &gtk::Image::builder()
                         .pixel_size(96)
                         .icon_name("audio-x-generic-symbolic")
+                        .accessible_role(gtk::AccessibleRole::Presentation)
                         .build(),
                 )
                 .valign(gtk::Align::Start)
@@ -1720,15 +1721,21 @@ impl MainView {
 
             // A width limit, or the card would ask for the whole name in one
             // line and the flow box would give every card that width.
+            // The whole name on hover, given when asked for: tooltip-text
+            // would be read out as the card's description, the name again.
             let name = gtk::Label::builder()
                 .label(playlist.name.as_str())
-                .tooltip_text(playlist.name.as_str())
+                .has_tooltip(true)
                 .xalign(0.0)
                 .ellipsize(gtk::pango::EllipsizeMode::End)
                 .width_chars(10)
                 .max_width_chars(28)
                 .css_classes(["title-4"])
                 .build();
+            name.connect_query_tooltip(|name, _, _, _, tooltip| {
+                tooltip.set_text(Some(&name.label()));
+                true
+            });
             let numbers = gtk::Label::builder()
                 .label(parts.join(" · "))
                 .xalign(0.0)
@@ -1782,6 +1789,14 @@ impl MainView {
                 .hexpand(true)
                 .css_classes(["card", "playlist-card"])
                 .build();
+            // Read as "Calm Indie, 21 tracks, 1 h 18 min", the description
+            // after it; not with the Play button inside, which has its own.
+            let mut spoken = vec![playlist.name.as_str()];
+            spoken.extend(parts.iter().map(String::as_str));
+            card.update_property(&[gtk::accessible::Property::Label(&crate::a11y::join(spoken))]);
+            if let Some(comment) = playlist.comment.as_deref().filter(|c| !c.trim().is_empty()) {
+                card.update_property(&[gtk::accessible::Property::Description(comment)]);
+            }
             {
                 let id = playlist.id.clone();
                 let name = playlist.name.clone();

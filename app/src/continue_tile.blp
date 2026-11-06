@@ -32,9 +32,11 @@ template $VumiContinueTile: Adw.Bin {
             "recent-tile-cover",
           ]
 
+          // Decoration: the tile's name says the album.
           child: Image {
             icon-name: "media-optical-symbolic";
             pixel-size: 32;
+            accessible-role: presentation;
 
             styles [
               "dim-label",

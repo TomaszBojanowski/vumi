@@ -21,9 +21,11 @@ template $VumiAlbumCard: Box {
         "card",
       ]
 
+      // Pictures that only decorate: the card's name says what it is.
       child: Image {
         icon-name: "audio-x-generic-symbolic";
         pixel-size: 64;
+        accessible-role: presentation;
 
         styles [
           "dim-label",
@@ -33,6 +35,7 @@ template $VumiAlbumCard: Box {
       [overlay]
       Picture cover {
         content-fit: contain;
+        accessible-role: presentation;
       }
     };
   }

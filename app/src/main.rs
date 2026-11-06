@@ -1,3 +1,4 @@
+mod a11y;
 mod about;
 mod album_card;
 mod album_page;
