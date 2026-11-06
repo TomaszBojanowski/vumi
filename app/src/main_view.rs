@@ -1853,9 +1853,9 @@ impl MainView {
                     let message = match failed {
                         Ok(Err(e)) => {
                             eprintln!("Could not fetch the playlist: {e}");
-                            error_message(&e)
+                            crate::error_note(&e)
                         }
-                        _ => gettext("Something went wrong. Please try again."),
+                        _ => gettext("Something went wrong"),
                     };
                     if let Some(view) = view.upgrade() {
                         crate::toast(&view, &message);

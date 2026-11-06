@@ -658,13 +658,23 @@ fn error_message(e: &subsonic::Error) -> String {
     }
 }
 
+/// error_message's short form for a toast, one line at the narrowest window;
+/// the pages, the login page and Preferences keep the full sentences.
+pub(crate) fn error_note(e: &subsonic::Error) -> String {
+    use subsonic::Error::*;
+    match e {
+        WrongCredentials => gettext("Wrong username or password"),
+        Unreachable(_) => gettext("Cannot reach the server"),
+        InvalidAddress(_) => gettext("Invalid server address"),
+        BadResponse(_) => gettext("Not a Subsonic-compatible server"),
+        Server { .. } => error_message(e),
+    }
+}
+
 /// Playing needs the server: a toast says so, and Vumi tries to connect
 /// (unless it did lately). For the places that have no client yet.
 pub(crate) fn cannot_play(near: &impl IsA<gtk::Widget>) {
-    toast(
-        near,
-        &gettext("Cannot play without a connection to the server"),
-    );
+    toast(near, &gettext("Cannot play without a connection"));
     reconnect::wake();
 }
 
@@ -675,6 +685,111 @@ pub(crate) fn toast(near: &impl IsA<gtk::Widget>, text: &str) {
         .and_downcast::<adw::ToastOverlay>()
     {
         toasts.add_toast(plain_toast(text));
+    }
+}
+
+/// What a toast's title has at the narrowest window (366 px): measured on
+/// Adwaita's toast, 2026-11-06.
+const TOAST_TITLE_WIDTH: i32 = 272;
+
+/// A toast with a name in it ("Added to “{name}”", `template` translated): the
+/// name is cut with "…" inside its quotes until the whole text fits in one line
+/// at the narrowest window, so the closing quote always shows. A screen reader
+/// hears the whole name: announced, as a toast reads out only a plain title.
+pub(crate) fn toast_with_name(near: &impl IsA<gtk::Widget>, template: &str, name: &str) {
+    let Some(toasts) = near
+        .ancestor(adw::ToastOverlay::static_type())
+        .and_downcast::<adw::ToastOverlay>()
+    else {
+        return;
+    };
+    let full = template.replace("{name}", name);
+    let shown = fit_name(
+        template,
+        name,
+        &cluster_starts(&toasts, name),
+        |text| toast_title_width(&toasts, text),
+        TOAST_TITLE_WIDTH,
+    );
+    if shown == full {
+        toasts.add_toast(plain_toast(&full));
+        return;
+    }
+    // The title as Adwaita makes it: a "heading" label, cut at its end.
+    let title = gtk::Label::builder()
+        .label(shown.as_str())
+        .css_classes(["heading"])
+        .ellipsize(gtk::pango::EllipsizeMode::End)
+        .xalign(0.0)
+        .build();
+    toasts.add_toast(adw::Toast::builder().custom_title(&title).build());
+    // From the window: Orca ignored it from the toast overlay (2026-11-06).
+    if let Some(window) = toasts.root() {
+        window
+            .upcast_ref::<gtk::Widget>()
+            .announce(&full, gtk::AccessibleAnnouncementPriority::Medium);
+    }
+}
+
+/// The width of `text` as a toast's title (Adwaita's "heading": bold).
+fn toast_title_width(widget: &impl IsA<gtk::Widget>, text: &str) -> i32 {
+    let layout = widget.create_pango_layout(Some(text));
+    let attrs = gtk::pango::AttrList::new();
+    attrs.insert(gtk::pango::AttrInt::new_weight(gtk::pango::Weight::Bold));
+    layout.set_attributes(Some(&attrs));
+    layout.pixel_size().0
+}
+
+/// Where `name` may be cut without splitting a character as the eye sees it
+/// (an emoji with its joiners, a letter with its accents): the starts of its
+/// glyph clusters, as byte offsets, the first left out.
+fn cluster_starts(widget: &impl IsA<gtk::Widget>, name: &str) -> Vec<usize> {
+    let layout = widget.create_pango_layout(Some(name));
+    let mut iter = layout.iter();
+    let mut starts = Vec::new();
+    loop {
+        let index = iter.index() as usize;
+        if index > 0 && index < name.len() && name.is_char_boundary(index) {
+            starts.push(index);
+        }
+        if !iter.next_cluster() {
+            break;
+        }
+    }
+    starts.sort_unstable();
+    starts.dedup();
+    starts
+}
+
+/// `template` with `name`, or when that is wider than `max` (by `width`),
+/// with the longest start of `name` that fits, cut at one of `cuts` (byte
+/// offsets, ascending) and ended with "…" inside the template's quotes.
+fn fit_name(
+    template: &str,
+    name: &str,
+    cuts: &[usize],
+    width: impl Fn(&str) -> i32,
+    max: i32,
+) -> String {
+    let full = template.replace("{name}", name);
+    if width(&full) <= max {
+        return full;
+    }
+    let cut = |end: usize| template.replace("{name}", &format!("{}…", name[..end].trim_end()));
+    // Longer starts are wider: the longest that fits, by halves.
+    let (mut fitting, mut too_wide) = (0, cuts.len() + 1);
+    while too_wide - fitting > 1 {
+        let middle = (fitting + too_wide) / 2;
+        if width(&cut(cuts[middle - 1])) <= max {
+            fitting = middle;
+        } else {
+            too_wide = middle;
+        }
+    }
+    if fitting == 0 {
+        template.replace("{name}", "…")
+    } else {
+        cut(cuts[fitting - 1])
     }
 }
 
@@ -797,6 +912,83 @@ fn show_shortcuts(parent: &impl gtk::prelude::IsA<gtk::Widget>) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Cuts at every character, widths in characters: fit_name's rules
+    /// without a screen (the app cuts at glyph clusters, measured in pixels).
+    fn by_chars(name: &str) -> Vec<usize> {
+        name.char_indices()
+            .map(|(i, _)| i)
+            .filter(|i| *i > 0)
+            .collect()
+    }
+
+    fn chars(text: &str) -> i32 {
+        text.chars().count() as i32
+    }
+
+    #[test]
+    fn a_name_that_fits_stays_whole() {
+        let template = "Added to “{name}”";
+        assert_eq!(
+            fit_name(template, "Calm", &by_chars("Calm"), chars, 30),
+            "Added to “Calm”"
+        );
+    }
+
+    #[test]
+    fn a_long_name_is_cut_inside_its_quotes_as_long_as_it_fits() {
+        let template = "Dodano do „{name}”";
+        for name in [
+            "Muzyka na bardzo długie zimowe wieczory przy kominku",
+            "Ballady 🎸🎶 na długie zimowe wieczory 🔥",
+            "Музыка для долгих зимних вечеров у камина",
+        ] {
+            let shown = fit_name(template, name, &by_chars(name), chars, 30);
+            assert!(shown.ends_with("…”"), "{shown}");
+            assert!(chars(&shown) <= 30, "{shown}");
+            // The longest that fits: one character more would not.
+            let kept = shown
+                .trim_start_matches("Dodano do „")
+                .trim_end_matches("…”");
+            let next = name[kept.len()..].chars().next().unwrap();
+            let longer = format!("Dodano do „{kept}{next}…”");
+            assert!(name.starts_with(kept), "{shown}");
+            assert!(chars(longer.trim_end()) > 30 || next == ' ', "{shown}");
+        }
+    }
+
+    #[test]
+    fn a_name_of_which_nothing_fits_leaves_the_ellipsis() {
+        let template = "Saved as “{name}”";
+        assert_eq!(
+            fit_name(template, "Long name", &by_chars("Long name"), chars, 12),
+            "Saved as “…”"
+        );
+    }
+
+    #[test]
+    fn toasts_have_the_short_error_texts_and_pages_the_full_ones() {
+        let unreachable = subsonic::Error::Unreachable(String::new());
+        assert_eq!(error_note(&unreachable), "Cannot reach the server");
+        assert!(error_message(&unreachable).contains("Check the address"));
+        assert_eq!(
+            error_note(&subsonic::Error::WrongCredentials),
+            "Wrong username or password"
+        );
+        assert_eq!(
+            error_note(&subsonic::Error::InvalidAddress(String::new())),
+            "Invalid server address"
+        );
+        assert_eq!(
+            error_note(&subsonic::Error::BadResponse(String::new())),
+            "Not a Subsonic-compatible server"
+        );
+        let server = subsonic::Error::Server {
+            code: 70,
+            message: "Song not found".into(),
+        };
+        assert_eq!(error_note(&server), error_message(&server));
+    }
 
     /// A server that sends only a code still has its error named.
     #[test]

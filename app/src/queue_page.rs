@@ -428,10 +428,11 @@ impl QueuePage {
                     .await;
                 match result {
                     Ok(Ok(playlist)) => {
-                        crate::toast(
+                        crate::toast_with_name(
                             &page,
                             // Translators: {name} is the name of a playlist.
-                            &gettext("Saved as “{name}”").replace("{name}", &playlist.name),
+                            &gettext("Saved as “{name}”"),
+                            &playlist.name,
                         );
                         // The new playlist shows in the Playlists section.
                         if let Some(main) = page

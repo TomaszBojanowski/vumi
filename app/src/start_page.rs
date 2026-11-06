@@ -512,7 +512,7 @@ impl StartPage {
                         crate::player::get().play(client, songs, 0, crate::player::QueueOf::Songs)
                     }
                     crate::similar::Radio::TooFew => {
-                        crate::toast(button, &gettext("Not enough similar songs to start radio"))
+                        crate::toast(button, &gettext("Not enough similar songs"))
                     }
                     crate::similar::Radio::NoneFound => {
                         crate::toast(button, &gettext("No similar songs found"))

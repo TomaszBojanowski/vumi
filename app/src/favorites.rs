@@ -240,10 +240,7 @@ pub(crate) fn star_button(
                 reverting.set(true);
                 button.set_active(!starred);
                 reverting.set(false);
-                crate::toast(
-                    &button,
-                    &gettext("Could not change favorites. Please try again."),
-                );
+                crate::toast(&button, &gettext("Could not change favorites"));
             }
         });
     });
@@ -283,10 +280,7 @@ pub(crate) fn set(
             .await;
         if !matches!(result, Ok(Ok(()))) {
             if let Some(widget) = widget.upgrade() {
-                crate::toast(
-                    &widget,
-                    &gettext("Could not change favorites. Please try again."),
-                );
+                crate::toast(&widget, &gettext("Could not change favorites"));
             }
             return;
         }

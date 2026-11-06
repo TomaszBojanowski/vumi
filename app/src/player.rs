@@ -337,7 +337,7 @@ impl Player {
             return false;
         }
         if let Some(handler) = self.error_handler.borrow().as_ref() {
-            handler(&gettext("Cannot play without a connection to the server"));
+            handler(&gettext("Cannot play without a connection"));
         }
         crate::reconnect::wake();
         true
@@ -415,7 +415,7 @@ impl Player {
     /// user started that never played leaves the queue and the place in it as
     /// they were before.
     fn server_gone(&self) {
-        let message = gettext("Cannot play without a connection to the server");
+        let message = gettext("Cannot play without a connection");
         let mut state = State::Failed(message.clone());
         if let Some(undo) = self.undo.take() {
             self.queue.replace(undo.queue);
@@ -1392,7 +1392,7 @@ impl Player {
                     // found, but the window says why.
                     eprintln!("Could not extend the radio: {e}");
                     if let Some(handler) = player.error_handler.borrow().as_ref() {
-                        handler(&crate::error_message(&e));
+                        handler(&crate::error_note(&e));
                     }
                     Vec::new()
                 }
@@ -1402,7 +1402,7 @@ impl Player {
                 let _ = player.playbin.set_state(gst::State::Null);
                 player.set_state(State::Ended);
                 if answered && let Some(handler) = player.error_handler.borrow().as_ref() {
-                    handler(&gettext("Endless radio stopped: no more similar songs"));
+                    handler(&gettext("No more similar songs"));
                 }
                 return;
             }
@@ -1774,7 +1774,7 @@ pub(crate) mod tests {
             let told = told.clone();
             player.set_error_handler(move |message| told.borrow_mut().push(message.to_string()));
         }
-        let offline = gettext("Cannot play without a connection to the server");
+        let offline = gettext("Cannot play without a connection");
         let cannot = gettext("Could not play the track");
         let long = Duration::from_secs(15);
 
@@ -1873,7 +1873,7 @@ pub(crate) mod tests {
             let told = told.clone();
             player.set_error_handler(move |message| told.borrow_mut().push(message.to_string()));
         }
-        let offline = gettext("Cannot play without a connection to the server");
+        let offline = gettext("Cannot play without a connection");
         let long = Duration::from_secs(15);
         let a: Rc<[subsonic::Song]> = songs(&["a1", "a2", "a3"]).into();
         let b: Rc<[subsonic::Song]> = songs(&["b1", "b2"]).into();
@@ -2016,7 +2016,7 @@ pub(crate) mod tests {
             let told = told.clone();
             player.set_error_handler(move |message| told.borrow_mut().push(message.to_string()));
         }
-        let offline = gettext("Cannot play without a connection to the server");
+        let offline = gettext("Cannot play without a connection");
         let long = Duration::from_secs(15);
         let current = || player.current().map(|song| song.id);
         player.play(

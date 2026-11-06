@@ -164,7 +164,7 @@ pub(crate) fn install_actions(row: &gtk::Widget, current: &Current) {
             Some(client) => choose_playlist(row, song, client),
             None => crate::toast(
                 row,
-                &crate::error_message(&subsonic::Error::Unreachable(String::new())),
+                &crate::error_note(&subsonic::Error::Unreachable(String::new())),
             ),
         }),
     );
@@ -180,7 +180,7 @@ pub(crate) fn install_actions(row: &gtk::Widget, current: &Current) {
             }
             None => crate::toast(
                 row,
-                &crate::error_message(&subsonic::Error::Unreachable(String::new())),
+                &crate::error_note(&subsonic::Error::Unreachable(String::new())),
             ),
         }),
     );
@@ -369,10 +369,11 @@ fn choose_playlist(parent: &gtk::Widget, song: subsonic::Song, client: subsonic:
                     .await;
                 match result {
                     Ok(Ok(playlist)) => {
-                        crate::toast(
+                        crate::toast_with_name(
                             &main,
                             // Translators: {name} is the name of a playlist.
-                            &gettext("Added to “{name}”").replace("{name}", &playlist.name),
+                            &gettext("Added to “{name}”"),
+                            &playlist.name,
                         );
                         main.sync_playlists();
                     }
@@ -422,10 +423,7 @@ fn choose_playlist(parent: &gtk::Widget, song: subsonic::Song, client: subsonic:
                         .await;
                     match result {
                         Ok(Ok(())) => {
-                            crate::toast(
-                                &main,
-                                &gettext("Added to “{name}”").replace("{name}", &name),
-                            );
+                            crate::toast_with_name(&main, &gettext("Added to “{name}”"), &name);
                             main.sync_playlists();
                         }
                         _ => crate::toast(&main, &gettext("Could not add to the playlist")),
@@ -523,14 +521,14 @@ pub(crate) fn similar_found(
     let note = match result {
         Ok(Ok(songs)) => match crate::similar::radio(seed, &songs) {
             crate::similar::Radio::Play => return Some(songs),
-            crate::similar::Radio::TooFew => gettext("Not enough similar songs to start radio"),
+            crate::similar::Radio::TooFew => gettext("Not enough similar songs"),
             crate::similar::Radio::NoneFound => gettext("No similar songs found"),
         },
         Ok(Err(e)) => {
             eprintln!("Could not fetch similar songs: {e}");
-            crate::error_message(&e)
+            crate::error_note(&e)
         }
-        Err(_) => gettext("Something went wrong. Please try again."),
+        Err(_) => gettext("Something went wrong"),
     };
     if let Some(widget) = widget {
         crate::toast(widget, &note);

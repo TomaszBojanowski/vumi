@@ -184,10 +184,7 @@ impl LoginPage {
                         };
                         eprintln!("Could not save the password: {failure}");
                         if let Some(main) = shown.upgrade() {
-                            crate::toast(
-                                &main,
-                                &gettext("Could not save the password in the keyring"),
-                            );
+                            crate::toast(&main, &gettext("Could not save the password"));
                         }
                     });
                     // As at startup: the local copy first, the server after it.

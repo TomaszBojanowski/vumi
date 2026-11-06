@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vumi\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-06 20:27+0100\n"
+"POT-Creation-Date: 2026-11-06 22:55+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -152,9 +152,8 @@ msgstr ""
 msgid "Could not read the password from the keyring"
 msgstr ""
 
-#: app/src/main.rs:611 app/src/main_view.rs:1858 app/src/login_page.rs:204
-#: app/src/album_page.rs:282 app/src/artist_page.rs:163
-#: app/src/song_menu.rs:533 app/src/playlist_page.rs:127
+#: app/src/main.rs:611 app/src/login_page.rs:201 app/src/album_page.rs:282
+#: app/src/artist_page.rs:163 app/src/playlist_page.rs:127
 msgid "Something went wrong. Please try again."
 msgstr ""
 
@@ -186,69 +185,85 @@ msgstr ""
 msgid "Server error: {message}"
 msgstr ""
 
-#: app/src/main.rs:666 app/src/player.rs:340 app/src/player.rs:418
-#: app/src/player.rs:1777 app/src/player.rs:1876 app/src/player.rs:2019
-msgid "Cannot play without a connection to the server"
+#: app/src/main.rs:666
+msgid "Wrong username or password"
 msgstr ""
 
-#: app/src/main.rs:722
+#: app/src/main.rs:667
+msgid "Cannot reach the server"
+msgstr ""
+
+#: app/src/main.rs:668
+msgid "Invalid server address"
+msgstr ""
+
+#: app/src/main.rs:669
+msgid "Not a Subsonic-compatible server"
+msgstr ""
+
+#: app/src/main.rs:677 app/src/player.rs:340 app/src/player.rs:418
+#: app/src/player.rs:1777 app/src/player.rs:1876 app/src/player.rs:2019
+msgid "Cannot play without a connection"
+msgstr ""
+
+#: app/src/main.rs:837
 msgid "A music player for Navidrome and other Subsonic servers"
 msgstr ""
 
-#: app/src/main.rs:724
+#: app/src/main.rs:839
 msgid "translator-credits"
 msgstr ""
 
-#: app/src/main.rs:730
+#: app/src/main.rs:845
 msgid "Buy Me a Coffee"
 msgstr ""
 
-#: app/src/main.rs:734
+#: app/src/main.rs:849
 msgid "Built With"
 msgstr ""
 
-#: app/src/main.rs:764 app/src/preferences.blp:203
+#: app/src/main.rs:879 app/src/preferences.blp:203
 msgid "Playback"
 msgstr ""
 
-#: app/src/main.rs:766
+#: app/src/main.rs:881
 msgid "Play or Pause"
 msgstr ""
 
-#: app/src/main.rs:767
+#: app/src/main.rs:882
 msgid "Previous Track"
 msgstr ""
 
-#: app/src/main.rs:768
+#: app/src/main.rs:883
 msgid "Next Track"
 msgstr ""
 
-#: app/src/main.rs:772 app/src/main_view.blp:146 app/src/preferences.blp:146
+#: app/src/main.rs:887 app/src/main_view.blp:146 app/src/preferences.blp:146
 #: app/src/preferences.blp:157
 msgid "Library"
 msgstr ""
 
-#: app/src/main.rs:774
+#: app/src/main.rs:889
 msgid "Search Library"
 msgstr ""
 
-#: app/src/main.rs:775 app/src/main_view.blp:53 app/src/main_view.blp:523
+#: app/src/main.rs:890 app/src/main_view.blp:53 app/src/main_view.blp:523
 msgid "Sync Library"
 msgstr ""
 
-#: app/src/main.rs:779 app/src/preferences.blp:13
+#: app/src/main.rs:894 app/src/preferences.blp:13
 msgid "General"
 msgstr ""
 
-#: app/src/main.rs:781 app/src/main_view.blp:530
+#: app/src/main.rs:896 app/src/main_view.blp:530
 msgid "Preferences"
 msgstr ""
 
-#: app/src/main.rs:782 app/src/main_view.blp:535
+#: app/src/main.rs:897 app/src/main_view.blp:535
 msgid "Keyboard Shortcuts"
 msgstr ""
 
-#: app/src/main.rs:783 app/src/main_view.blp:545
+#: app/src/main.rs:898 app/src/main_view.blp:545
 msgid "Quit"
 msgstr ""
 
@@ -291,11 +306,11 @@ msgstr ""
 msgid "Recently Starred"
 msgstr ""
 
-#: app/src/main_view.rs:1561 app/src/song_menu.rs:455
+#: app/src/main_view.rs:1561 app/src/song_menu.rs:453
 msgid "Title"
 msgstr ""
 
-#: app/src/main_view.rs:1562 app/src/main_view.blp:463 app/src/song_menu.rs:456
+#: app/src/main_view.rs:1562 app/src/main_view.blp:463 app/src/song_menu.rs:454
 msgid "Artist"
 msgstr ""
 
@@ -303,6 +318,10 @@ msgstr ""
 #: app/src/now_playing.rs:321 app/src/mini_player.rs:129
 #: app/src/playlist_page.blp:95
 msgid "Play"
+msgstr ""
+
+#: app/src/main_view.rs:1858 app/src/song_menu.rs:531
+msgid "Something went wrong"
 msgstr ""
 
 #: app/src/main_view.blp:32
@@ -357,7 +376,7 @@ msgstr ""
 msgid "Collections"
 msgstr ""
 
-#: app/src/main_view.blp:343 app/src/main_view.blp:349 app/src/song_menu.rs:389
+#: app/src/main_view.blp:343 app/src/main_view.blp:349 app/src/song_menu.rs:390
 msgid "Playlists"
 msgstr ""
 
@@ -402,7 +421,7 @@ msgstr ""
 msgid "Queue"
 msgstr ""
 
-#: app/src/main_view.blp:514 app/src/song_menu.rs:459
+#: app/src/main_view.blp:514 app/src/song_menu.rs:457
 msgid "Track"
 msgstr ""
 
@@ -414,8 +433,8 @@ msgstr ""
 msgid "Connect"
 msgstr ""
 
-#: app/src/login_page.rs:189
-msgid "Could not save the password in the keyring"
+#: app/src/login_page.rs:187
+msgid "Could not save the password"
 msgstr ""
 
 #: app/src/login_page.blp:15
@@ -535,7 +554,7 @@ msgstr ""
 msgid "Shuffle"
 msgstr ""
 
-#: app/src/album_page.blp:67 app/src/song_menu.rs:458
+#: app/src/album_page.blp:67 app/src/song_menu.rs:456
 msgid "Album"
 msgstr ""
 
@@ -554,16 +573,16 @@ msgctxt "star button"
 msgid "Favorite"
 msgstr ""
 
-#: app/src/favorites.rs:165 app/src/queue_page.rs:642 app/src/song_menu.rs:253
+#: app/src/favorites.rs:165 app/src/queue_page.rs:643 app/src/song_menu.rs:253
 msgid "Remove from Favorites"
 msgstr ""
 
-#: app/src/favorites.rs:167 app/src/queue_page.rs:644 app/src/song_menu.rs:255
+#: app/src/favorites.rs:167 app/src/queue_page.rs:645 app/src/song_menu.rs:255
 msgid "Add to Favorites"
 msgstr ""
 
-#: app/src/favorites.rs:245 app/src/favorites.rs:288
-msgid "Could not change favorites. Please try again."
+#: app/src/favorites.rs:243 app/src/favorites.rs:283
+msgid "Could not change favorites"
 msgstr ""
 
 #: app/src/favorites_header.blp:54
@@ -766,7 +785,7 @@ msgstr ""
 msgid "Show Less"
 msgstr ""
 
-#: app/src/now_playing.blp:37 app/src/queue_page.rs:649
+#: app/src/now_playing.blp:37 app/src/queue_page.rs:650
 #: app/src/song_menu.rs:268
 msgid "Go to Album"
 msgstr ""
@@ -801,7 +820,7 @@ msgid "Could not start playback"
 msgstr ""
 
 #: app/src/player.rs:1405
-msgid "Endless radio stopped: no more similar songs"
+msgid "No more similar songs"
 msgstr ""
 
 #: app/src/start_page.blp:49
@@ -1050,40 +1069,40 @@ msgstr ""
 msgid "Saved as “{name}”"
 msgstr ""
 
-#: app/src/queue_page.rs:444
+#: app/src/queue_page.rs:445
 msgid "Could not save the playlist"
 msgstr ""
 
 #. Translators: {time} is a short duration, e.g. "12 min" or "1 h 5 min".
-#: app/src/queue_page.rs:475
+#: app/src/queue_page.rs:476
 #, rust-format
 msgid "{time} left"
 msgstr ""
 
 #. Translators: in the queue, moves the track to right after the current
 #. one (elsewhere "Play Next" adds a track to the queue).
-#: app/src/queue_page.rs:632
+#: app/src/queue_page.rs:633
 msgctxt "queue"
 msgid "Play Next"
 msgstr ""
 
-#: app/src/queue_page.rs:634
+#: app/src/queue_page.rs:635
 msgid "Remove from Queue"
 msgstr ""
 
-#: app/src/queue_page.rs:638 app/src/song_menu.rs:249
+#: app/src/queue_page.rs:639 app/src/song_menu.rs:249
 msgid "Add to Playlist…"
 msgstr ""
 
-#: app/src/queue_page.rs:650 app/src/song_menu.rs:270
+#: app/src/queue_page.rs:651 app/src/song_menu.rs:270
 msgid "Go to Artist"
 msgstr ""
 
-#: app/src/queue_page.rs:651 app/src/song_menu.rs:273 app/src/song_menu.rs:506
+#: app/src/queue_page.rs:652 app/src/song_menu.rs:273 app/src/song_menu.rs:504
 msgid "Song Information"
 msgstr ""
 
-#: app/src/queue_page.rs:656 app/src/song_menu.rs:262
+#: app/src/queue_page.rs:657 app/src/song_menu.rs:262
 msgid "Play Similar"
 msgstr ""
 
@@ -1112,48 +1131,48 @@ msgid "Add to Playlist"
 msgstr ""
 
 #. Translators: {name} is the name of a playlist.
-#: app/src/song_menu.rs:375 app/src/song_menu.rs:427
+#: app/src/song_menu.rs:375 app/src/song_menu.rs:426
 #, rust-format
 msgid "Added to “{name}”"
 msgstr ""
 
-#: app/src/song_menu.rs:379 app/src/song_menu.rs:431
+#: app/src/song_menu.rs:380 app/src/song_menu.rs:429
 msgid "Could not add to the playlist"
 msgstr ""
 
-#: app/src/song_menu.rs:457
+#: app/src/song_menu.rs:455
 msgid "Composer"
 msgstr ""
 
-#: app/src/song_menu.rs:460
+#: app/src/song_menu.rs:458
 msgid "Disc"
 msgstr ""
 
-#: app/src/song_menu.rs:461
+#: app/src/song_menu.rs:459
 msgid "Duration"
 msgstr ""
 
-#: app/src/song_menu.rs:463
+#: app/src/song_menu.rs:461
 msgid "Format"
 msgstr ""
 
-#: app/src/song_menu.rs:468
+#: app/src/song_menu.rs:466
 msgid "Bit Depth"
 msgstr ""
 
-#: app/src/song_menu.rs:472
+#: app/src/song_menu.rs:470
 msgid "Sample Rate"
 msgstr ""
 
-#: app/src/song_menu.rs:476
+#: app/src/song_menu.rs:474
 msgid "Bit Rate"
 msgstr ""
 
-#: app/src/song_menu.rs:526 app/src/start_page.rs:515
-msgid "Not enough similar songs to start radio"
+#: app/src/song_menu.rs:524 app/src/start_page.rs:515
+msgid "Not enough similar songs"
 msgstr ""
 
-#: app/src/song_menu.rs:527 app/src/start_page.rs:518
+#: app/src/song_menu.rs:525 app/src/start_page.rs:518
 msgid "No similar songs found"
 msgstr ""
 
