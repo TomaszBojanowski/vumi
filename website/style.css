@@ -229,6 +229,9 @@ figcaption {
   margin-top: 26px;
 }
 
+/* The queue and offline: two wide windows side by side. */
+.shot-row.pair { grid-template-columns: 1fr 1fr; }
+
 /* The Tuner: the whole card (its corners are in the picture) and the text
    side by side. */
 .tuner {
@@ -394,7 +397,7 @@ footer p { margin: 0 0 12px; }
   .app-icon { width: 104px; height: 104px; }
   .hero h1 { font-size: 2.2rem; }
   .summary { font-size: 1.18rem; }
-  .shot-row { grid-template-columns: 1fr; }
+  .shot-row, .shot-row.pair { grid-template-columns: 1fr; }
   .narrow-shot { max-width: 62%; margin: 0 auto; }
   main > section { padding-top: 40px; }
   .tuner {

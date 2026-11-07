@@ -42,36 +42,67 @@
 
 <main>
   <section class="shots" aria-label="Screenshots">
-    <figure class="shot main-shot">
+    <figure class="shot main-shot" data-pl="Strona startowa z ostatnio słuchanymi albumami i Strojeniem">
       <picture>
-        <source media="(prefers-color-scheme: dark)" srcset="screenshots/dark-1-start.webp">
-        <img src="screenshots/light-1-start.webp" width="1400" height="1005" alt="The Start page with recently played albums and the Tuner">
+        <source media="(prefers-color-scheme: dark)" srcset="screenshots/en-dark-1-start.webp">
+        <img src="screenshots/en-light-1-start.webp" width="1400" height="1005" alt="The Start page with recently played albums and the Tuner">
       </picture>
       <figcaption>The Start page with recently played albums and the Tuner</figcaption>
     </figure>
     <div class="shot-row">
-      <figure class="shot">
+      <figure class="shot" data-pl="Strona albumu z jego utworami">
         <picture>
-          <source media="(prefers-color-scheme: dark)" srcset="screenshots/dark-2-album.webp">
-          <img src="screenshots/light-2-album.webp" width="1400" height="1005" loading="lazy" alt="An album page with its tracks and audio quality">
+          <source media="(prefers-color-scheme: dark)" srcset="screenshots/en-dark-2-album.webp">
+          <img src="screenshots/en-light-2-album.webp" width="1400" height="1005" loading="lazy" alt="An album page with its tracks">
         </picture>
-        <figcaption>An album page with its tracks and audio quality</figcaption>
+        <figcaption>An album page with its tracks</figcaption>
       </figure>
-      <figure class="shot">
+      <figure class="shot" data-pl="Lista odtwarzania do przestawiania, skracania i zmiany nazwy">
         <picture>
-          <source media="(prefers-color-scheme: dark)" srcset="screenshots/dark-3-search.webp">
-          <img src="screenshots/light-3-search.webp" width="1400" height="1005" loading="lazy" alt="Search results with albums and songs">
+          <source media="(prefers-color-scheme: dark)" srcset="screenshots/en-dark-3-playlist.webp">
+          <img src="screenshots/en-light-3-playlist.webp" width="1400" height="1005" loading="lazy" alt="A playlist to reorder, trim and rename">
         </picture>
-        <figcaption>Search results with albums and songs</figcaption>
+        <figcaption>A playlist to reorder, trim and rename</figcaption>
       </figure>
-      <figure class="shot narrow-shot">
+      <figure class="shot narrow-shot" data-pl="Wąskie okno, jak na telefonie">
         <picture>
-          <source media="(prefers-color-scheme: dark)" srcset="screenshots/dark-4-narrow.webp">
-          <img src="screenshots/light-4-narrow.webp" width="600" height="1010" loading="lazy" alt="A narrow window with the compact player bar">
+          <source media="(prefers-color-scheme: dark)" srcset="screenshots/en-dark-5-narrow.webp">
+          <img src="screenshots/en-light-5-narrow.webp" width="600" height="1081" loading="lazy" alt="A narrow window, as on a phone">
         </picture>
-        <figcaption>A narrow window with the compact player bar</figcaption>
+        <figcaption>A narrow window, as on a phone</figcaption>
       </figure>
     </div>
+    <div class="shot-row pair">
+      <figure class="shot" data-pl="Kolejka odtwarzania nad biblioteką">
+        <picture>
+          <source media="(prefers-color-scheme: dark)" srcset="screenshots/en-dark-4-queue.webp">
+          <img src="screenshots/en-light-4-queue.webp" width="1400" height="1005" loading="lazy" alt="The play queue over the library">
+        </picture>
+        <figcaption>The play queue over the library</figcaption>
+      </figure>
+      <figure class="shot" data-pl="Bez połączenia biblioteka zapisana na tym komputerze zostaje pod ręką">
+        <picture>
+          <source media="(prefers-color-scheme: dark)" srcset="screenshots/en-dark-6-offline.webp">
+          <img src="screenshots/en-light-6-offline.webp" width="1400" height="1005" loading="lazy" alt="Offline, the library saved on this computer stays at hand">
+        </picture>
+        <figcaption>Offline, the library saved on this computer stays at hand</figcaption>
+      </figure>
+    </div>
+    <script>
+      // A browser set to Polish gets the screenshots in Polish, as Vumi itself
+      // would be; the page stays in English.
+      if (/^pl\b/i.test(navigator.language || "")) {
+        for (const figure of document.querySelectorAll(".shots figure[data-pl]")) {
+          for (const image of figure.querySelectorAll("source, img")) {
+            const attribute = image.tagName === "IMG" ? "src" : "srcset";
+            image.setAttribute(attribute, image.getAttribute(attribute).replace("/en-", "/pl-"));
+          }
+          figure.lang = "pl";
+          figure.querySelector("img").alt = figure.dataset.pl;
+          figure.querySelector("figcaption").textContent = figure.dataset.pl;
+        }
+      }
+    </script>
   </section>
 
   <section class="tuner" aria-labelledby="tuner-title">
