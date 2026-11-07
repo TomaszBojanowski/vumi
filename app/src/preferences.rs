@@ -448,9 +448,7 @@ impl Preferences {
                 if let Some(dialog) = dialog.upgrade() {
                     dialog.update_cache_size();
                     if !matches!(result, Ok(Ok(()))) {
-                        dialog.add_toast(crate::plain_toast(&gettext(
-                            "Could not clear the cover cache",
-                        )));
+                        dialog.add_toast(crate::plain_toast(&gettext("Could not clear the cache")));
                     }
                 }
                 if let Some(button) = button.upgrade() {

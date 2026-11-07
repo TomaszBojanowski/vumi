@@ -676,7 +676,7 @@ pub(crate) fn error_note(e: &subsonic::Error) -> String {
 /// Playing needs the server: a toast says so, and Vumi tries to connect
 /// (unless it did lately). For the places that have no client yet.
 pub(crate) fn cannot_play(near: &impl IsA<gtk::Widget>) {
-    toast(near, &gettext("Cannot play without a connection"));
+    toast(near, &gettext("Playback needs a connection"));
     reconnect::wake();
 }
 

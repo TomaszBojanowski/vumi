@@ -392,7 +392,7 @@ fn choose_playlist(parent: &gtk::Widget, song: subsonic::Song, client: subsonic:
                         );
                         main.sync_playlists();
                     }
-                    _ => crate::toast(&main, &gettext("Could not add to the playlist")),
+                    _ => crate::toast(&main, &gettext("Could not add to playlist")),
                 }
             });
         });
@@ -448,7 +448,7 @@ fn choose_playlist(parent: &gtk::Widget, song: subsonic::Song, client: subsonic:
                             crate::toast_with_name(&main, &gettext("Added to “{name}”"), &name);
                             main.sync_playlists();
                         }
-                        _ => crate::toast(&main, &gettext("Could not add to the playlist")),
+                        _ => crate::toast(&main, &gettext("Could not add to playlist")),
                     }
                 });
             });

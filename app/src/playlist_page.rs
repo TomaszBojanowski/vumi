@@ -413,7 +413,7 @@ impl PlaylistPage {
         let page = self.downgrade();
         let note = crate::toast_with_button(
             self,
-            &gettext("Removed from the playlist"),
+            &gettext("Removed from playlist"),
             &gettext("Undo"),
             move || {
                 if let Some(page) = page.upgrade() {
