@@ -59,6 +59,9 @@ pub struct Client {
     http: reqwest::Client,
     /// For ping_fresh: keeps no connection (made on the first check).
     fresh: Arc<std::sync::OnceLock<reqwest::Client>>,
+    /// Whether the server takes parameters in a POST body (the OpenSubsonic
+    /// formPost extension); asked once, by the first call that sends a list.
+    form_post: Arc<std::sync::OnceLock<bool>>,
 }
 
 /// How long an answer may take. A NAS waking its disks, or busy with other
@@ -230,7 +233,13 @@ impl Client {
             password: password.into(),
             http: http_client(true),
             fresh: Arc::default(),
+            form_post: Arc::default(),
         }
+    }
+
+    /// The user name the client logs in with.
+    pub fn user(&self) -> &str {
+        &self.user
     }
 
     /// Subsonic token auth: t = md5(password + salt), so the password never goes over the wire.
@@ -269,6 +278,45 @@ impl Client {
     /// Calls a Subsonic endpoint and turns a non-"ok" status into a typed error.
     async fn call(&self, endpoint: &str, extra: &[(&'static str, String)]) -> Result<Response> {
         self.call_with(&self.http, endpoint, extra).await
+    }
+
+    /// call() for parameters that can be long (a list of songs): in a POST
+    /// body where the server takes one (formPost), so the URL stays short; a
+    /// long URL can be refused by a proxy in front of the server. The login
+    /// stays in the URL.
+    async fn call_long(
+        &self,
+        endpoint: &str,
+        extra: &[(&'static str, String)],
+    ) -> Result<Response> {
+        let post = match self.form_post.get() {
+            Some(post) => *post,
+            None => match self.extensions().await {
+                Ok(names) => *self
+                    .form_post
+                    .get_or_init(|| names.iter().any(|name| name == "formPost")),
+                // Not known yet (no connection, say): asked again next time.
+                Err(_) => false,
+            },
+        };
+        if !post {
+            return self.call(endpoint, extra).await;
+        }
+        let url = self.build_url(endpoint, &[])?;
+        let envelope: Envelope = self
+            .http
+            .post(url)
+            .form(extra)
+            .send()
+            .await?
+            .error_for_status()?
+            .json()
+            .await?;
+        let response = envelope.response;
+        if response.status == "ok" {
+            return Ok(response);
+        }
+        Err(failure(response))
     }
 
     /// call() through `http`.
@@ -663,6 +711,12 @@ pub struct Playlist {
     pub duration: Option<u32>,
     pub created: Option<String>,
     pub cover_art: Option<String>,
+    /// The user name of whoever made it.
+    pub owner: Option<String>,
+    /// OpenSubsonic: true when its songs cannot be changed (Navidrome: a
+    /// smart playlist, one kept in step with a file, another user's). None
+    /// on servers that do not say.
+    pub readonly: Option<bool>,
 }
 
 #[derive(Deserialize)]
@@ -678,9 +732,13 @@ pub struct PlaylistWithSongs {
     pub id: String,
     pub name: String,
     pub comment: Option<String>,
+    /// All its songs. Navidrome counts the songs it leaves out of `entry`
+    /// too: files missing from the library, libraries the user cannot see.
     pub song_count: Option<u32>,
     pub duration: Option<u32>,
     pub cover_art: Option<String>,
+    pub owner: Option<String>,
+    pub readonly: Option<bool>,
     #[serde(default)]
     pub entry: Vec<Song>,
 }
@@ -722,10 +780,62 @@ impl Client {
     ) -> Result<PlaylistWithSongs> {
         let mut params = vec![("name", name.to_string())];
         params.extend(song_ids.iter().map(|id| ("songId", id.to_string())));
-        let response = self.call("createPlaylist", &params).await?;
+        let response = self.call_long("createPlaylist", &params).await?;
         response
             .playlist
             .ok_or_else(|| Error::BadResponse("missing playlist in response".into()))
+    }
+
+    /// Replaces the songs of a playlist with `song_ids`, in that order
+    /// (createPlaylist with its id: Subsonic has no call to move a song);
+    /// returns the playlist as the server has it now. Never with no songs:
+    /// a playlist is not emptied this way.
+    pub async fn set_playlist_songs(
+        &self,
+        id: &str,
+        song_ids: &[&str],
+    ) -> Result<PlaylistWithSongs> {
+        if song_ids.is_empty() {
+            return Err(Error::BadResponse(
+                "a playlist's songs are not replaced with none".into(),
+            ));
+        }
+        let mut params = vec![("playlistId", id.to_string())];
+        params.extend(song_ids.iter().map(|id| ("songId", id.to_string())));
+        let response = self.call_long("createPlaylist", &params).await?;
+        response
+            .playlist
+            .ok_or_else(|| Error::BadResponse("missing playlist in response".into()))
+    }
+
+    /// Takes the song at `index` (from 0, in playlist order) out of a playlist.
+    pub async fn remove_from_playlist(&self, id: &str, index: usize) -> Result<()> {
+        self.call(
+            "updatePlaylist",
+            &[
+                ("playlistId", id.to_string()),
+                ("songIndexToRemove", index.to_string()),
+            ],
+        )
+        .await?;
+        Ok(())
+    }
+
+    /// Gives a playlist a new name.
+    pub async fn rename_playlist(&self, id: &str, name: &str) -> Result<()> {
+        self.call(
+            "updatePlaylist",
+            &[("playlistId", id.to_string()), ("name", name.to_string())],
+        )
+        .await?;
+        Ok(())
+    }
+
+    /// Deletes a playlist from the server.
+    pub async fn delete_playlist(&self, id: &str) -> Result<()> {
+        self.call("deletePlaylist", &[("id", id.to_string())])
+            .await?;
+        Ok(())
     }
 
     /// Appends songs to a playlist.

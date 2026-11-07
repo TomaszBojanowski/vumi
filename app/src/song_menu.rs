@@ -383,8 +383,15 @@ fn choose_playlist(parent: &gtk::Widget, song: subsonic::Song, client: subsonic:
         });
     }
 
-    // The existing playlists.
-    let playlists = main.playlists();
+    // The existing playlists that take songs (not smart playlists or other
+    // users' ones: adding to those fails).
+    let playlists: Vec<subsonic::Playlist> = main
+        .playlists()
+        .into_iter()
+        .filter(|p| {
+            crate::playlist_edit::rights(p.owner.as_deref(), p.readonly, client.user()).songs
+        })
+        .collect();
     if !playlists.is_empty() {
         let group = adw::PreferencesGroup::builder()
             .title(gettext("Playlists"))

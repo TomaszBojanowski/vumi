@@ -25,6 +25,7 @@ mod offline_banner;
 #[cfg(test)]
 mod playbin_tests;
 mod player;
+mod playlist_edit;
 mod playlist_page;
 mod preferences;
 mod queue_page;

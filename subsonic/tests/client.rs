@@ -774,7 +774,11 @@ mod playlists {
         assert_eq!(full.duration, Some(5521));
         assert_eq!(full.created.as_deref(), Some("2026-04-12T09:00:00.5Z"));
         assert_eq!(full.cover_art.as_deref(), Some("pl-playlist-1_66fa0b11"));
+        assert_eq!(full.owner.as_deref(), Some("anna"));
+        assert_eq!(full.readonly, Some(false));
         let empty = &playlists[1];
+        // A server that does not say (no OpenSubsonic field).
+        assert!(empty.readonly.is_none());
         assert!(empty.comment.is_none());
         assert!(empty.cover_art.is_none());
         assert_eq!(empty.song_count, Some(0));
@@ -848,8 +852,217 @@ mod playlists {
 
         assert_eq!(playlist.id, "playlist-9");
         assert_eq!(ids(&playlist.entry, |s| &s.id), ["song-1", "song-2"]);
-        let url = &received(&server).await[0];
+        // Asked first whether the server takes a POST body: this one does
+        // not answer that, so the songs go in the URL.
+        let urls = received(&server).await;
+        let url = urls
+            .iter()
+            .find(|u| u.path() == "/rest/createPlaylist")
+            .unwrap();
         assert_eq!(all_values(url, "songId"), ["song-1", "song-2"]);
+    }
+
+    /// The server's extensions: formPost or none.
+    async fn extensions(server: &MockServer, form_post: bool) {
+        let names = if form_post {
+            json!([{ "name": "formPost", "versions": [1] }])
+        } else {
+            json!([{ "name": "songLyrics", "versions": [1] }])
+        };
+        endpoint("getOpenSubsonicExtensions")
+            .respond_with(ok_with(json!({ "openSubsonicExtensions": names })))
+            .expect(1)
+            .mount(server)
+            .await;
+    }
+
+    /// The playlist as createPlaylist answers it, with `songs` in order.
+    fn playlist_with(songs: &[&str]) -> ResponseTemplate {
+        let entry: Vec<Value> = songs
+            .iter()
+            .map(|id| json!({ "id": id, "title": id }))
+            .collect();
+        ok_with(json!({
+            "playlist": {
+                "id": "playlist-1",
+                "name": "Sunday Morning",
+                "songCount": songs.len(),
+                "owner": "anna",
+                "readonly": false,
+                "entry": entry,
+            }
+        }))
+    }
+
+    /// The parameters of a form body, in order.
+    fn form(body: &[u8]) -> Vec<(String, String)> {
+        let body = std::str::from_utf8(body).expect("a form body is text");
+        reqwest::Url::parse(&format!("http://form/?{body}"))
+            .unwrap()
+            .query_pairs()
+            .into_owned()
+            .collect()
+    }
+
+    #[tokio::test]
+    async fn new_songs_go_in_a_post_body_where_the_server_takes_one() {
+        let (server, client) = start().await;
+        extensions(&server, true).await;
+        Mock::given(method("POST"))
+            .and(path("/rest/createPlaylist"))
+            .and(SignedBy::new(USER, PASSWORD))
+            .respond_with(playlist_with(&["song-2", "song-1", "song-2"]))
+            .expect(2)
+            .mount(&server)
+            .await;
+
+        let playlist = client
+            .set_playlist_songs("playlist-1", &["song-2", "song-1", "song-2"])
+            .await
+            .unwrap();
+        // The second call does not ask for the extensions again (expect(1)).
+        client
+            .set_playlist_songs("playlist-1", &["song-2", "song-1", "song-2"])
+            .await
+            .unwrap();
+
+        assert_eq!(
+            ids(&playlist.entry, |s| &s.id),
+            ["song-2", "song-1", "song-2"]
+        );
+        let requests = server.received_requests().await.unwrap();
+        let post = requests
+            .iter()
+            .find(|r| r.url.path() == "/rest/createPlaylist")
+            .unwrap();
+        // Order and repeats kept; the login in the URL, the songs not.
+        let body = form(&post.body);
+        let songs: Vec<&str> = body
+            .iter()
+            .filter(|(k, _)| k == "songId")
+            .map(|(_, v)| v.as_str())
+            .collect();
+        assert_eq!(songs, ["song-2", "song-1", "song-2"]);
+        assert!(
+            body.iter()
+                .any(|(k, v)| k == "playlistId" && v == "playlist-1")
+        );
+        assert!(all_values(&post.url, "songId").is_empty());
+        check_auth(&post.url, USER, PASSWORD).unwrap();
+        assert!(!body.iter().any(|(k, _)| k == "t" || k == "p"));
+    }
+
+    #[tokio::test]
+    async fn new_songs_go_in_the_url_where_the_server_takes_no_post() {
+        let (server, client) = start().await;
+        extensions(&server, false).await;
+        endpoint("createPlaylist")
+            .and(query_param("playlistId", "playlist-1"))
+            .respond_with(playlist_with(&["song-3", "song-1"]))
+            .expect(1)
+            .mount(&server)
+            .await;
+
+        client
+            .set_playlist_songs("playlist-1", &["song-3", "song-1"])
+            .await
+            .unwrap();
+
+        let urls = received(&server).await;
+        let url = urls
+            .iter()
+            .find(|u| u.path() == "/rest/createPlaylist")
+            .unwrap();
+        assert_eq!(all_values(url, "songId"), ["song-3", "song-1"]);
+    }
+
+    #[tokio::test]
+    async fn a_new_playlist_from_many_songs_goes_in_a_post_body_too() {
+        let (server, client) = start().await;
+        extensions(&server, true).await;
+        Mock::given(method("POST"))
+            .and(path("/rest/createPlaylist"))
+            .and(SignedBy::new(USER, PASSWORD))
+            .respond_with(playlist_with(&["song-1"]))
+            .expect(1)
+            .mount(&server)
+            .await;
+
+        client
+            .create_playlist("Road Trip", &["song-1"])
+            .await
+            .unwrap();
+
+        let requests = server.received_requests().await.unwrap();
+        let post = requests
+            .iter()
+            .find(|r| r.url.path() == "/rest/createPlaylist")
+            .unwrap();
+        assert!(form(&post.body).contains(&("name".into(), "Road Trip".into())));
+    }
+
+    #[tokio::test]
+    async fn a_playlist_is_never_emptied_by_new_songs() {
+        let (server, client) = start().await;
+
+        let result = client.set_playlist_songs("playlist-1", &[]).await;
+
+        assert!(matches!(error(result), Error::BadResponse(_)));
+        assert!(received(&server).await.is_empty());
+    }
+
+    #[tokio::test]
+    async fn a_song_is_removed_by_its_index() {
+        let (server, client) = start().await;
+        endpoint("updatePlaylist")
+            .and(query_param("playlistId", "playlist-1"))
+            .and(query_param("songIndexToRemove", "4"))
+            .and(query_param_is_missing("songIdToAdd"))
+            .respond_with(ok_with(json!({})))
+            .expect(1)
+            .mount(&server)
+            .await;
+
+        client.remove_from_playlist("playlist-1", 4).await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn rename_and_delete_name_the_playlist() {
+        let (server, client) = start().await;
+        endpoint("updatePlaylist")
+            .and(query_param("playlistId", "playlist-1"))
+            .and(query_param("name", "Night & Day"))
+            .and(query_param_is_missing("songIndexToRemove"))
+            .respond_with(ok_with(json!({})))
+            .expect(1)
+            .mount(&server)
+            .await;
+        endpoint("deletePlaylist")
+            .and(query_param("id", "playlist-1"))
+            .respond_with(ok_with(json!({})))
+            .expect(1)
+            .mount(&server)
+            .await;
+
+        client
+            .rename_playlist("playlist-1", "Night & Day")
+            .await
+            .unwrap();
+        client.delete_playlist("playlist-1").await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn a_refusal_is_the_servers_error() {
+        let (server, client) = start().await;
+        endpoint("deletePlaylist")
+            .respond_with(failed(50, "User not authorized for the given operation"))
+            .expect(1)
+            .mount(&server)
+            .await;
+
+        let result = client.delete_playlist("playlist-1").await;
+
+        assert!(matches!(error(result), Error::Server { code: 50, .. }));
     }
 
     #[tokio::test]
