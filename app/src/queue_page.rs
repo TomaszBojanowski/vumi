@@ -27,6 +27,8 @@ mod imp {
     #[template(file = "src/queue_page.blp")]
     pub struct QueuePage {
         #[template_child]
+        pub hide_button: gtk::TemplateChild<gtk::Button>,
+        #[template_child]
         pub summary: gtk::TemplateChild<gtk::Label>,
         #[template_child]
         pub actions: gtk::TemplateChild<gtk::Box>,

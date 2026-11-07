@@ -277,6 +277,7 @@ impl MainView {
         view.setup_grid();
         view.setup_artists_grid();
         view.setup_queue();
+        view.setup_overlays();
         view.setup_sections();
         view.setup_playlists();
         view.setup_favorites();
@@ -1323,6 +1324,44 @@ fn pop_all_to_root(widget: &gtk::Widget) {
     }
 }
 
+/// `shown` (the sidebar's or the queue's split view) has shown or hidden its
+/// panel; when it shows it over the content while `other` does too, `other`
+/// hides and the focus goes into the panel shown (setup_overlays).
+fn one_overlay(shown: &adw::OverlaySplitView, other: &adw::OverlaySplitView) {
+    let both = shown.shows_sidebar() && other.shows_sidebar();
+    if !(both && shown.is_collapsed() && other.is_collapsed()) {
+        return;
+    }
+    other.set_show_sidebar(false);
+    if let Some(panel) = shown.sidebar() {
+        focus_into(panel);
+    }
+}
+
+/// Moves the focus into `panel` once it is on screen, unless it is there
+/// already (Ctrl+F puts it in the search field itself).
+fn focus_into(panel: gtk::Widget) {
+    fn focus(panel: &gtk::Widget) {
+        let focused = panel.root().and_then(|root| root.focus());
+        if !focused.is_some_and(|widget| widget.is_ancestor(panel)) {
+            panel.child_focus(gtk::DirectionType::TabForward);
+        }
+    }
+    if panel.is_mapped() {
+        glib::idle_add_local_once(move || focus(&panel));
+        return;
+    }
+    // A panel sliding in is mapped with the first frame of the slide.
+    let handler = Rc::new(RefCell::new(None));
+    let once = handler.clone();
+    *handler.borrow_mut() = Some(panel.connect_map(move |panel| {
+        if let Some(handler) = once.borrow_mut().take() {
+            panel.disconnect(handler);
+        }
+        focus(panel);
+    }));
+}
+
 impl MainView {
     /// Fetches the artists with their pictures; the grid is rebuilt from them.
     /// Until then (and offline) the albums in memory stand in.
@@ -2319,11 +2358,53 @@ impl MainView {
         });
     }
 
+    /// One overlay at a time. In a narrow window the sidebar and the queue
+    /// both slide in over the content, the sidebar above the queue: the queue
+    /// opened from the sidebar's player card would open under it, and Ctrl+F
+    /// would put the sidebar over an open queue. So showing one hides the
+    /// other, and the focus goes into the one shown (keyboard and screen
+    /// readers). With the sidebar beside the content nothing changes.
+    fn setup_overlays(&self) {
+        let imp = self.imp();
+        let split = imp.split.get();
+        let queue_split = imp.queue_split.get();
+        let other = queue_split.downgrade();
+        split.connect_show_sidebar_notify(move |split| {
+            if let Some(queue_split) = other.upgrade() {
+                one_overlay(split, &queue_split);
+            }
+        });
+        let other = split.downgrade();
+        queue_split.connect_show_sidebar_notify(move |queue_split| {
+            if let Some(split) = other.upgrade() {
+                one_overlay(queue_split, &split);
+            }
+        });
+    }
+
     /// The queue panel is pinned (main_view.blp), so it stays as it was left.
     /// On a narrow window it hides, as it would cover the page; widening
     /// brings it back if it was open before, or was opened meanwhile.
+    /// Over the content the queue has a button of its own that hides it;
+    /// Escape, a click on the uncovered content and a swipe do too (Adwaita).
     fn setup_queue(&self) {
         let split = self.imp().queue_split.get();
+        if let Some(queue) = split
+            .sidebar()
+            .and_downcast::<crate::queue_page::QueuePage>()
+        {
+            let hide = queue.imp().hide_button.get();
+            split
+                .bind_property("collapsed", &hide, "visible")
+                .sync_create()
+                .build();
+            let split = split.downgrade();
+            hide.connect_clicked(move |_| {
+                if let Some(split) = split.upgrade() {
+                    split.set_show_sidebar(false);
+                }
+            });
+        }
         // The content beside the queue is laid out once per slide, at the
         // width the slide will leave it (steady_bin.rs).
         if let Some(content) = split.content() {

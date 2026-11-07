@@ -8,6 +8,17 @@ template $VumiQueuePage: Adw.Bin {
   child: Adw.ToolbarView {
     [top]
     Adw.HeaderBar {
+      // Hides the queue while it lies over the content (shown from
+      // main_view.rs, setup_queue): in the narrowest windows it covers the
+      // whole window and a pointer has nothing else to close it with. The
+      // mirror of the sidebar's own "Hide Sidebar" button.
+      [start]
+      Button hide_button {
+        icon-name: "sidebar-show-right-symbolic";
+        tooltip-text: _("Hide Queue");
+        visible: false;
+      }
+
       title-widget: Adw.WindowTitle {
         title: _("Queue");
       };
