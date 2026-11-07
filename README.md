@@ -57,7 +57,7 @@ Website: [vumi.bojanowski.me](https://vumi.bojanowski.me/)
 
 - **Keeps playing** after the window is closed, with MPRIS controls in GNOME Shell.
 - **Light and dark style**, with colors taken from the album cover (optional).
-- **Narrow and low windows:** down to 366 px wide, with a compact player bar.
+- **Narrow and low windows:** down to 360 px wide, with a compact player bar.
 - **Keyboard shortcuts:** Ctrl+? lists them all.
 
 <p align="center">
