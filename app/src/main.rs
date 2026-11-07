@@ -70,6 +70,14 @@ const LOCALEDIR: &str = match option_env!("LOCALEDIR") {
     Some(dir) => dir,
     None => "/app/share/locale",
 };
+// Where Meson installs the resource bundle; the fallback matches the Flatpak.
+const PKGDATADIR: &str = match option_env!("PKGDATADIR") {
+    Some(dir) => dir,
+    None => "/app/share/vumi",
+};
+// The translated metainfo in that bundle: the About dialog's "What's New".
+const METAINFO: &str =
+    "/io/github/tomaszbojanowski/Vumi/io.github.tomaszbojanowski.Vumi.metainfo.xml";
 
 fn main() -> glib::ExitCode {
     START.get_or_init(Instant::now);
@@ -80,6 +88,7 @@ fn main() -> glib::ExitCode {
     gettextrs::bind_textdomain_codeset(GETTEXT_PACKAGE, "UTF-8")
         .expect("failed to set text domain encoding");
     gettextrs::textdomain(GETTEXT_PACKAGE).expect("failed to set text domain");
+    load_resources();
 
     let app = adw::Application::builder().application_id(APP_ID).build();
     app.connect_startup(|app| {
@@ -846,26 +855,38 @@ fn load_css() {
     }
 }
 
+/// Registers the resource bundle Meson installs. A plain cargo build has
+/// none; About then shows no release notes.
+fn load_resources() {
+    let path = std::path::Path::new(PKGDATADIR).join("vumi.gresource");
+    if !path.exists() {
+        return;
+    }
+    match gio::Resource::load(&path) {
+        Ok(resource) => gio::resources_register(&resource),
+        Err(error) => eprintln!("Could not load {}: {error}", path.display()),
+    }
+}
+
 /// The About dialog: what the app is, who made it, what it builds on, and the
 /// versions a bug report needs.
 fn show_about(parent: &impl gtk::prelude::IsA<gtk::Widget>) {
-    let dialog = adw::AboutDialog::builder()
-        .application_name("Vumi")
-        .application_icon(APP_ID)
-        .developer_name("Tomasz Bojanowski")
-        .developers(["Tomasz Bojanowski"])
-        .version(env!("CARGO_PKG_VERSION"))
-        .website("https://vumi.bojanowski.me")
-        .issue_url("https://github.com/TomaszBojanowski/vumi/issues")
-        .copyright("© 2026 Tomasz Bojanowski")
-        .license_type(gtk::License::Gpl30)
-        .comments(gettext(
-            "A music player for Navidrome and other Subsonic servers",
-        ))
-        .translator_credits(gettext("translator-credits"))
-        .debug_info(debug_info())
-        .debug_info_filename("vumi-debug.txt")
-        .build();
+    let dialog = about_dialog();
+    dialog.set_application_name("Vumi");
+    dialog.set_application_icon(APP_ID);
+    dialog.set_developer_name("Tomasz Bojanowski");
+    dialog.set_developers(&["Tomasz Bojanowski"]);
+    dialog.set_version(env!("CARGO_PKG_VERSION"));
+    dialog.set_website("https://vumi.bojanowski.me");
+    dialog.set_issue_url("https://github.com/TomaszBojanowski/vumi/issues");
+    dialog.set_copyright("© 2026 Tomasz Bojanowski");
+    dialog.set_license_type(gtk::License::Gpl30);
+    dialog.set_comments(&gettext(
+        "A music player for Navidrome and other Subsonic servers",
+    ));
+    dialog.set_translator_credits(&gettext("translator-credits"));
+    dialog.set_debug_info(&debug_info());
+    dialog.set_debug_info_filename("vumi-debug.txt");
     // A way to support the author; it sits with the dialog's other links.
     dialog.add_link(
         &gettext("Buy Me a Coffee"),
@@ -879,6 +900,34 @@ fn show_about(parent: &impl gtk::prelude::IsA<gtk::Widget>) {
         ],
     );
     dialog.present(Some(parent));
+}
+
+/// The About dialog with "What's New": libadwaita reads the notes of the
+/// newest release from the metainfo, in the user's language. A build before
+/// the version bump shows the coming release's notes.
+fn about_dialog() -> adw::AboutDialog {
+    let newest = gio::resources_lookup_data(METAINFO, gio::ResourceLookupFlags::NONE)
+        .ok()
+        .and_then(|data| {
+            std::str::from_utf8(&data)
+                .ok()
+                .and_then(newest_release)
+                .map(str::to_owned)
+        });
+    match newest {
+        Some(version) => adw::AboutDialog::from_appdata(METAINFO, Some(&version)),
+        None => adw::AboutDialog::new(),
+    }
+}
+
+/// The version of the first release in a metainfo file, the newest one:
+/// AppStream lists releases newest first.
+fn newest_release(metainfo: &str) -> Option<&str> {
+    let release = &metainfo[metainfo.find("<release ")?..];
+    let tag = &release[..release.find('>')?];
+    let start = tag.find("version=\"")? + "version=\"".len();
+    let end = start + tag[start..].find('"')?;
+    Some(&tag[start..end])
 }
 
 /// Versions of the app and the libraries under it, for bug reports.
@@ -1035,5 +1084,25 @@ mod tests {
             message: "Album not found".into(),
         };
         assert!(error_message(&e).contains("Album not found"));
+    }
+
+    #[test]
+    fn newest_release_is_the_first_in_the_metainfo() {
+        let metainfo = r#"<releases>
+    <release date="2026-11-07" version="0.2.0">
+      <description><p>New</p></description>
+    </release>
+    <release version="0.1.3" date="2026-11-04"/>
+  </releases>"#;
+        assert_eq!(newest_release(metainfo), Some("0.2.0"));
+        assert_eq!(newest_release("<releases></releases>"), None);
+        // A release tag without a version does not take the next one's.
+        assert_eq!(
+            newest_release(r#"<release date="x"/><release version="1"/>"#),
+            None
+        );
+        // The app's own metainfo names its newest release.
+        let ours = include_str!("../../data/io.github.tomaszbojanowski.Vumi.metainfo.xml.in");
+        assert!(newest_release(ours).is_some());
     }
 }

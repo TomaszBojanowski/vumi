@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vumi\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-07 14:39+0100\n"
+"POT-Creation-Date: 2026-11-07 15:12+0100\n"
 "PO-Revision-Date: 2026-09-27 20:40+0200\n"
 "Last-Translator: Tomasz Bojanowski <tomasz@bojanowski.me>\n"
 "Language-Team: Polish\n"
@@ -87,29 +87,72 @@ msgstr "Wąskie okno z małym paskiem odtwarzacza"
 
 #: data/io.github.tomaszbojanowski.Vumi.metainfo.xml.in:64
 msgid ""
+"Vumi 0.2 lets you change your playlists and keeps working without the "
+"network."
+msgstr "Vumi 0.2 pozwala zmieniać listy odtwarzania i działa dalej bez sieci."
+
+#: data/io.github.tomaszbojanowski.Vumi.metainfo.xml.in:66
+msgid ""
+"Playlists can be renamed and deleted, and their songs removed with Undo or "
+"moved."
+msgstr ""
+"Można zmieniać nazwy list odtwarzania i usuwać listy, a utwory usuwać z "
+"możliwością cofnięcia lub przesuwać."
+
+#: data/io.github.tomaszbojanowski.Vumi.metainfo.xml.in:67
+msgid ""
+"Offline, the library saved on this computer stays at hand, and Vumi connects "
+"again by itself."
+msgstr ""
+"Bez połączenia biblioteka zapisana na tym komputerze zostaje pod ręką, a "
+"Vumi samo łączy się ponownie."
+
+#: data/io.github.tomaszbojanowski.Vumi.metainfo.xml.in:68
+msgid "Listens recorded while offline are sent once the connection is back."
+msgstr "Odsłuchania zapisane bez połączenia są wysyłane po jego przywróceniu."
+
+#: data/io.github.tomaszbojanowski.Vumi.metainfo.xml.in:69
+msgid "The window narrows to 360 px, with large text too."
+msgstr "Okno zwęża się do 360 px, także z dużym tekstem."
+
+#: data/io.github.tomaszbojanowski.Vumi.metainfo.xml.in:70
+msgid "A new album page, with the genre and the record label."
+msgstr "Nowa strona albumu, z gatunkiem i wytwórnią."
+
+#: data/io.github.tomaszbojanowski.Vumi.metainfo.xml.in:71
+msgid "Add to Favorites and Remove from Favorites in every song menu."
+msgstr "„Dodaj do ulubionych” i „Usuń z ulubionych” w menu każdego utworu."
+
+#: data/io.github.tomaszbojanowski.Vumi.metainfo.xml.in:72
+msgid "Screen readers announce cards and buttons and follow the player."
+msgstr ""
+"Czytniki ekranu odczytują nazwy kart i przycisków oraz śledzą odtwarzacz."
+
+#: data/io.github.tomaszbojanowski.Vumi.metainfo.xml.in:78
+msgid ""
 "Vumi 0.1.3 starts faster and uses less memory. On a library of 651 albums "
 "from a Navidrome server in the local network:"
 msgstr ""
 "Vumi 0.1.3 uruchamia się szybciej i zużywa mniej pamięci. Przy bibliotece "
 "651 albumów z serwera Navidrome w sieci lokalnej:"
 
-#: data/io.github.tomaszbojanowski.Vumi.metainfo.xml.in:66
+#: data/io.github.tomaszbojanowski.Vumi.metainfo.xml.in:80
 msgid ""
 "With a saved login, the library is on screen in 0.22 s instead of 0.45 s."
 msgstr ""
 "Przy zapisanym logowaniu biblioteka jest na ekranie po 0,22 s zamiast 0,45 s."
 
-#: data/io.github.tomaszbojanowski.Vumi.metainfo.xml.in:67
+#: data/io.github.tomaszbojanowski.Vumi.metainfo.xml.in:81
 msgid "While idle, Vumi uses 133 MB of memory instead of 224 MB."
 msgstr "W spoczynku Vumi zużywa 133 MB pamięci zamiast 224 MB."
 
-#: data/io.github.tomaszbojanowski.Vumi.metainfo.xml.in:68
+#: data/io.github.tomaszbojanowski.Vumi.metainfo.xml.in:82
 msgid "The start is smoother, and so is the first time Artists opens."
 msgstr ""
 "Uruchamianie jest płynniejsze, podobnie jak pierwsze otwarcie sekcji "
 "„Wykonawcy”."
 
-#: data/io.github.tomaszbojanowski.Vumi.metainfo.xml.in:74
+#: data/io.github.tomaszbojanowski.Vumi.metainfo.xml.in:88
 msgid ""
 "Vumi 0.1.2 is about speed. On a library of 651 albums from a Navidrome "
 "server in the local network:"
@@ -117,7 +160,7 @@ msgstr ""
 "Vumi 0.1.2 stawia na szybkość. Przy bibliotece 651 albumów z serwera "
 "Navidrome w sieci lokalnej:"
 
-#: data/io.github.tomaszbojanowski.Vumi.metainfo.xml.in:76
+#: data/io.github.tomaszbojanowski.Vumi.metainfo.xml.in:90
 msgid ""
 "While music plays in the background, Vumi uses 0.45 % of one CPU core "
 "instead of 6.8 %."
@@ -125,11 +168,11 @@ msgstr ""
 "Podczas odtwarzania w tle Vumi zużywa 0,45 % jednego rdzenia procesora "
 "zamiast 6,8 %."
 
-#: data/io.github.tomaszbojanowski.Vumi.metainfo.xml.in:77
+#: data/io.github.tomaszbojanowski.Vumi.metainfo.xml.in:91
 msgid "Search results are on screen in 186 ms instead of 387 ms."
 msgstr "Wyniki wyszukiwania są na ekranie po 186 ms zamiast 387 ms."
 
-#: data/io.github.tomaszbojanowski.Vumi.metainfo.xml.in:78
+#: data/io.github.tomaszbojanowski.Vumi.metainfo.xml.in:92
 msgid ""
 "Album pages open and close more smoothly, and so does a change of year on "
 "the Tuner."
@@ -137,7 +180,7 @@ msgstr ""
 "Strony albumów otwierają się i zamykają płynniej, podobnie jak zmiana roku w "
 "Strojeniu."
 
-#: data/io.github.tomaszbojanowski.Vumi.metainfo.xml.in:79
+#: data/io.github.tomaszbojanowski.Vumi.metainfo.xml.in:93
 msgid ""
 "Fixes from a code audit: the screen after a failed login, server errors "
 "without a message, the same song twice in a list, album lengths, and Log Out."
@@ -145,7 +188,7 @@ msgstr ""
 "Poprawki z audytu kodu: ekran po nieudanym logowaniu, błędy serwera bez "
 "komunikatu, ten sam utwór dwa razy na liście, długość albumów i wylogowanie."
 
-#: data/io.github.tomaszbojanowski.Vumi.metainfo.xml.in:80
+#: data/io.github.tomaszbojanowski.Vumi.metainfo.xml.in:94
 msgid ""
 "One permission fewer: the media controls' bus name, which Flatpak grants "
 "anyway."
@@ -153,7 +196,7 @@ msgstr ""
 "O jedno uprawnienie mniej: nazwa sterowania multimediami na magistrali "
 "sesji, którą Flatpak i tak przyznaje."
 
-#: data/io.github.tomaszbojanowski.Vumi.metainfo.xml.in:86
+#: data/io.github.tomaszbojanowski.Vumi.metainfo.xml.in:100
 msgid ""
 "Vumi's media controls (MPRIS) now use its app ID as the player name, and "
 "About Vumi links to the new website, vumi.bojanowski.me."
@@ -162,7 +205,7 @@ msgstr ""
 "jako nazwy odtwarzacza, a okno „O aplikacji Vumi” prowadzi do nowej strony "
 "vumi.bojanowski.me."
 
-#: data/io.github.tomaszbojanowski.Vumi.metainfo.xml.in:91
+#: data/io.github.tomaszbojanowski.Vumi.metainfo.xml.in:105
 msgid ""
 "The first release: a fast player for Navidrome and other Subsonic servers, "
 "with the library kept on the computer, gapless playback, and similar songs "
@@ -172,132 +215,132 @@ msgstr ""
 "Subsonic, z biblioteką przechowywaną na komputerze, odtwarzaniem bez przerw "
 "oraz podobnymi utworami i radiem z AudioMuse-AI."
 
-#: app/src/main.rs:420
+#: app/src/main.rs:429
 msgid "Could not remove the password from the keyring"
 msgstr "Nie można usunąć hasła z bazy kluczy"
 
-#: app/src/main.rs:530
+#: app/src/main.rs:539
 msgid "Playback Stopped"
 msgstr "Odtwarzanie przerwane"
 
-#: app/src/main.rs:608
+#: app/src/main.rs:617
 msgid "Could not read the password from the keyring"
 msgstr "Nie można odczytać hasła z bazy kluczy"
 
-#: app/src/main.rs:613 app/src/login_page.rs:201 app/src/album_page.rs:282
+#: app/src/main.rs:622 app/src/login_page.rs:201 app/src/album_page.rs:282
 #: app/src/artist_page.rs:163 app/src/playlist_page.rs:312
 msgid "Something went wrong. Please try again."
 msgstr "Wystąpił nieoczekiwany błąd. Spróbuj ponownie."
 
-#: app/src/main.rs:643
+#: app/src/main.rs:652
 msgid "Wrong username or password."
 msgstr "Nieprawidłowa nazwa użytkownika lub hasło."
 
-#: app/src/main.rs:645
+#: app/src/main.rs:654
 msgid "Cannot reach the server. Check the address and your connection."
 msgstr ""
 "Nie uzyskano połączenia z serwerem. Sprawdź adres i połączenie sieciowe."
 
-#: app/src/main.rs:648
+#: app/src/main.rs:657
 msgid "Invalid server address. It should start with http:// or https://"
 msgstr ""
 "Nieprawidłowy adres serwera. Adres musi zaczynać się od http:// lub https://"
 
-#: app/src/main.rs:651
+#: app/src/main.rs:660
 msgid "The server answered, but it does not look like a Subsonic server."
 msgstr "Serwer odpowiedział, ale nie wygląda na serwer zgodny z Subsonic."
 
 #. Translators: {code} is the number of the error sent by the server.
-#: app/src/main.rs:656
+#: app/src/main.rs:665
 #, rust-format
 msgid "Server error (code {code})"
 msgstr "Błąd serwera (kod {code})"
 
 #. Translators: {message} is the error text sent by the server.
-#: app/src/main.rs:659
+#: app/src/main.rs:668
 #, rust-format
 msgid "Server error: {message}"
 msgstr "Błąd serwera: {message}"
 
-#: app/src/main.rs:668
+#: app/src/main.rs:677
 msgid "Wrong username or password"
 msgstr "Nieprawidłowe dane logowania"
 
-#: app/src/main.rs:669
+#: app/src/main.rs:678
 msgid "Cannot reach the server"
 msgstr "Nie można połączyć się z serwerem"
 
-#: app/src/main.rs:670
+#: app/src/main.rs:679
 msgid "Invalid server address"
 msgstr "Nieprawidłowy adres serwera"
 
-#: app/src/main.rs:671
+#: app/src/main.rs:680
 msgid "Not a Subsonic-compatible server"
 msgstr "Serwer nie jest zgodny z Subsonic"
 
-#: app/src/main.rs:679 app/src/player.rs:340 app/src/player.rs:418
+#: app/src/main.rs:688 app/src/player.rs:340 app/src/player.rs:418
 #: app/src/player.rs:1777 app/src/player.rs:1876 app/src/player.rs:2024
 msgid "Playback needs a connection"
 msgstr "Odtwarzanie wymaga połączenia"
 
-#: app/src/main.rs:863
+#: app/src/main.rs:885
 msgid "A music player for Navidrome and other Subsonic servers"
 msgstr "Odtwarzacz muzyki dla serwera Navidrome i innych serwerów Subsonic"
 
-#: app/src/main.rs:865
+#: app/src/main.rs:887
 msgid "translator-credits"
 msgstr "Tomasz Bojanowski <tomasz@bojanowski.me>"
 
-#: app/src/main.rs:871
+#: app/src/main.rs:892
 msgid "Buy Me a Coffee"
 msgstr "Postaw kawę"
 
-#: app/src/main.rs:875
+#: app/src/main.rs:896
 msgid "Built With"
 msgstr "Wykorzystane projekty"
 
-#: app/src/main.rs:905 app/src/preferences.blp:203
+#: app/src/main.rs:954 app/src/preferences.blp:203
 msgid "Playback"
 msgstr "Odtwarzanie"
 
-#: app/src/main.rs:907
+#: app/src/main.rs:956
 msgid "Play or Pause"
 msgstr "Odtworzenie lub wstrzymanie"
 
-#: app/src/main.rs:908
+#: app/src/main.rs:957
 msgid "Previous Track"
 msgstr "Poprzedni utwór"
 
-#: app/src/main.rs:909
+#: app/src/main.rs:958
 msgid "Next Track"
 msgstr "Następny utwór"
 
-#: app/src/main.rs:913 app/src/main_view.blp:150 app/src/preferences.blp:146
+#: app/src/main.rs:962 app/src/main_view.blp:150 app/src/preferences.blp:146
 #: app/src/preferences.blp:157
 msgid "Library"
 msgstr "Biblioteka"
 
-#: app/src/main.rs:915
+#: app/src/main.rs:964
 msgid "Search Library"
 msgstr "Wyszukiwanie w bibliotece"
 
-#: app/src/main.rs:916 app/src/main_view.blp:57 app/src/main_view.blp:527
+#: app/src/main.rs:965 app/src/main_view.blp:57 app/src/main_view.blp:527
 msgid "Sync Library"
 msgstr "Synchronizuj bibliotekę"
 
-#: app/src/main.rs:920 app/src/preferences.blp:13
+#: app/src/main.rs:969 app/src/preferences.blp:13
 msgid "General"
 msgstr "Ogólne"
 
-#: app/src/main.rs:922 app/src/main_view.blp:534
+#: app/src/main.rs:971 app/src/main_view.blp:534
 msgid "Preferences"
 msgstr "Preferencje"
 
-#: app/src/main.rs:923 app/src/main_view.blp:539
+#: app/src/main.rs:972 app/src/main_view.blp:539
 msgid "Keyboard Shortcuts"
 msgstr "Skróty klawiszowe"
 
-#: app/src/main.rs:924 app/src/main_view.blp:549
+#: app/src/main.rs:973 app/src/main_view.blp:549
 msgid "Quit"
 msgstr "Zakończ"
 

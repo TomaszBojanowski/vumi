@@ -21,6 +21,18 @@ metainfo = i18n.merge_file(
   install_dir: get_option('datadir') / 'metainfo',
 )
 
+# "What's New" in the About dialog: libadwaita reads the release notes from
+# the translated metainfo, which the app loads as a resource bundle.
+gnome.compile_resources(
+  meson.project_name(),
+  'vumi.gresource.xml',
+  gresource_bundle: true,
+  source_dir: meson.current_build_dir(),
+  dependencies: metainfo,
+  install: true,
+  install_dir: get_option('datadir') / meson.project_name(),
+)
+
 appstreamcli = find_program('appstreamcli', required: false)
 if appstreamcli.found()
   test(

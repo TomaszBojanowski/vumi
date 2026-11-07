@@ -59,6 +59,20 @@
   </screenshots>
 
   <releases>
+    <release version="0.2.0" date="2026-11-07">
+      <description>
+        <p>Vumi 0.2 lets you change your playlists and keeps working without the network.</p>
+        <ul>
+          <li>Playlists can be renamed and deleted, and their songs removed with Undo or moved.</li>
+          <li>Offline, the library saved on this computer stays at hand, and Vumi connects again by itself.</li>
+          <li>Listens recorded while offline are sent once the connection is back.</li>
+          <li>The window narrows to 360 px, with large text too.</li>
+          <li>A new album page, with the genre and the record label.</li>
+          <li>Add to Favorites and Remove from Favorites in every song menu.</li>
+          <li>Screen readers announce cards and buttons and follow the player.</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.1.3" date="2026-11-04">
       <description>
         <p>Vumi 0.1.3 starts faster and uses less memory. On a library of 651 albums from a Navidrome server in the local network:</p>

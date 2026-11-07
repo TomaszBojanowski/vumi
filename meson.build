@@ -10,12 +10,13 @@ i18n = import('i18n')
 
 application_id = 'io.github.tomaszbojanowski.Vumi'
 localedir = get_option('prefix') / get_option('localedir')
+pkgdatadir = get_option('prefix') / get_option('datadir') / meson.project_name()
 
 subdir('data')
 subdir('po')
 
 # Meson drives cargo; the binary is copied into the build dir and installed.
-# LOCALEDIR is read by the Rust code at compile time (option_env!).
+# LOCALEDIR and PKGDATADIR are read by the Rust code at compile time (option_env!).
 cargo = find_program('cargo')
 cargo_target_dir = meson.project_build_root() / 'target'
 
@@ -34,6 +35,7 @@ custom_target(
     meson.project_source_root() / 'Cargo.toml',
     cargo_target_dir,
     localedir,
+    pkgdatadir,
     meson.project_name(),
     '@OUTPUT@',
   ],

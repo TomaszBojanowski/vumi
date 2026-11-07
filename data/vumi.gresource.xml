@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The translated metainfo: the About dialog shows its release notes. -->
+<gresources>
+  <gresource prefix="/io/github/tomaszbojanowski/Vumi">
+    <file>io.github.tomaszbojanowski.Vumi.metainfo.xml</file>
+  </gresource>
+</gresources>
