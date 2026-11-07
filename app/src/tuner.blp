@@ -61,35 +61,42 @@ template $VumiTuner: Adw.Bin {
         }
       }
 
-      // At the foot of the header, level with the count.
-      Box buttons {
+      // At the foot of the header, level with the count. Under the year (a
+      // narrow page) "Play This Year" goes on a line of its own under ‹ ›,
+      // as wide as the card, when its whole name does not fit beside them
+      // (play_row.rs).
+      $VumiPlayRow buttons {
         valign: end;
-        spacing: 10;
 
-        Button prev_button {
-          icon-name: "go-previous-symbolic";
-          tooltip-text: _("Previous Year");
-          valign: center;
+        Box arrows {
+          spacing: 10;
 
-          styles [
-            "circular",
-          ]
-        }
+          Button prev_button {
+            icon-name: "go-previous-symbolic";
+            tooltip-text: _("Previous Year");
+            valign: center;
 
-        Button next_button {
-          icon-name: "go-next-symbolic";
-          tooltip-text: _("Next Year");
-          valign: center;
+            styles [
+              "circular",
+            ]
+          }
 
-          styles [
-            "circular",
-          ]
+          Button next_button {
+            icon-name: "go-next-symbolic";
+            tooltip-text: _("Next Year");
+            valign: center;
+
+            styles [
+              "circular",
+            ]
+          }
         }
 
         Button play_button {
           valign: center;
 
-          // Under the year it may be shortened (set_compact).
+          // Shortened only when even a line of its own is too narrow
+          // (set_compact).
           child: Adw.ButtonContent play_content {
             icon-name: "vumi-radio-symbolic";
             label: _("Play This Year");

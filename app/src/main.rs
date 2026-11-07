@@ -22,6 +22,7 @@ mod mini_player;
 mod mpris;
 mod now_playing;
 mod offline_banner;
+mod play_row;
 #[cfg(test)]
 mod playbin_tests;
 mod player;
@@ -329,7 +330,7 @@ fn build_ui(app: &adw::Application) {
     let window = adw::ApplicationWindow::builder()
         .application(app)
         .title(APP_NAME)
-        .width_request(366)
+        .width_request(WINDOW_MIN_WIDTH)
         .height_request(294)
         .content(&toasts)
         .build();
@@ -689,9 +690,14 @@ pub(crate) fn toast(near: &impl IsA<gtk::Widget>, text: &str) {
     }
 }
 
-/// What a toast's title has at the narrowest window (366 px): measured on
-/// Adwaita's toast, 2026-11-06.
-const TOAST_TITLE_WIDTH: i32 = 272;
+/// The narrowest window, the smallest GNOME designs for (phones): every page
+/// and dialog fits it.
+const WINDOW_MIN_WIDTH: i32 = 360;
+
+/// What a toast's title has in the narrowest window: the window less the
+/// toast's own margins, padding and close button, 94 px (measured on
+/// Adwaita's toast at 366 and at 360 px, 2026-11-06 and 07).
+const TOAST_TITLE_WIDTH: i32 = WINDOW_MIN_WIDTH - 94;
 
 /// A note with a button (Undo, say) at the bottom of the window `near` is
 /// in; `clicked` runs when the button is used. Returns the toast, so the

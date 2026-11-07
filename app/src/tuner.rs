@@ -39,7 +39,9 @@ mod imp {
         #[template_child]
         pub count_label: gtk::TemplateChild<gtk::Label>,
         #[template_child]
-        pub buttons: gtk::TemplateChild<gtk::Box>,
+        pub buttons: gtk::TemplateChild<crate::play_row::PlayRow>,
+        #[template_child]
+        pub arrows: gtk::TemplateChild<gtk::Box>,
         #[template_child]
         pub prev_button: gtk::TemplateChild<gtk::Button>,
         #[template_child]
@@ -80,6 +82,7 @@ mod imp {
 
         fn class_init(klass: &mut Self::Class) {
             YearScale::static_type();
+            crate::play_row::PlayRow::static_type();
             crate::tint_layer::TintCard::static_type();
             klass.bind_template();
         }
@@ -132,6 +135,7 @@ impl Tuner {
             move |_| tuner.play_year()
         ));
         imp.play_button.set_sensitive(false);
+        imp.buttons.set_spacing(10);
 
         let rows = [LazyRow::new(), LazyRow::new()];
         imp.rows.add_named(rows[0].widget(), Some("a"));
@@ -214,19 +218,20 @@ impl Tuner {
             return;
         }
         // Under the year the buttons stand closer: the narrowest window
-        // leaves just their width. There "Play This Year" may be shortened
-        // rather than widening the page (large text); beside the year it
-        // keeps its width and the count wraps instead.
+        // leaves just their width. There "Play This Year" goes under ‹ ›
+        // when its whole name does not fit beside them (play_row.rs), and is
+        // shortened only when even that line is too narrow; beside the year
+        // it keeps its width and the count wraps instead.
         imp.play_content.set_can_shrink(compact);
-        if compact {
-            imp.header.set_orientation(gtk::Orientation::Vertical);
-            imp.buttons.set_halign(gtk::Align::Start);
-            imp.buttons.set_spacing(6);
+        let spacing = if compact { 6 } else { 10 };
+        imp.header.set_orientation(if compact {
+            gtk::Orientation::Vertical
         } else {
-            imp.header.set_orientation(gtk::Orientation::Horizontal);
-            imp.buttons.set_halign(gtk::Align::Fill);
-            imp.buttons.set_spacing(10);
-        }
+            gtk::Orientation::Horizontal
+        });
+        imp.buttons.set_spacing(spacing);
+        imp.arrows.set_spacing(spacing);
+        imp.buttons.set_stacking(compact);
     }
 
     /// The year, its count and the ‹ › that lead somewhere, at once; the row

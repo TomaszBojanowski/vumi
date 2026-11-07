@@ -6,14 +6,18 @@ translation-domain "vumi";
 template $VumiMainView: Adw.NavigationPage {
   // Lets the layout react to the window width (see the breakpoint at the end).
   child: Adw.BreakpointBin {
-    width-request: 366;
+    width-request: 360;
     height-request: 294;
 
     child: Adw.OverlaySplitView split {
       // A fixed width, wide enough for the now-playing card, so the
       // sidebar does not grow (and shift the content) when the card appears.
+      // In px, not the default sp: with Large Text 300sp is 375 px, and the
+      // sidebar sliding in over the content would make the whole view wider
+      // than the 360 px window. Its items shorten instead.
       min-sidebar-width: 300;
       max-sidebar-width: 300;
+      sidebar-width-unit: px;
       // Navigation on the left; its items and sections come from the pages of "views".
       // A bin of its own, for the height: on the window's bin a height
       // breakpoint would take turns with the width ones at the end of this
@@ -378,7 +382,7 @@ template $VumiMainView: Adw.NavigationPage {
                       // of cards, whatever it shows: two columns as its own
                       // minimum would leave no room for the queue beside it.
                       child: Adw.BreakpointBin {
-                        width-request: 366;
+                        width-request: 360;
                         height-request: 150;
 
                         child: ScrolledWindow {

@@ -1730,15 +1730,21 @@ impl MainView {
             }
 
             // A width limit, or the card would ask for the whole name in one
-            // line and the flow box would give every card that width.
+            // line and the flow box would give every card that width. No
+            // minimum in characters: it grows with the text size and made
+            // the cards wider than a 360 px window with Large Text. A long
+            // name takes two lines before it is cut with "…", so names
+            // that begin alike can still be told apart.
             // The whole name on hover, given when asked for: tooltip-text
             // would be read out as the card's description, the name again.
             let name = gtk::Label::builder()
                 .label(playlist.name.as_str())
                 .has_tooltip(true)
                 .xalign(0.0)
+                .wrap(true)
+                .wrap_mode(gtk::pango::WrapMode::WordChar)
+                .lines(2)
                 .ellipsize(gtk::pango::EllipsizeMode::End)
-                .width_chars(10)
                 .max_width_chars(28)
                 .css_classes(["title-4"])
                 .build();
