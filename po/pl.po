@@ -72,7 +72,7 @@ msgstr ""
 #: data/io.github.tomaszbojanowski.Vumi.metainfo.xml.in:44
 #: data/io.github.tomaszbojanowski.Vumi.metainfo.xml.in:68
 msgid "The Start page with recently played albums and the Tuner"
-msgstr "Strona Start z ostatnio słuchanymi albumami i Strojeniem"
+msgstr "Strona startowa z ostatnio słuchanymi albumami i Strojeniem"
 
 #: data/io.github.tomaszbojanowski.Vumi.metainfo.xml.in:48
 #: data/io.github.tomaszbojanowski.Vumi.metainfo.xml.in:72
@@ -110,7 +110,7 @@ msgid ""
 "Playlists can be renamed and deleted, and their songs removed with Undo or "
 "moved."
 msgstr ""
-"Można zmieniać nazwy list odtwarzania i usuwać listy, a utwory usuwać z "
+"Można zmieniać nazwy list odtwarzania i je usuwać, a utwory usuwać z "
 "możliwością cofnięcia lub przesuwać."
 
 #: data/io.github.tomaszbojanowski.Vumi.metainfo.xml.in:99
