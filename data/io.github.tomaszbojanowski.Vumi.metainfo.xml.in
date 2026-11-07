@@ -42,19 +42,51 @@
   <screenshots>
     <screenshot type="default">
       <caption>The Start page with recently played albums and the Tuner</caption>
-      <image>https://raw.githubusercontent.com/TomaszBojanowski/vumi/v0.1.0/data/screenshots/1-start.png</image>
+      <image type="source" width="2128" height="1528" scale="2">https://raw.githubusercontent.com/TomaszBojanowski/vumi/v0.2.0/data/screenshots/start-light.png</image>
     </screenshot>
     <screenshot>
-      <caption>An album page with its tracks and audio quality</caption>
-      <image>https://raw.githubusercontent.com/TomaszBojanowski/vumi/v0.1.0/data/screenshots/2-album.png</image>
+      <caption>An album page with its tracks</caption>
+      <image type="source" width="2128" height="1528" scale="2">https://raw.githubusercontent.com/TomaszBojanowski/vumi/v0.2.0/data/screenshots/album-light.png</image>
     </screenshot>
     <screenshot>
-      <caption>Search results with albums and songs</caption>
-      <image>https://raw.githubusercontent.com/TomaszBojanowski/vumi/v0.1.0/data/screenshots/3-search.png</image>
+      <caption>A playlist to reorder, trim and rename</caption>
+      <image type="source" width="2128" height="1528" scale="2">https://raw.githubusercontent.com/TomaszBojanowski/vumi/v0.2.0/data/screenshots/playlist-light.png</image>
     </screenshot>
     <screenshot>
-      <caption>A narrow window with the compact player bar</caption>
-      <image>https://raw.githubusercontent.com/TomaszBojanowski/vumi/v0.1.0/data/screenshots/4-narrow.png</image>
+      <caption>The play queue over the library</caption>
+      <image type="source" width="2128" height="1528" scale="2">https://raw.githubusercontent.com/TomaszBojanowski/vumi/v0.2.0/data/screenshots/queue-light.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>A narrow window, as on a phone</caption>
+      <image type="source" width="848" height="1528" scale="2">https://raw.githubusercontent.com/TomaszBojanowski/vumi/v0.2.0/data/screenshots/album-narrow-light.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>Offline, the library saved on this computer stays at hand</caption>
+      <image type="source" width="2128" height="1528" scale="2">https://raw.githubusercontent.com/TomaszBojanowski/vumi/v0.2.0/data/screenshots/offline-light.png</image>
+    </screenshot>
+    <screenshot environment="gnome:dark">
+      <caption>The Start page with recently played albums and the Tuner</caption>
+      <image type="source" width="2128" height="1528" scale="2">https://raw.githubusercontent.com/TomaszBojanowski/vumi/v0.2.0/data/screenshots/start-dark.png</image>
+    </screenshot>
+    <screenshot environment="gnome:dark">
+      <caption>An album page with its tracks</caption>
+      <image type="source" width="2128" height="1528" scale="2">https://raw.githubusercontent.com/TomaszBojanowski/vumi/v0.2.0/data/screenshots/album-dark.png</image>
+    </screenshot>
+    <screenshot environment="gnome:dark">
+      <caption>A playlist to reorder, trim and rename</caption>
+      <image type="source" width="2128" height="1528" scale="2">https://raw.githubusercontent.com/TomaszBojanowski/vumi/v0.2.0/data/screenshots/playlist-dark.png</image>
+    </screenshot>
+    <screenshot environment="gnome:dark">
+      <caption>The play queue over the library</caption>
+      <image type="source" width="2128" height="1528" scale="2">https://raw.githubusercontent.com/TomaszBojanowski/vumi/v0.2.0/data/screenshots/queue-dark.png</image>
+    </screenshot>
+    <screenshot environment="gnome:dark">
+      <caption>A narrow window, as on a phone</caption>
+      <image type="source" width="848" height="1528" scale="2">https://raw.githubusercontent.com/TomaszBojanowski/vumi/v0.2.0/data/screenshots/album-narrow-dark.png</image>
+    </screenshot>
+    <screenshot environment="gnome:dark">
+      <caption>Offline, the library saved on this computer stays at hand</caption>
+      <image type="source" width="2128" height="1528" scale="2">https://raw.githubusercontent.com/TomaszBojanowski/vumi/v0.2.0/data/screenshots/offline-dark.png</image>
     </screenshot>
   </screenshots>
 
