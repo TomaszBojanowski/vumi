@@ -6,139 +6,169 @@ translation-domain "vumi";
 // Playlist page: a compact header (cover, name, numbers, description) with
 // Play and Shuffle, and the tracks below in the shared results view.
 template $VumiPlaylistPage: Adw.NavigationPage {
-  child: Adw.ToolbarView {
-    [top]
-    Adw.HeaderBar {}
+  // Lets the header react to the page's own width (the breakpoint at the
+  // end), so the sidebar and the queue count too.
+  child: Adw.BreakpointBin bin {
+    width-request: 360;
+    height-request: 294;
 
-    content: Box {
-      orientation: vertical;
+    child: Adw.ToolbarView {
+      [top]
+      Adw.HeaderBar {}
 
-      // The same width as the results view below, so the two line up.
-      Adw.Clamp {
-        maximum-size: 1000;
+      content: Box {
+        orientation: vertical;
 
-        child: Box header {
-        spacing: 18;
-        margin-top: 18;
-        margin-bottom: 12;
-        margin-start: 24;
-        margin-end: 24;
+        // The same width as the results view below, so the two line up.
+        Adw.Clamp {
+          maximum-size: 1000;
 
-        // The list icon stays underneath; the cover goes over it once
-        // loaded, made as small as it is on screen (cover_image.rs).
-        Overlay {
-          valign: start;
-          overflow: hidden;
+          child: Box header {
+          spacing: 18;
+          margin-top: 18;
+          margin-bottom: 12;
+          margin-start: 24;
+          margin-end: 24;
+
+          // The list icon stays underneath; the cover goes over it once
+          // loaded, made as small as it is on screen (cover_image.rs).
+          Overlay cover_frame {
+            valign: start;
+            overflow: hidden;
+
+            styles [
+              "playlist-cover",
+            ]
+
+            child: Image {
+              pixel-size: 120;
+              icon-name: "view-list-symbolic";
+            };
+
+            [overlay]
+            $VumiCoverImage cover {}
+          }
+
+          Box info {
+            orientation: vertical;
+            spacing: 6;
+            valign: center;
+            hexpand: true;
+
+            Label name {
+              xalign: 0;
+              wrap: true;
+
+              styles [
+                "title-2",
+              ]
+            }
+
+            Label details {
+              xalign: 0;
+
+              styles [
+                "dim-label",
+              ]
+            }
+
+            Label comment {
+              xalign: 0;
+              wrap: true;
+              visible: false;
+
+              styles [
+                "dim-label",
+              ]
+            }
+
+            // Why the songs cannot be changed: the server left some out
+            // (playlist_edit.rs, whole).
+            Label unavailable {
+              xalign: 0;
+              wrap: true;
+              visible: false;
+              label: _("Some songs are unavailable, so the playlist cannot be changed");
+
+              styles [
+                "dim-label",
+              ]
+            }
+
+            Box actions {
+              spacing: 6;
+              margin-top: 6;
+
+              // Play as a pill with its name, as on album pages.
+              Button play_button {
+                valign: center;
+
+                styles [
+                  "pill",
+                  "suggested-action",
+                  "album-pill",
+                ]
+
+                child: Adw.ButtonContent {
+                  icon-name: "media-playback-start-symbolic";
+                  label: _("Play");
+                };
+              }
+
+              Button shuffle_button {
+                icon-name: "media-playlist-shuffle-symbolic";
+                tooltip-text: _("Shuffle");
+                valign: center;
+
+                styles [
+                  "circular",
+                  "flat",
+                  "album-action",
+                ]
+              }
+            }
+          }
+          };
+        }
+
+        $VumiResultsView results {
+          vexpand: true;
+        }
+
+        // Why the tracks could not be shown (show_error).
+        Adw.StatusPage error_status {
+          icon-name: "network-offline-symbolic";
+          vexpand: true;
+          visible: false;
 
           styles [
-            "playlist-cover",
+            "compact",
           ]
-
-          child: Image {
-            pixel-size: 120;
-            icon-name: "view-list-symbolic";
-          };
-
-          [overlay]
-          $VumiCoverImage cover {}
         }
-
-        Box {
-          orientation: vertical;
-          spacing: 6;
-          valign: center;
-          hexpand: true;
-
-          Label name {
-            xalign: 0;
-            wrap: true;
-
-            styles [
-              "title-2",
-            ]
-          }
-
-          Label details {
-            xalign: 0;
-
-            styles [
-              "dim-label",
-            ]
-          }
-
-          Label comment {
-            xalign: 0;
-            wrap: true;
-            visible: false;
-
-            styles [
-              "dim-label",
-            ]
-          }
-
-          // Why the songs cannot be changed: the server left some out
-          // (playlist_edit.rs, whole).
-          Label unavailable {
-            xalign: 0;
-            wrap: true;
-            visible: false;
-            label: _("Some songs are unavailable, so the playlist cannot be changed");
-
-            styles [
-              "dim-label",
-            ]
-          }
-
-          Box actions {
-            spacing: 6;
-            margin-top: 6;
-
-            // Play as a pill with its name, as on album pages.
-            Button play_button {
-              valign: center;
-
-              styles [
-                "pill",
-                "suggested-action",
-                "album-pill",
-              ]
-
-              child: Adw.ButtonContent {
-                icon-name: "media-playback-start-symbolic";
-                label: _("Play");
-              };
-            }
-
-            Button shuffle_button {
-              icon-name: "media-playlist-shuffle-symbolic";
-              tooltip-text: _("Shuffle");
-              valign: center;
-
-              styles [
-                "circular",
-                "flat",
-                "album-action",
-              ]
-            }
-          }
-        }
-        };
-      }
-
-      $VumiResultsView results {
-        vexpand: true;
-      }
-
-      // Why the tracks could not be shown (show_error).
-      Adw.StatusPage error_status {
-        icon-name: "network-offline-symbolic";
-        vexpand: true;
-        visible: false;
-
-        styles [
-          "compact",
-        ]
-      }
+      };
     };
+
+    // Too narrow for the cover and the text side by side: the cover above
+    // the text, everything centred, as on album pages. The condition is the
+    // header's own measured width (playlist_page.rs, narrow_below), set when
+    // the page is made and again when the text size changes; this one only
+    // stands in (Polish with Adwaita Sans 11).
+    Adw.Breakpoint narrow {
+      condition ("max-width: 408px")
+
+      setters {
+        header.orientation: vertical;
+        cover_frame.halign: center;
+        info.halign: center;
+        name.xalign: 0.5;
+        name.justify: center;
+        details.xalign: 0.5;
+        comment.xalign: 0.5;
+        comment.justify: center;
+        unavailable.xalign: 0.5;
+        unavailable.justify: center;
+        actions.halign: center;
+      }
+    }
   };
 }

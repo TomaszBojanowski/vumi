@@ -50,6 +50,10 @@ mod imp {
     #[template(file = "src/playlist_page.blp")]
     pub struct PlaylistPage {
         #[template_child]
+        pub header: gtk::TemplateChild<gtk::Box>,
+        #[template_child]
+        pub narrow: gtk::TemplateChild<adw::Breakpoint>,
+        #[template_child]
         pub cover: gtk::TemplateChild<crate::cover_image::CoverImage>,
         #[template_child]
         pub name: gtk::TemplateChild<gtk::Label>,
@@ -92,6 +96,8 @@ mod imp {
         /// The note of the last removal, with its number: taken away when
         /// the removal fails.
         pub undo_note: RefCell<Option<(u64, adw::Toast)>>,
+        /// Watching the text size (follow_text_size), until disposed.
+        pub text_settings: RefCell<Vec<glib::SignalHandlerId>>,
     }
 
     #[glib::object_subclass]
@@ -113,7 +119,14 @@ mod imp {
         }
     }
 
-    impl ObjectImpl for PlaylistPage {}
+    impl ObjectImpl for PlaylistPage {
+        fn dispose(&self) {
+            let settings = self.obj().settings();
+            for handler in self.text_settings.take() {
+                settings.disconnect(handler);
+            }
+        }
+    }
     impl WidgetImpl for PlaylistPage {}
     impl NavigationPageImpl for PlaylistPage {}
 }
@@ -160,6 +173,8 @@ impl PlaylistPage {
         });
 
         page.setup_more();
+        page.narrow_below();
+        page.follow_text_size();
         // Offline nothing can be changed: the controls follow the connection.
         let weak = page.downgrade();
         reconnect::watch_offline(move |offline| {
@@ -208,6 +223,59 @@ impl PlaylistPage {
         imp.actions.append(&more);
         imp.more.replace(Some(more));
         self.set_online(!reconnect::is_offline());
+    }
+
+    /// The header stacks (the cover above the text, as on album pages) when
+    /// the page is narrower than the cover and the text side by side need:
+    /// the cover, the actions row (Play, Shuffle, ⋮) and the margins, in this
+    /// language and text size (about 410 px in Polish and 380 in English with
+    /// GNOME's default font, Adwaita Sans 11). Measured side by side and with
+    /// ⋮ shown, whatever the header and ⋮ show now. The page's own width
+    /// decides, so the sidebar and the queue count.
+    fn narrow_below(&self) {
+        let imp = self.imp();
+        let header = imp.header.get();
+        let orientation = header.orientation();
+        header.set_orientation(gtk::Orientation::Horizontal);
+        let more = imp.more.borrow().clone();
+        let shown = more.as_ref().is_some_and(|more| more.is_visible());
+        if let Some(more) = &more {
+            more.set_visible(true);
+        }
+        let (need, _, _, _) = header.measure(gtk::Orientation::Horizontal, -1);
+        if let Some(more) = &more {
+            more.set_visible(shown);
+        }
+        header.set_orientation(orientation);
+        let condition = format!("max-width: {}px", need - 1);
+        if imp
+            .narrow
+            .condition()
+            .is_some_and(|now| now.to_str().as_str() == condition)
+        {
+            return;
+        }
+        match adw::BreakpointCondition::parse(&condition) {
+            Ok(condition) => imp.narrow.set_condition(Some(&condition)),
+            Err(e) => eprintln!("Could not set the playlist header's breakpoint: {e}"),
+        }
+    }
+
+    /// The text size can change while the page is open (Large Text, another
+    /// interface font): the header is measured again at once, as artist cards
+    /// do. The labels already have the new font then, also when the page is
+    /// covered by another one.
+    fn follow_text_size(&self) {
+        let settings = self.settings();
+        let mut handlers = self.imp().text_settings.borrow_mut();
+        for property in ["gtk-xft-dpi", "gtk-font-name"] {
+            let page = self.downgrade();
+            handlers.push(settings.connect_notify_local(Some(property), move |_, _| {
+                if let Some(page) = page.upgrade() {
+                    page.narrow_below();
+                }
+            }));
+        }
     }
 
     /// Online, changes can be made; offline the controls are off, the ⋮
