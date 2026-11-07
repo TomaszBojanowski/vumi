@@ -34,6 +34,11 @@ mod imp {
         pub duration: gtk::TemplateChild<gtk::Label>,
         /// The bars before the title, while the song is the current one.
         pub bars: RefCell<Option<EqBars>>,
+        /// A handle at the start to drag the row by (playlists whose songs
+        /// can be moved), made when first shown.
+        pub handle: RefCell<Option<gtk::Image>>,
+        /// Actions the list adds to the row's menu (a playlist's Move Up…).
+        pub list_actions: RefCell<Option<gtk::gio::SimpleActionGroup>>,
         /// A few words before the length, made when a list first gives some.
         pub note: RefCell<Option<gtk::Label>>,
         /// The song the row shows now.
@@ -223,6 +228,76 @@ impl SongRow {
         self.append(widget);
     }
 
+    /// The actions the list gave the row for its menu, if it did.
+    pub(crate) fn list_actions(&self) -> Option<gtk::gio::SimpleActionGroup> {
+        self.imp().list_actions.borrow().clone()
+    }
+
+    pub(crate) fn set_list_actions(&self, actions: &gtk::gio::SimpleActionGroup) {
+        self.imp().list_actions.replace(Some(actions.clone()));
+    }
+
+    /// A handle at the start of the row to drag it by: `shown`, and whether
+    /// it can be used now (`sensitive`: not offline). Returns the handle when
+    /// it is made, so the list gives it what dragging does.
+    pub(crate) fn set_handle(&self, shown: bool, sensitive: bool) -> Option<gtk::Image> {
+        let imp = self.imp();
+        let mut slot = imp.handle.borrow_mut();
+        if slot.is_none() && !shown {
+            return None;
+        }
+        let mut made = None;
+        let handle = slot.get_or_insert_with(|| {
+            let handle = gtk::Image::builder()
+                .icon_name("list-drag-handle-symbolic")
+                .css_classes(["song-handle"])
+                // Dragging is for the pointer; the ⋮ menu moves songs too
+                // (Move Up, Move Down), for the keyboard and screen readers.
+                .accessible_role(gtk::AccessibleRole::Presentation)
+                .build();
+            handle.set_cursor_from_name(Some("grab"));
+            self.prepend(&handle);
+            made = Some(handle.clone());
+            handle
+        });
+        handle.set_visible(shown);
+        handle.set_sensitive(sensitive);
+        made
+    }
+
+    /// While the row is dragged: a small label with the title under the
+    /// pointer, not a copy of the whole row (the queue and playlists). Set
+    /// in the drag source's prepare: by drag-begin GTK has chosen its own.
+    pub(crate) fn set_drag_icon(&self, source: &gtk::DragSource) {
+        let Some(title) = self.song().map(|song| song.title) else {
+            return;
+        };
+        let layout = self.create_pango_layout(Some(&title));
+        layout.set_width(240 * gtk::pango::SCALE);
+        layout.set_ellipsize(gtk::pango::EllipsizeMode::End);
+        let (text_w, text_h) = layout.pixel_size();
+        let (pad_x, pad_y) = (12.0, 6.0);
+        let width = text_w as f32 + 2.0 * pad_x;
+        let height = text_h as f32 + 2.0 * pad_y;
+
+        let snapshot = gtk::Snapshot::new();
+        let dark = adw::StyleManager::default().is_dark();
+        let background = if dark {
+            gtk::gdk::RGBA::new(0.2, 0.2, 0.2, 0.97)
+        } else {
+            gtk::gdk::RGBA::new(1.0, 1.0, 1.0, 0.97)
+        };
+        let rect = gtk::graphene::Rect::new(0.0, 0.0, width, height);
+        snapshot.push_rounded_clip(&gtk::gsk::RoundedRect::from_rect(rect, 8.0));
+        snapshot.append_color(&background, &rect);
+        snapshot.pop();
+        snapshot.translate(&gtk::graphene::Point::new(pad_x, pad_y));
+        snapshot.append_layout(&layout, &self.color());
+        if let Some(icon) = snapshot.to_paintable(Some(&gtk::graphene::Size::new(width, height))) {
+            source.set_icon(Some(&icon), pad_x as i32, (height / 2.0) as i32);
+        }
+    }
+
     /// Bars and the highlight while the song is the current one; the bars
     /// rest while the player is paused. Only the current row has bars: they
     /// are made when it becomes the current one and go when it stops being it.
@@ -231,7 +306,8 @@ impl SongRow {
         if playing {
             let bars = bars.get_or_insert_with(|| {
                 let bars = EqBars::new();
-                self.prepend(&bars);
+                // After the handle, where a row has one.
+                bars.insert_after(self, self.imp().handle.borrow().as_ref());
                 bars
             });
             bars.set_mode(if paused { Mode::Paused } else { Mode::Moving });

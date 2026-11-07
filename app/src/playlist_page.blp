@@ -76,6 +76,19 @@ template $VumiPlaylistPage: Adw.NavigationPage {
             ]
           }
 
+          // Why the songs cannot be changed: the server left some out
+          // (playlist_edit.rs, whole).
+          Label unavailable {
+            xalign: 0;
+            wrap: true;
+            visible: false;
+            label: _("Some songs are unavailable, so the playlist cannot be changed");
+
+            styles [
+              "dim-label",
+            ]
+          }
+
           Box actions {
             spacing: 6;
             margin-top: 6;

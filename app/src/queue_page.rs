@@ -248,10 +248,6 @@ impl QueuePage {
         let source = gtk::DragSource::builder()
             .actions(gdk::DragAction::MOVE)
             .build();
-        // While dragging: a small label with the title under the pointer,
-        // not a copy of the whole row.
-        // The icon must be set here, in prepare: by drag-begin GTK has already
-        // chosen its default one (a copy of the row).
         let item_weak = item.downgrade();
         let page = self.downgrade();
         source.connect_prepare(move |source, _, _| {
@@ -260,35 +256,19 @@ impl QueuePage {
                 .imp()
                 .dragged_from
                 .replace(Some(player::get().queue()));
-            let row = source.widget().and_downcast::<SongRow>()?;
-            let title = row.song()?.title;
-            let layout = row.create_pango_layout(Some(&title));
-            layout.set_width(240 * gtk::pango::SCALE);
-            layout.set_ellipsize(gtk::pango::EllipsizeMode::End);
-            let (text_w, text_h) = layout.pixel_size();
-            let (pad_x, pad_y) = (12.0, 6.0);
-            let width = text_w as f32 + 2.0 * pad_x;
-            let height = text_h as f32 + 2.0 * pad_y;
-
-            let snapshot = gtk::Snapshot::new();
-            let dark = adw::StyleManager::default().is_dark();
-            let background = if dark {
-                gdk::RGBA::new(0.2, 0.2, 0.2, 0.97)
-            } else {
-                gdk::RGBA::new(1.0, 1.0, 1.0, 0.97)
-            };
-            let rect = gtk::graphene::Rect::new(0.0, 0.0, width, height);
-            snapshot.push_rounded_clip(&gtk::gsk::RoundedRect::from_rect(rect, 8.0));
-            snapshot.append_color(&background, &rect);
-            snapshot.pop();
-            snapshot.translate(&gtk::graphene::Point::new(pad_x, pad_y));
-            snapshot.append_layout(&layout, &row.color());
-            if let Some(icon) =
-                snapshot.to_paintable(Some(&gtk::graphene::Size::new(width, height)))
-            {
-                source.set_icon(Some(&icon), pad_x as i32, (height / 2.0) as i32);
-            }
+            source
+                .widget()
+                .and_downcast::<SongRow>()?
+                .set_drag_icon(source);
             Some(gdk::ContentProvider::for_value(&(index as i32).to_value()))
+        });
+        // Every drag ends here: dropped, cancelled with Esc, dropped outside
+        // the queue. What was kept for the drop goes.
+        let page = self.downgrade();
+        source.connect_drag_end(move |_, _, _| {
+            if let Some(page) = page.upgrade() {
+                page.imp().dragged_from.replace(None);
+            }
         });
         row.add_controller(source);
         let target = gtk::DropTarget::new(i32::static_type(), gdk::DragAction::MOVE);

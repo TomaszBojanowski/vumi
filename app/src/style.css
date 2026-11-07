@@ -70,10 +70,12 @@ listview.song-list > row.activatable:active > box.song-row {
   background-image: image(color-mix(in srgb, currentColor 8%, transparent));
 }
 
-/* A row a dragged track is over (the queue). The theme draws this frame
-   with a box shadow, which the card pieces above would otherwise replace. */
+/* A row a dragged track is over (the queue, playlists): a frame inside it,
+   drawn as an outline, so the card's own shadows and rounding above stay as
+   they are while a drag passes over the first or the last row. */
 listview.song-list > row > box.song-row:drop(active) {
-  box-shadow: inset 0 0 0 1px var(--accent-bg-color);
+  outline: 1px solid var(--accent-bg-color);
+  outline-offset: -1px;
 }
 
 /* A narrow Favorites page: less room around its list, so two album cards
@@ -534,4 +536,18 @@ picture.letterbox {
 flowbox.album-cells {
   margin-left: -9px;
   margin-right: -9px;
+}
+
+/* The handle to drag a playlist's song by (song_row.rs), before the room of
+   the bars; dimmed like other secondary parts of a row. */
+box.song-row > image.song-handle {
+  opacity: 0.55;
+}
+
+box.song-row > image.song-handle:hover {
+  opacity: 1;
+}
+
+box.song-row > image.song-handle:disabled {
+  opacity: 0.25;
 }

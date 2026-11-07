@@ -8,6 +8,7 @@
 
 use adw::prelude::*;
 use adw::subclass::prelude::*;
+use gettextrs::gettext;
 use gtk::{gio, glib};
 use std::cell::{Cell, OnceCell, RefCell};
 use std::rc::Rc;
@@ -16,7 +17,16 @@ use std::sync::Arc;
 use crate::album_card::AlbumCard;
 use crate::main_view::MainView;
 use crate::player;
+use crate::playlist_edit::Edit;
 use crate::song_row::SongRow;
+
+/// What a playlist page lets its list do with the songs (playlist_page.rs):
+/// Remove, Move Up and Move Down in the ⋮ menu, and dragging by a handle.
+/// Indexes count the songs from 0.
+pub(crate) struct Editing {
+    pub(crate) remove: Box<dyn Fn(usize)>,
+    pub(crate) move_to: Box<dyn Fn(usize, usize)>,
+}
 
 /// What a view is asked to show: the albums, the songs and the client for
 /// covers, playing and the song menu.
@@ -94,6 +104,13 @@ mod imp {
         /// The albums on screen and the account they came from (the songs are
         /// in `songs`): the same content again is not built again.
         pub shown: RefCell<Option<super::Shown>>,
+        /// A playlist whose songs can be changed (set_editing).
+        pub(crate) editing: RefCell<Option<Rc<super::Editing>>>,
+        /// Whether changes can be made now (not offline, say).
+        pub edits_on: Cell<bool>,
+        /// The songs as they were when a drag began: a change meanwhile
+        /// makes the index it carries point at another song.
+        pub dragged_from: RefCell<Option<Rc<[subsonic::Song]>>>,
     }
 
     #[glib::object_subclass]
@@ -256,6 +273,14 @@ impl ResultsView {
         imp.songs_list
             .set_model(Some(&gtk::NoSelection::new(Some(entries.clone()))));
         imp.songs_list.set_factory(Some(&factory));
+        // Connected after the list's own handler (through the selection
+        // model): by then the items know their new places.
+        let view = self.downgrade();
+        entries.connect_items_changed(move |_, _, _, _| {
+            if let Some(view) = view.upgrade() {
+                view.update_ends();
+            }
+        });
         let _ = imp.entries.set(entries);
     }
 
@@ -287,9 +312,11 @@ impl ResultsView {
                 let row = SongRow::new();
                 let view = self.downgrade();
                 let row_weak = row.downgrade();
+                let first_view = self.downgrade();
+                let first_row = row.downgrade();
                 // The menu asks for the song only when it is used: the row
                 // shows another one by then.
-                let menu = crate::song_menu::menu_button(
+                let menu = crate::song_menu::menu_button_with(
                     &row,
                     move || {
                         let song = row_weak.upgrade()?.song()?;
@@ -297,13 +324,22 @@ impl ResultsView {
                         Some((song, client))
                     },
                     true,
+                    move || {
+                        first_view
+                            .upgrade()?
+                            .playlist_section(&first_row.upgrade()?)
+                    },
                 );
                 row.add_suffix(&menu);
+                self.add_drop_target(&row);
                 imp.rows.borrow_mut().push(row.downgrade());
                 item.set_child(Some(&row));
                 row
             }
         };
+        if let Some(handle) = row.set_handle(imp.editing.borrow().is_some(), imp.edits_on.get()) {
+            self.add_drag_source(&row, &handle);
+        }
         item.set_activatable(true);
         item.set_selectable(false);
         item.set_focusable(true);
@@ -319,22 +355,57 @@ impl ResultsView {
         let note = imp.note.borrow().as_ref().map(|note| note(song));
         row.set_note(note.as_deref().unwrap_or(""));
 
-        // The songs look like one card: the first and the last row round
-        // its corners (style.css). The classes go on the song row itself: the
-        // list's own row widget must not be touched while it is being filled
-        // (GTK has not taken hold of it yet).
-        let last = imp.entries.get().map_or(0, |entries| entries.n_items());
-        for (class, on) in [
-            ("first", item.position() == 1),
-            ("last", item.position() + 1 == last),
-        ] {
+        self.set_ends(&row);
+        self.mark_row(&row);
+    }
+
+    /// The songs look like one card: the first and the last row round its
+    /// corners (style.css), by the place the row's song is at now. The
+    /// classes go on the song row itself: the list's own row widget must not
+    /// be touched while it is being filled (GTK has not taken hold of it yet).
+    fn set_ends(&self, row: &SongRow) {
+        let count = self
+            .imp()
+            .entries
+            .get()
+            .map_or(0, |entries| entries.n_items());
+        let position = row
+            .imp()
+            .item
+            .borrow()
+            .as_ref()
+            .and_then(|item| item.upgrade())
+            .filter(|item| item.item().is_some())
+            .map(|item| item.position());
+        let (first, last) = match position {
+            // The header is the first item: the songs start after it.
+            Some(position) if position >= 1 => (position == 1, position + 1 == count),
+            _ => (false, false),
+        };
+        for (class, on) in [("first", first), ("last", last)] {
             if on {
                 row.add_css_class(class);
             } else {
                 row.remove_css_class(class);
             }
         }
-        self.mark_row(&row);
+    }
+
+    /// After every change of the list (a song moved, removed, put back, the
+    /// list filled again): each row that exists gets the ends of its place
+    /// now. GTK fills again only rows whose item changed, so a row whose song
+    /// merely moved would keep the corners of where it was.
+    fn update_ends(&self) {
+        let rows: Vec<SongRow> = self
+            .imp()
+            .rows
+            .borrow()
+            .iter()
+            .filter_map(|row| row.upgrade())
+            .collect();
+        for row in rows {
+            self.set_ends(&row);
+        }
     }
 
     /// Whether the "Albums" and "Songs" headings say how many there are
@@ -401,6 +472,209 @@ impl ResultsView {
             end.set_halign(gtk::Align::End);
             imp.songs_row.append(&end);
         }
+    }
+
+    /// Lets the songs be changed (a playlist page whose songs can be), or
+    /// not (None). The rows on screen follow at once.
+    pub(crate) fn set_editing(&self, editing: Option<Rc<Editing>>) {
+        let imp = self.imp();
+        imp.editing.replace(editing);
+        self.update_handles();
+    }
+
+    /// Whether changes can be made now: off while offline (the handles and
+    /// the menu items are dimmed).
+    pub(crate) fn set_edits_on(&self, on: bool) {
+        self.imp().edits_on.set(on);
+        self.update_handles();
+    }
+
+    fn update_handles(&self) {
+        let imp = self.imp();
+        let shown = imp.editing.borrow().is_some();
+        let on = imp.edits_on.get();
+        let rows: Vec<SongRow> = imp
+            .rows
+            .borrow()
+            .iter()
+            .filter_map(|row| row.upgrade())
+            .collect();
+        for row in rows {
+            if let Some(handle) = row.set_handle(shown, on) {
+                self.add_drag_source(&row, &handle);
+            }
+        }
+    }
+
+    /// The index of the song a row shows now (the header is the first item).
+    fn index_of(row: &SongRow) -> Option<usize> {
+        let item = row.imp().item.borrow().as_ref()?.upgrade()?;
+        item.item()?;
+        (item.position() as usize).checked_sub(1)
+    }
+
+    /// The ⋮ menu's first section on a playlist whose songs can be changed:
+    /// Move Up (not on the first song), Move Down (not on the last) and
+    /// Remove from Playlist. Dimmed while changes cannot be made.
+    fn playlist_section(&self, row: &SongRow) -> Option<gio::Menu> {
+        let imp = self.imp();
+        imp.editing.borrow().as_ref()?;
+        let index = Self::index_of(row)?;
+        let count = imp.songs.borrow().as_ref().map_or(0, |songs| songs.len());
+        let actions = row.list_actions().unwrap_or_else(|| {
+            let actions = gio::SimpleActionGroup::new();
+            for name in ["move-up", "move-down", "remove"] {
+                let action = gio::SimpleAction::new(name, None);
+                let view = self.downgrade();
+                let row = row.downgrade();
+                action.connect_activate(move |_, _| {
+                    let (Some(view), Some(row)) = (view.upgrade(), row.upgrade()) else {
+                        return;
+                    };
+                    let editing = view.imp().editing.borrow().clone();
+                    let (Some(editing), Some(index)) = (editing, Self::index_of(&row)) else {
+                        return;
+                    };
+                    match name {
+                        "move-up" if index > 0 => (editing.move_to)(index, index - 1),
+                        "move-down" => (editing.move_to)(index, index + 1),
+                        "remove" => (editing.remove)(index),
+                        _ => {}
+                    }
+                });
+                actions.add_action(&action);
+            }
+            row.insert_action_group("playlist", Some(&actions));
+            row.set_list_actions(&actions);
+            actions
+        });
+        for name in ["move-up", "move-down", "remove"] {
+            if let Some(action) = actions
+                .lookup_action(name)
+                .and_downcast::<gio::SimpleAction>()
+            {
+                action.set_enabled(imp.edits_on.get());
+            }
+        }
+        let section = gio::Menu::new();
+        if index > 0 {
+            section.append(Some(&gettext("Move Up")), Some("playlist.move-up"));
+        }
+        if index + 1 < count {
+            section.append(Some(&gettext("Move Down")), Some("playlist.move-down"));
+        }
+        section.append(
+            Some(&gettext("Remove from Playlist")),
+            Some("playlist.remove"),
+        );
+        Some(section)
+    }
+
+    /// Dragging a row by its handle: it carries its index.
+    fn add_drag_source(&self, row: &SongRow, handle: &gtk::Image) {
+        let source = gtk::DragSource::builder()
+            .actions(gtk::gdk::DragAction::MOVE)
+            .build();
+        let view = self.downgrade();
+        let row = row.downgrade();
+        source.connect_prepare(move |source, _, _| {
+            let (view, row) = (view.upgrade()?, row.upgrade()?);
+            let imp = view.imp();
+            if imp.editing.borrow().is_none() || !imp.edits_on.get() {
+                return None;
+            }
+            let index = Self::index_of(&row)?;
+            imp.dragged_from.replace(imp.songs.borrow().clone());
+            row.set_drag_icon(source);
+            Some(gtk::gdk::ContentProvider::for_value(
+                &(index as u32).to_value(),
+            ))
+        });
+        // Every drag ends here: dropped, cancelled with Esc, dropped outside
+        // the list. What was kept for the drop goes.
+        let view = self.downgrade();
+        source.connect_drag_end(move |_, _, _| {
+            if let Some(view) = view.upgrade() {
+                view.imp().dragged_from.replace(None);
+            }
+        });
+        handle.add_controller(source);
+    }
+
+    /// A song dropped on a row takes that row's place, as in the queue.
+    fn add_drop_target(&self, row: &SongRow) {
+        let target = gtk::DropTarget::new(u32::static_type(), gtk::gdk::DragAction::MOVE);
+        let view = self.downgrade();
+        let row_weak = row.downgrade();
+        target.connect_drop(move |_, value, _, _| {
+            let (Some(view), Some(row)) = (view.upgrade(), row_weak.upgrade()) else {
+                return false;
+            };
+            let imp = view.imp();
+            let dragged_from = imp.dragged_from.take();
+            let editing = imp.editing.borrow().clone();
+            // The list changed under the drag: the index is of the old one.
+            let same = match (&dragged_from, imp.songs.borrow().as_ref()) {
+                (Some(from), Some(now)) => Rc::ptr_eq(from, now),
+                _ => false,
+            };
+            let (Ok(from), Some(target), Some(editing)) =
+                (value.get::<u32>(), Self::index_of(&row), editing)
+            else {
+                return false;
+            };
+            if !same || !imp.edits_on.get() {
+                return false;
+            }
+            match crate::playlist_edit::dropped::<()>(from as usize, target) {
+                Some(Edit::Move { from, to }) => {
+                    (editing.move_to)(from, to);
+                    true
+                }
+                _ => false,
+            }
+        });
+        row.add_controller(target);
+    }
+
+    /// Changes the songs listed as `edit` does, row by row: the list keeps
+    /// its place and the rows around stay. The songs played on a click
+    /// follow.
+    pub(crate) fn apply_edit(&self, edit: &Edit<subsonic::Song>) {
+        let imp = self.imp();
+        let (Some(entries), Some(songs)) = (imp.entries.get(), imp.songs.borrow().clone()) else {
+            return;
+        };
+        let Some(after) = edit.apply(&songs) else {
+            return;
+        };
+        let new =
+            |song: &subsonic::Song| glib::BoxedAnyObject::new(Entry::Song(Box::new(song.clone())));
+        match edit {
+            Edit::Remove(index) => entries.remove(*index as u32 + 1),
+            Edit::Move { from, to } => {
+                entries.remove(*from as u32 + 1);
+                entries.insert(*to as u32 + 1, &new(&after[*to]));
+            }
+            Edit::Restore { index, song } => entries.insert(*index as u32 + 1, &new(song)),
+        }
+        imp.songs.replace(Some(after.as_slice().into()));
+        imp.songs_count.set_label(&after.len().to_string());
+        if after.is_empty() {
+            self.fill((Vec::new(), Vec::new(), imp.client.borrow().clone()));
+        }
+    }
+
+    /// The songs listed, in order.
+    pub(crate) fn songs(&self) -> Option<Rc<[subsonic::Song]>> {
+        self.imp().songs.borrow().clone()
+    }
+
+    /// Puts the keyboard focus on the song at `index` (after a move).
+    pub(crate) fn focus_song(&self, index: usize) {
+        self.imp()
+            .songs_list
+            .scroll_to(index as u32 + 1, gtk::ListScrollFlags::FOCUS, None);
     }
 
     /// What the empty page says (search and favourites differ).

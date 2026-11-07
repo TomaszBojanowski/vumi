@@ -693,6 +693,25 @@ pub(crate) fn toast(near: &impl IsA<gtk::Widget>, text: &str) {
 /// Adwaita's toast, 2026-11-06.
 const TOAST_TITLE_WIDTH: i32 = 272;
 
+/// A note with a button (Undo, say) at the bottom of the window `near` is
+/// in; `clicked` runs when the button is used. Returns the toast, so the
+/// note can be taken away when what it offers no longer can be done.
+pub(crate) fn toast_with_button(
+    near: &impl IsA<gtk::Widget>,
+    text: &str,
+    button: &str,
+    clicked: impl Fn() + 'static,
+) -> Option<adw::Toast> {
+    let toasts = near
+        .ancestor(adw::ToastOverlay::static_type())
+        .and_downcast::<adw::ToastOverlay>()?;
+    let toast = plain_toast(text);
+    toast.set_button_label(Some(button));
+    toast.connect_button_clicked(move |_| clicked());
+    toasts.add_toast(toast.clone());
+    Some(toast)
+}
+
 /// A toast with a name in it ("Added to “{name}”", `template` translated): the
 /// name is cut with "…" inside its quotes until the whole text fits in one line
 /// at the narrowest window, so the closing quote always shows. A screen reader

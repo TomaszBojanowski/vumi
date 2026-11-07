@@ -29,6 +29,17 @@ pub(crate) fn menu_button(
     current: impl Fn() -> Option<(subsonic::Song, Option<subsonic::Client>)> + 'static,
     go_to_album: bool,
 ) -> gtk::Button {
+    menu_button_with(owner, current, go_to_album, || None)
+}
+
+/// menu_button() with a first section of the list's own, asked for each time
+/// the menu opens (a playlist's Move Up, Move Down and Remove; None: none).
+pub(crate) fn menu_button_with(
+    owner: &impl IsA<gtk::Widget>,
+    current: impl Fn() -> Option<(subsonic::Song, Option<subsonic::Client>)> + 'static,
+    go_to_album: bool,
+    first: impl Fn() -> Option<gio::Menu> + 'static,
+) -> gtk::Button {
     let owner = owner.upcast_ref::<gtk::Widget>().downgrade();
     let current: Current = Rc::new(current);
     let made = Cell::new(false);
@@ -41,7 +52,11 @@ pub(crate) fn menu_button(
         let starred = current().is_some_and(|(song, _)| {
             favorites::is_starred(&Favorite::Song(song.id.clone()), song.starred.is_some())
         });
-        Some(menu(go_to_album, starred))
+        let menu = menu(go_to_album, starred);
+        if let Some(section) = first() {
+            menu.prepend_section(None, &section);
+        }
+        Some(menu)
     })
 }
 
