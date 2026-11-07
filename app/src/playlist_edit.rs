@@ -3,7 +3,9 @@
 /// What the logged-in user may do with a playlist.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub(crate) struct Rights {
-    /// Add, remove and move its songs.
+    /// Rename and delete it.
+    pub(crate) manage: bool,
+    /// Remove and move its songs.
     pub(crate) songs: bool,
 }
 
@@ -16,6 +18,7 @@ pub(crate) fn rights(owner: Option<&str>, readonly: Option<bool>, user: &str) ->
     // Navidrome takes the user name in any case at login.
     let own = owner.is_none_or(|owner| owner.to_lowercase() == user.to_lowercase());
     Rights {
+        manage: own,
         songs: readonly.map_or(own, |readonly| !readonly),
     }
 }
@@ -25,15 +28,25 @@ mod tests {
     use super::*;
 
     #[test]
-    fn the_owner_may_change_the_songs_others_not() {
-        assert!(rights(Some("anna"), Some(false), "anna").songs);
-        assert!(rights(Some("Anna"), Some(false), "anna").songs);
-        assert!(!rights(Some("bob"), Some(true), "anna").songs);
+    fn the_owner_may_do_all_others_nothing() {
+        let all = Rights {
+            manage: true,
+            songs: true,
+        };
+        assert_eq!(rights(Some("anna"), Some(false), "anna"), all);
+        assert_eq!(rights(Some("Anna"), Some(false), "anna"), all);
+        assert_eq!(rights(Some("bob"), Some(true), "anna"), Rights::default());
     }
 
     #[test]
-    fn a_smart_playlist_takes_no_songs() {
-        assert!(!rights(Some("anna"), Some(true), "anna").songs);
+    fn a_smart_playlist_can_be_renamed_but_not_edited() {
+        assert_eq!(
+            rights(Some("anna"), Some(true), "anna"),
+            Rights {
+                manage: true,
+                songs: false
+            }
+        );
     }
 
     #[test]

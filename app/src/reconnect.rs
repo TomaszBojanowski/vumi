@@ -43,11 +43,32 @@ thread_local! {
     static ON_WAKE: RefCell<Option<Box<dyn Fn()>>> = RefCell::new(None);
     static ON_LOST: RefCell<Option<Box<dyn Fn()>>> = RefCell::new(None);
     static OFFLINE: Cell<bool> = const { Cell::new(false) };
+    static OFFLINE_WATCHERS: RefCell<Vec<OfflineWatcher>> = const { RefCell::new(Vec::new()) };
 }
+
+/// Hears whether the app is offline; false: no longer wanted.
+type OfflineWatcher = Box<dyn Fn(bool) -> bool>;
 
 /// Whether the main view shows the offline state now (set by it).
 pub(crate) fn set_offline(offline: bool) {
-    OFFLINE.with(|o| o.set(offline));
+    if OFFLINE.with(|o| o.replace(offline)) == offline {
+        return;
+    }
+    // Taken out while they run, so one may add another.
+    let watchers = OFFLINE_WATCHERS.with(|w| std::mem::take(&mut *w.borrow_mut()));
+    let kept: Vec<OfflineWatcher> = watchers.into_iter().filter(|w| w(offline)).collect();
+    OFFLINE_WATCHERS.with(|w| {
+        let mut w = w.borrow_mut();
+        let added = std::mem::take(&mut *w);
+        *w = kept;
+        w.extend(added);
+    });
+}
+
+/// `watcher` hears every change of is_offline() until it returns false
+/// (pages that offer what needs the server: playlist editing).
+pub(crate) fn watch_offline(watcher: impl Fn(bool) -> bool + 'static) {
+    OFFLINE_WATCHERS.with(|w| w.borrow_mut().push(Box::new(watcher)));
 }
 
 /// True while the server cannot be reached: playing waits for it.
