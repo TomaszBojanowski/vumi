@@ -30,7 +30,46 @@ fn scenarios_with_a_real_playbin() {
     crate::player::tests::a_jump_offline_leaves_the_track_where_it_was(&mut failures);
     crate::player::tests::a_finished_listen_waits_for_the_server(&mut failures);
     crate::player::tests::a_listen_goes_on_after_a_failed_stream(&mut failures);
+    if !failures.is_empty() {
+        keep_failures(&failures);
+    }
     assert!(failures.is_empty(), "{}", failures.join("; "));
+}
+
+/// A failure is rare (once in about 16 runs before 0.2): its whole message and
+/// the state of the machine go to ~/.cache/vumi-rc/player-test, one file a
+/// failed run, so it can be read after the terminal is gone.
+fn keep_failures(failures: &[String]) {
+    let dir = glib::user_cache_dir().join("vumi-rc").join("player-test");
+    if std::fs::create_dir_all(&dir).is_err() {
+        return;
+    }
+    let now = glib::DateTime::now_local()
+        .ok()
+        .and_then(|t| t.format("%Y%m%d-%H%M%S").ok())
+        .map(|t| t.to_string())
+        .unwrap_or_default();
+    let player = crate::player::get();
+    let mut text = format!(
+        "{now}, process {}\nload: {}\nplayer: playing {}, failure {:?}, position {:?}, queue {:?}\n\n",
+        std::process::id(),
+        std::fs::read_to_string("/proc/loadavg")
+            .unwrap_or_default()
+            .trim(),
+        player.is_playing(),
+        player.failure(),
+        player.position_secs(),
+        player
+            .queue()
+            .iter()
+            .map(|s| s.id.clone())
+            .collect::<Vec<_>>(),
+    );
+    for failure in failures {
+        text.push_str(failure);
+        text.push('\n');
+    }
+    let _ = std::fs::write(dir.join(format!("{now}-{}.txt", std::process::id())), text);
 }
 
 /// `seconds` of silence: 8 kHz, mono, 16 bit (16 000 bytes a second).

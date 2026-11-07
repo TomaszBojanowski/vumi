@@ -1915,7 +1915,12 @@ pub(crate) mod tests {
         for (label, command) in commands {
             told.borrow_mut().clear();
             command();
-            run_until(Duration::from_millis(500), || false);
+            // The note and a queue left as it was, however slow the machine;
+            // then a moment in which a second note would show.
+            run_until(Duration::from_secs(5), || {
+                !told.borrow().is_empty() && as_it_was() && player.is_playing()
+            });
+            run_until(Duration::from_millis(300), || told.borrow().len() > 1);
             let at = player.resume_position().unwrap_or(0.0);
             if !as_it_was()
                 || !player.is_playing()
@@ -2076,12 +2081,19 @@ pub(crate) mod tests {
         crate::reconnect::set_offline(true);
         told.borrow_mut().clear();
         let before = player.position_secs().unwrap_or(0.0);
+        let asked = std::time::Instant::now();
         player.seek(before + 20.0);
-        run_until(Duration::from_millis(1500), || false);
+        // The note, however slow the machine; then a moment in which a second
+        // note would show.
+        run_until(Duration::from_secs(5), || !told.borrow().is_empty());
+        run_until(Duration::from_millis(300), || told.borrow().len() > 1);
         let at = player.position_secs().unwrap_or(0.0);
+        // Played on from where it was: no further than the time that passed
+        // (the jump of 20 s did not happen).
+        let passed = asked.elapsed().as_secs_f64();
         if !player.is_playing()
             || current().as_deref() != Some("j1")
-            || !(before..before + 3.0).contains(&at)
+            || !(before - 0.5..before + passed + 1.0).contains(&at)
             || *told.borrow() != [offline.clone()]
         {
             failures.push(format!(
