@@ -14,18 +14,21 @@ template $VumiArtistPage: Adw.NavigationPage {
       child: Adw.Clamp {
         maximum-size: 1100;
 
+        // No side margins here: the album grid uses the whole width, as the
+        // Albums grid does (two cards fit a 360 px window); the parts above
+        // and below keep 12 px each.
         child: Box {
           orientation: vertical;
           spacing: 24;
           margin-top: 24;
           margin-bottom: 24;
-          margin-start: 12;
-          margin-end: 12;
 
           Box {
             orientation: vertical;
             spacing: 12;
             halign: center;
+            margin-start: 12;
+            margin-end: 12;
 
             // Initials until the photo arrives, or for good if there is none.
             // Decoration: the name below is the page's title. (AdwAvatar
@@ -54,6 +57,8 @@ template $VumiArtistPage: Adw.NavigationPage {
 
           // "About": hidden until the server has a biography.
           Box about {
+            margin-start: 12;
+            margin-end: 12;
             orientation: vertical;
             spacing: 6;
             visible: false;
@@ -88,6 +93,8 @@ template $VumiArtistPage: Adw.NavigationPage {
           Label albums_title {
             label: _("Albums");
             xalign: 0;
+            margin-start: 12;
+            margin-end: 12;
 
             styles [
               "heading",
@@ -107,6 +114,8 @@ template $VumiArtistPage: Adw.NavigationPage {
           Adw.StatusPage error_status {
             icon-name: "network-offline-symbolic";
             visible: false;
+            margin-start: 12;
+            margin-end: 12;
 
             styles [
               "compact",
