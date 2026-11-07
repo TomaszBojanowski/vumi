@@ -141,9 +141,7 @@ Polish is complete.
 
 ## How Vumi is made
 
-Vumi's code is written with Claude Code, an AI coding assistant, under my
-direction. I decide what Vumi does and how it looks, plan each change, and
-test every release on my own library before it ships.
+Vumi is made with substantial help from AI.
 
 ## License
 
