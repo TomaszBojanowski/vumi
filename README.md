@@ -21,6 +21,8 @@
     <source media="(prefers-color-scheme: dark)" srcset="data/screenshots/start-dark.png">
     <img src="data/screenshots/start-light.png" alt="The Start page with recently played albums and the Tuner">
   </picture>
+  <br>
+  <sub><a href="data/screenshots/CREDITS.md">Credits and licenses for the album covers shown in the screenshots</a></sub>
 </p>
 
 <p align="center">
